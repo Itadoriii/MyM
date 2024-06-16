@@ -5,9 +5,24 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Maderas M&M - Login </title>
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="stylelr.css">
     </head>
 <body>
-    
+    <main>
+        <div class="form-container">
+            <h1>iniciar sesion</h1>
+            <p>ingresa credenciales</p>
+            <form id="login-form">
+                <label for="User" class="sr-only">User</label>
+                <input type="text" name="user" id="user" placeholder="Nombre de usuario">
+                <label for="password" class="sr-only">Password</label>
+                <input type="password" name="password" id="password" placeholder="Contraseña">
+                <button type="submit">Iniciar sesion </button>
+                <p class="error escondido"> Error al iniciar sesion</p>
+            </form> 
+            <p>Todavia no tienes una cuenta? - <a href="/register"> Registrate </a></p>
+        </div>
+    </main>
+    <script src="login.js"></script>
 </body>
 </html>
