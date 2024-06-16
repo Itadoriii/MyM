@@ -3,6 +3,7 @@ import express from "express";
 import path from 'path';
 import {fileURLToPath} from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { methods as metodos } from "./controllers/authentication.controller.js";
 
 // SERVIDOR 
 const app = express()
@@ -40,8 +41,9 @@ const productos = [
 ] 
 
 // CONFIGURACION
-app.use(express.static('src'));
-
+app.use(express.json());
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'src')));
 // RUTAS 
 app.get('/', (req, res) => {
   res.send('Hello World!')
@@ -52,9 +54,14 @@ app.get('/login', (req, res) => {
 app.get('/register', (req, res) => {
   res.sendFile(__dirname  + "/src/register.html")
 })
+app.post('/api/register',metodos.register)
+
+
+app.get('/admin', (req, res) => {
+  res.sendFile(__dirname  + "/src/admin.html")
+})
 app.get('/productos', (req, res) => {
     res.send(productos)
   });
-
 
 
