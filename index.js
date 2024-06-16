@@ -4,6 +4,9 @@ import path from 'path';
 import {fileURLToPath} from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { methods as metodos } from "./controllers/authentication.controller.js";
+import { methods as authorization} from "./middlewares/authorization.js";
+
+import cookieParser from 'cookie-parser';
 
 // SERVIDOR 
 const app = express()
@@ -42,20 +45,22 @@ const productos = [
 
 // CONFIGURACION
 app.use(express.json());
-// Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'src')));
+app.use(cookieParser());
+
 // RUTAS 
-app.get('/', (req, res) => {
+app.get('/',authorization.soloPublico, (req, res) => {
   res.send('Hello World!')
 })
 app.get('/login', (req, res) => {
   res.sendFile(__dirname  + "/src/login.html")
 })
-app.get('/register', (req, res) => {
+app.get('/register',authorization.soloPublico, (req, res) => {
   res.sendFile(__dirname  + "/src/register.html")
 })
 app.post('/api/register',metodos.register)
-
+app.post('/api/login',metodos.login)
+app.get("/admin",authorization.soloAdmin,(req,res)=> res.sendFile(__dirname + "/src/admin.html"));
 
 app.get('/admin', (req, res) => {
   res.sendFile(__dirname  + "/src/admin.html")
