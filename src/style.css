@@ -219,51 +219,112 @@ body{
     height: auto;
 }
 
+#conteitemcarrusel{
+    height: 300px;
+    overflow: hidden;
+}
+.itemcarrusel {
+    border: 1 px solid black;
+    height: 300px;
+    position: relative;
+
+}
+.tarjetacarrusel {
+    background-color: #d1a159;
+    height: 100%;
+}
+.flechascarrusel {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding 20px
+
+}
+
+.conteiner {
+    padding 50px
+
+}
 
 .footer {
     background-color: #342F2C;
     background-image: url('assets/Vector_footer.png');
     color: #fff;
-    height: 500px;
     padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
-
-.footer-container {
-    display: flex;
-    justify-content: space-between;
-    width: 80%;
+.footer .footer-conteiner{
+    width: 100;
     max-width: 1200px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 50px;
+    padding: 45px 0px;
+    justify-content: left;
+
+}
+.footer .footer-conteiner .fbox iframe{
+    width: 400px;
+    margin-right: 20px;
 }
 
-.footer .map {
-    flex: 1;
-    padding-right: 20px;
-}
 
-.footer .info {
-    flex: 1;
-    padding-left: 20px;
+.footer.footer-conteiner .fbox ul {
+    list-style-type: none;
+    padding: 0;
 }
-
-.footer .info ul {
+.footer.footer-conteiner .fbox li {
     list-style-type: none;
     padding: 0;
 }
 
-.footer .info ul li {
+.footer.footer-conteiner .fbox  ul li {
+    display: flex;
+    align-items: center;
     margin-bottom: 10px;
+    list-style: none;
 }
-
-.footer .info ul li a {
+.footer.footer-conteiner .fbox  ul li a {
+    list-style-type: none;
+    padding: 0;
+}
+.footer.footer-conteiner .fbox  h2 {
     color: #fff;
-    text-decoration: none;
+    margin-bottom: 20px;
+    font-size: 20px;
 }
+.footer.footer-conteiner .red-social{
+    align-items: center;
+    list-style-type: none;
+}
+.footer.footer-conteiner .red-social a {
+    list-style-type: none;
 
-.footer .info ul li a:hover {
+}
+.info-icon {
+    width: 20px; 
+    height: auto;
+    margin-right: 10px; 
+}
+.rrss-icon{
+    width: 60px;
+    height: auto;
+    margin: auto;
+}
+.fbox a {
+    text-decoration: none;
+    color: #fdfafa;
+}
+.fbox a:hover{
     text-decoration: underline;
+}
+.imgbanner {
+    width: 100%;
+    height: 100%;
 }
 
 .hero.is-success {
@@ -290,6 +351,7 @@ body{
   
   a {
     color: #fff;
+    text-decoration: none;
   }
   
   a:hover {
@@ -298,4 +360,7 @@ body{
   
   .languages {
     margin-top: 10px;
+  }
+  i {
+    padding: 10px;
   }
