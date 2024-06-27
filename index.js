@@ -23,7 +23,9 @@ const productos = [
         precio: 50,
         imagen: "",
         stock: 30,
-        tipo: "madera"
+        tipo: "madera",
+        descripcion: "1x4x3,20MTS",
+        Linkimg: "https://www.maderasmym.cl/carro/image/thumbnails/18/6a/1x4jpg-100013-500x500.jpg"
     },
     {
         id:2,
@@ -31,7 +33,9 @@ const productos = [
         precio: 25990,
         imagen: "",
         stock: 30,
-        tipo: "madera"
+        tipo: "madera",
+        descripcion: "",
+        Linkimg:"https://www.maderasmym.cl/carro/image/thumbnails/18/6a/1x4jpg-100013-500x500.jpg"
     },
     {
         id:3,
@@ -39,7 +43,9 @@ const productos = [
         precio: 25777,
         imagen: "",
         stock: 30,
-        tipo: "madera"
+        tipo: "madera",
+        Linkimg:"https://www.maderasmym.cl/carro/image/thumbnails/18/6a/1x4jpg-100013-500x500.jpg"
+
     }
 ] 
 

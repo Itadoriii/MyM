@@ -56,23 +56,26 @@
 
 })();
 
-function displayProducts(productList, html) {
-    let productsHTML = '';
-    productList.forEach(element => {
-        productsHTML +=
-		`<div class="product-container">
-		<img src=${element.imagen}/>
-		<h3>${element.name}</h3>
-		<h2>Precio: <h1>
-		<h1>$ ${element.precio}</h2>
-		<button class="button-add" onclick="add('${element.name}', ${element.precio})">Agregar</button>
-		</div>`
+
+function displayProducts(products) {
+    const containers = ['itemcont1', 'itemcont2', 'itemcont3'];
+    products.forEach((product, index) => {
+      if (containers[index]) {
+        const container = document.querySelector(`.${containers[index]}`);
+        container.innerHTML = `
+          <div class="product">
+            <img src="${product.Linkimg}" alt="${product.name}" class="product-img">
+            <h2 class="product-name">${product.name}</h2>
+            <p class="product-description">${product.tipo}</p>
+            <p class="product-price">$${product.precio}</p>
+          </div>
+        `;
+      }
     });
-    document.getElementById(html).innerHTML = productsHTML;
-}
+  }
 window.onload = async () => {
     const productos = await (await fetch("/productos")).json();
     console.log(productos);
-    displayProducts(productos,"conteiner")
+    displayProducts(productos)
 
 }
