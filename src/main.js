@@ -66,8 +66,13 @@ function displayProducts(products) {
           <div class="product">
             <img src="${product.Linkimg}" alt="${product.name}" class="product-img">
             <h2 class="product-name">${product.name}</h2>
-            <p class="product-description">${product.tipo}</p>
+            <p class="product-tipo">${product.tipo}</p>
+            <p class="product-medida">${product.medida}</p>
+            <p class="product-description">${product.descripcion} ql</p>
             <p class="product-price">$${product.precio}</p>
+            <a href="#">Añadir al carro
+                <i class="fa-solid fa-cart-shopping" style="color: #ffffff;"></i>
+            </a>
           </div>
         `;
       }

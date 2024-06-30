@@ -19,19 +19,18 @@ app.listen(port, () => {
 const productos = [
     {
         id:1,
-        name: "Pino1",
-        precio: 50,
-        imagen: "",
+        name: "Pino Oregón bruto",
+        precio: 3470,
         stock: 30,
         tipo: "madera",
-        descripcion: "1x4x3,20MTS",
+        medida: "1x4x3,20MTs",
+        descripcion: "Pino oregón bruto en medida 1x4 pulgadas en 3,20 metros",
         Linkimg: "https://www.maderasmym.cl/carro/image/thumbnails/18/6a/1x4jpg-100013-500x500.jpg"
     },
     {
         id:2,
         name: "Pino2",
         precio: 25990,
-        imagen: "",
         stock: 30,
         tipo: "madera",
         descripcion: "",
@@ -41,7 +40,6 @@ const productos = [
         id:3,
         name: "pino3",
         precio: 25777,
-        imagen: "",
         stock: 30,
         tipo: "madera",
         Linkimg:"https://www.maderasmym.cl/carro/image/thumbnails/18/6a/1x4jpg-100013-500x500.jpg"
