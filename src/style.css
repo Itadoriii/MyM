@@ -266,9 +266,13 @@ body {
     grid-gap: 1em;
 }
 .conteiner .sidebar {
+    display: flex;
+    flex-direction: column;
     background-color: #5e7094;
     grid-area: slidebar;
+    padding: 20px;
 }
+
 .conteiner .itemcont1 {
     background-color: aliceblue;
     border-radius: 15px;
@@ -459,9 +463,6 @@ i {
     padding: 15px 20px;
     margin: 20px 50px;
     flex-direction: flex-end;
-  }
-  .fa-solid fa-cart-shopping{
-    width: 80%;
   }
 
  
