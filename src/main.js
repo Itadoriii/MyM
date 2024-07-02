@@ -68,7 +68,7 @@ function displayProducts(products) {
             <h2 class="product-name">${product.name}</h2>
             <p class="product-tipo">${product.tipo}</p>
             <p class="product-medida">${product.medida}</p>
-            <p class="product-description">${product.descripcion} ql</p>
+            <p class="product-description">${product.descripcion}</p>
             <p class="product-price">$${product.precio}</p>
             <a href="#">Añadir al carro
                 <i class="fa-solid fa-cart-shopping" style="color: #ffffff;"></i>
