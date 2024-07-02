@@ -21,9 +21,6 @@
     
                     <ul class="menu__nesting">
                         <li class="menu__inside">
-                            <a href="#" class="menu__link menu__link--inside">Bases metalicas</a>
-                        </li>
-                        <li class="menu__inside">
                             <a href="#" class="menu__link menu__link--inside">Pino oregon</a>
                         </li>
                         <li class="menu__inside">
@@ -31,6 +28,9 @@
                         </li>
                         <li class="menu__inside">
                             <a href="#" class="menu__link menu__link--inside">Placas metalicas</a>
+                        </li>
+                        <li class="menu__inside">
+                            <a href="#" class="menu__link menu__link--inside">Bases metalicas</a>
                         </li>
                     </ul>
                 </li>
@@ -54,10 +54,18 @@
                         <img src="assets/Cuenta.png" alt="Cuenta" class="menu__img">
                     </a>
                 </li>
-                <li class="menu__item">
-                    <a href="#" class="menu__link">Carros</a>
+                <!-- Contenedor del carrito -->
+               
+                <li class="menu__item" id="cart-container">
+                    <a href="#" class="menu__link" id="cart-link">Carros (<span class="cart-count">0</span>)</a>
                 </li>
-    
+                <div id="cartModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h2>Carrito de Compras</h2>
+                        <div class="cart-container"></div>
+                    </div>
+                </div>
             </ul>
 
             <div class="menu__hamburguer">
@@ -170,8 +178,7 @@
         </div>
     </footer>
     <script src="main.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-    <script src="supabase.js"></script>
 
 </body>
 </html>
+

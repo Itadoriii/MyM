@@ -1,28 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
-html  {
-    --s: 80px; /* control the size */
-    
-    --c:#6B5344 0;
-    --g:conic-gradient(at 50% 25%,#0000 75%,var(--c));
-    background:
-      repeating-linear-gradient(#0000 0 48%,var(--c) 50%),var(--g),
-      conic-gradient(#0000 75%,var(--c)) calc(var(--s)/4) calc(var(--s)/2),
-      var(--g) calc(var(--s)/2) var(--s) #F8ECC9;
-    background-size: var(--s) var(--s),var(--s) calc(2*var(--s));
-    animation: g16 2s infinite linear;
-  }
-  @keyframes g16 {
-    to {
-      background-position: 
-        0 0,
-        var(--s) 0,
-        calc(var(--s)/4) calc(var(--s)/2),
-        calc(var(--s)/-2) var(--s);
-    }
-  }
-  
 
+ 
 
 body{
     margin: 0;
@@ -32,6 +11,9 @@ body{
     align-items: center;
     min-height: 100svh;
     font-size: larger;
+    background-image: url('assets/Vectorlogin.svg');
+    background-color: #fab1a0;
+    background-size: cover;
 }
 .form-container{
     width: 500px;
@@ -57,7 +39,7 @@ input, button{
     
 }
 button{
-    background-color: #6B5344;
+    background-color: #d63031;
     color: white;
     font-weight: bold;
     cursor: pointer;
