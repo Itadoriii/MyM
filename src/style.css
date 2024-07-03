@@ -274,13 +274,8 @@ body {
     background-color: #ff7675;
     padding: 20px;
     grid-area: slidebar;
-    display: flex;
-    flex-direction: column;
 }
-.sidebar .cate{
-    padding: auto;
-    background-color: #1a8346;
-}
+
 .conteiner .itemcont1 {
     background-color: aliceblue;
     border-radius: 15px;
