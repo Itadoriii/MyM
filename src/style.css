@@ -272,7 +272,14 @@ body {
 }
 .conteiner .sidebar {
     background-color: #ff7675;
+    padding: 20px;
     grid-area: slidebar;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar .cate{
+    padding: auto;
+    background-color: #1a8346;
 }
 .conteiner .itemcont1 {
     background-color: aliceblue;
@@ -458,7 +465,7 @@ i {
     font-weight: bold;
     padding: 15px;
   }
-  .product a{
+  .addtocart {
     background-color: #1a8346;
     color: whitesmoke;
     padding: 15px 20px;
@@ -468,6 +475,7 @@ i {
   .fa-solid fa-cart-shopping{
     width: 80%;
   }
+
   .cart-count { font-size: 1.5em; }
   .cart-container { margin-top: 20px; }
   .cart-item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }

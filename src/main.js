@@ -58,7 +58,7 @@ function displayProducts(products) {
                     <p class="product-medida">${product.medida}</p>
                     <p class="product-description">${product.descripcion}</p>
                     <p class="product-price">$${product.precio}</p>
-                    <button onclick='addToCart({
+                    <button class="addtocart" onclick='addToCart({
                         "name": "${product.name}",
                         "tipo": "${product.tipo}",
                         "medida": "${product.medida}",
