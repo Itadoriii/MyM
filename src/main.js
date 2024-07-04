@@ -121,8 +121,10 @@ function updateCartDisplay() {
                     <p class="cart-product-medida">${product.medida}</p>
                     <p class="cart-product-description">${product.descripcion}</p>
                     <p class="cart-product-price">$${product.precio}</p>
-                    <button onclick="removeFromCart(${index})">Eliminar</button>
+                    <p class="cartcant">cantidad</p>
+                    <button class="cartelimin" onclick="removeFromCart(${index})">Eliminar</button>
                 </div>
+            
             `;
             cartContainer.appendChild(productElement); // Añadir el producto al contenedor
         });
