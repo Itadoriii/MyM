@@ -88,7 +88,15 @@ function saveCart() {
 }
 
 function addToCart(product) {
-    cart.push(product);
+    const existingProductIndex = cart.findIndex(p => p.name === product.name);
+
+    if (existingProductIndex !== -1) {
+        cart[existingProductIndex].quantity += 1;
+    } else {
+        product.quantity = 1;
+        cart.push(product);
+    }
+    
     saveCart();
     updateCartDisplay();
 }
@@ -99,18 +107,29 @@ function removeFromCart(productIndex) {
     updateCartDisplay();
 }
 
+function updateQuantity(index, quantity) {
+    cart[index].quantity += quantity;
+    if (cart[index].quantity < 1) {
+        cart[index].quantity = 1;
+    }
+    saveCart();
+    updateCartDisplay();
+}
+
 function updateCartDisplay() {
     const cartCount = document.querySelector('.cart-count');
     if (cartCount) {
         cartCount.textContent = cart.length;
     }
 
-    // Seleccionar el contenedor del carrito dentro del modal
     const cartContainer = document.querySelector('#cartModal .cart-container');
     if (cartContainer) {
         cartContainer.innerHTML = ''; // Limpiar el contenido anterior
+        let totalPrice = 0; // Inicializar el precio total
 
         cart.forEach((product, index) => {
+            totalPrice += product.precio * product.quantity; // Calcular el precio total
+
             const productElement = document.createElement('div');
             productElement.className = 'cart-item';
             productElement.innerHTML = `
@@ -121,13 +140,22 @@ function updateCartDisplay() {
                     <p class="cart-product-medida">${product.medida}</p>
                     <p class="cart-product-description">${product.descripcion}</p>
                     <p class="cart-product-price">$${product.precio}</p>
-                    <p class="cartcant">cantidad</p>
+                    <div class="cartcant-container">
+                        <button class="decrement" onclick="updateQuantity(${index}, -1)">-</button>
+                        <span class="cartcant">${product.quantity}</span>
+                        <button class="increment" onclick="updateQuantity(${index}, 1)">+</button>
+                    </div>
                     <button class="cartelimin" onclick="removeFromCart(${index})">Eliminar</button>
                 </div>
-            
             `;
-            cartContainer.appendChild(productElement); // Añadir el producto al contenedor
+            cartContainer.appendChild(productElement);
         });
+
+        // Mostrar el precio total
+        const totalPriceElement = document.createElement('div');
+        totalPriceElement.className = 'cart-total';
+        totalPriceElement.innerHTML = `<h3>Total: $${totalPrice.toFixed(2)}</h3>`;
+        cartContainer.appendChild(totalPriceElement);
     }
 }
 
@@ -156,4 +184,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
