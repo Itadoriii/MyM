@@ -2,7 +2,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 /* VARIABLES */
-
 :root {
     --blanco: #E0E0E0;
     --azul-opacidad: #e17055;
@@ -11,8 +10,7 @@
 }
 
 /* GENERALES */
-
-*{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -21,32 +19,37 @@
 body {
     font-family: 'Poppins', sans-serif;
     color: var(--blanco);
+    display: flex; /* Añade flexbox al body */
+    height: 100vh; /* Para que ocupe toda la altura de la ventana */
+    overflow: hidden; /* Para evitar scroll innecesario */
 }
 
-/* LAYOUT */
-
 .menu-dashboard {
-    max-width: 150px;
-    height: 100vh;
+    width: 250px; /* Ancho fijo para el menú */
+    height: 100%;
     background: var(--bg-menu);
     padding: 20px;
-    transition: max-width .3s ease;
-    justify-content: center;
-    align-items: center;
-    
+    transition: width .3s ease; /* Cambia de max-width a width */
+    display: flex;
+    flex-direction: column; /* Colocar elementos del menú en columna */
+}
+
+.main-content {
+    flex-grow: 1; /* Toma el espacio restante disponible */
+    padding: 20px;
+    background: var(--bg-body);
+    overflow-y: auto; /* Para permitir scroll si el contenido es largo */
 }
 
 .top-menu {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    
 }
 
 .top-menu .logo {
     display: flex;
     align-items: center;
-    
 }
 
 .top-menu .logo img {
@@ -74,7 +77,6 @@ body {
 }
 
 /* ENLACES MENU */
-
 .menu .enlace {
     width: 100%;
     padding: 20px 0 20px 17px;
@@ -85,12 +87,11 @@ body {
     cursor: pointer;
     font-size: 20px;
     transition: all .3s ease;
-    justify-content: center; 
+    justify-content: center;
 }
 
 .menu .enlace:hover {
     background: var(--azul-opacidad);
-
 }
 
 .menu .enlace i {
@@ -106,7 +107,7 @@ body {
 }
 
 .menu-dashboard.open {
-    max-width: 300px;
+    width: 300px;
 }
 
 .menu-dashboard.open .top-menu .logo span {

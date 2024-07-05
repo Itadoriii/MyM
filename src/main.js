@@ -52,18 +52,18 @@ function displayProducts(products) {
             const container = document.querySelector(`.${containers[index]}`);
             container.innerHTML = `
                 <div class="product">
-                    <img src="${product.Linkimg}" alt="${product.name}" class="product-img">
-                    <h2 class="product-name">${product.name}</h2>
+                    <img src="${product.Linkimg}" alt="${product.nombre_prod}" class="product-img">
+                    <h2 class="product-name">${product.nombre_prod}</h2>
                     <p class="product-tipo">${product.tipo}</p>
-                    <p class="product-medida">${product.medida}</p>
-                    <p class="product-description">${product.descripcion}</p>
-                    <p class="product-price">$${product.precio}</p>
+                    <p class="product-medida">${product.medidas}</p>
+                    <p class="product-description">${product.dimensiones}</p>
+                    <p class="product-price">$${product.precio_unidad}</p>
                     <button class="addtocart" onclick='addToCart({
-                        "name": "${product.name}",
+                        "name": "${product.nombre_prod}",
                         "tipo": "${product.tipo}",
-                        "medida": "${product.medida}",
-                        "descripcion": "${product.descripcion}",
-                        "precio": ${product.precio},
+                        "medida": "${product.medidas}",
+                        "descripcion": "${product.dimensiones}",
+                        "precio": ${product.precio_unidad},
                         "Linkimg": "${product.Linkimg}"
                     })'>
                         Añadir al carro
