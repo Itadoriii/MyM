@@ -184,3 +184,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+document.addEventListener('DOMContentLoaded', (event) => {
+    document.getElementById('search-form').addEventListener('submit', async (event) => {
+        event.preventDefault(); // Evita el comportamiento por defecto del formulario
+
+        const searchInput = document.getElementById('search-input').value;
+        const response = await fetch(`/productos?q=${encodeURIComponent(searchInput)}`);
+        const products = await response.json();
+
+        // Limpia los contenedores anteriores
+        ['itemcont1', 'itemcont2', 'itemcont3'].forEach(containerClass => {
+            const container = document.querySelector(`.${containerClass}`);
+            container.innerHTML = '';
+        });
+
+        // Muestra los nuevos productos
+        displayProducts(products);
+    });
+});
