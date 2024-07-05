@@ -60,3 +60,6 @@ button{
     overflow: hidden;
 
 }
+.resultado_oculto{
+    display: none;
+}
