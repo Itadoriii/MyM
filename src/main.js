@@ -190,20 +190,46 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', (event) => {
-    document.getElementById('search-form').addEventListener('submit', async (event) => {
-        event.preventDefault(); // Evita el comportamiento por defecto del formulario
-
-        const searchInput = document.getElementById('search-input').value;
-        const response = await fetch(`/productos?q=${encodeURIComponent(searchInput)}`);
+    const performSearch = async (query) => {
+        const response = await fetch(`/productos?q=${encodeURIComponent(query)}`);
         const products = await response.json();
-
+        // Elimina el contenido del contenedor 'conteitemcarrusel'
+        const conteitemcarrusel = document.getElementById('conteitemcarrusel');
+        
+        // Actualiza el texto del resultado de búsqueda
+        const resultadobusqueda = document.getElementById('resultq');
+        if (resultadobusqueda) {
+            resultadobusqueda.innerHTML = `<p>Resultado de su búsqueda: "${query}"</p>`;
+        }
+        if (conteitemcarrusel) {
+            conteitemcarrusel.remove()
+            resultadobusqueda.innerHTML = `<p>Resultado de su búsqueda: "${query}"</p>`;
+            console.log('Contenido de conteitemcarrusel eliminado');
+        } else {
+            console.log('Elemento conteitemcarrusel no encontrado');
+        }
         // Limpia los contenedores anteriores
-        ['itemcont1', 'itemcont2', 'itemcont3','itemcont4','itemcont5','itemcont6'].forEach(containerClass => {
+        ['itemcont1', 'itemcont2', 'itemcont3', 'itemcont4', 'itemcont5', 'itemcont6'].forEach(containerClass => {
             const container = document.querySelector(`.${containerClass}`);
             container.innerHTML = '';
         });
-
         // Muestra los nuevos productos
         displayProducts(products);
+    };
+
+    document.getElementById('search-form').addEventListener('submit', async (event) => {
+        event.preventDefault(); // Evita el comportamiento por defecto del formulario
+        const searchInput = document.getElementById('search-input').value;
+        await performSearch(searchInput);
+    });
+
+    // Añadir manejadores de clics a los enlaces de la barra lateral
+    const categoryLinks = document.querySelectorAll('.category-link');
+    categoryLinks.forEach(link => {
+        link.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const category = event.target.textContent.trim();
+            await performSearch(category);
+        });
     });
 });
