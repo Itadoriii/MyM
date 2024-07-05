@@ -46,13 +46,13 @@
 })();
 
 function displayProducts(products) {
-    const containers = ['itemcont1', 'itemcont2', 'itemcont3'];
+    const containers = ['itemcont1', 'itemcont2', 'itemcont3', 'itemcont4','itemcont5','itemcont6'];
     products.forEach((product, index) => {
         if (containers[index]) {
             const container = document.querySelector(`.${containers[index]}`);
             container.innerHTML = `
                 <div class="product">
-                    <img src="${product.Linkimg}" alt="${product.nombre_prod}" class="product-img">
+                    <img src="assets/productos/1.jpg" alt="${product.nombre_prod}" class="product-img">
                     <h2 class="product-name">${product.nombre_prod}</h2>
                     <p class="product-tipo">${product.tipo}</p>
                     <p class="product-medida">${product.medidas}</p>
@@ -65,7 +65,7 @@ function displayProducts(products) {
                         "medida": "${product.medidas}",
                         "descripcion": "${product.dimensiones}",
                         "precio": ${product.precio_unidad},
-                        "Linkimg": "${product.Linkimg}"
+                        "Linkimg": "${product.id_producto}.jpg"
                     })'>
                         Añadir al carro
                         <i class="fa-solid fa-cart-shopping" style="color: #ffffff;"></i>
@@ -137,7 +137,7 @@ function updateCartDisplay() {
             productElement.className = 'cart-item';
             productElement.innerHTML = `
                 <div class="cart-product">
-                    <img src="${product.Linkimg}" alt="${product.name}" class="cart-product-img">
+                    <img src="assets/productos/1.jpg" alt="${product.name}" class="cart-product-img">
                     <h2 class="cart-product-name">${product.name}</h2>
                     <p class="cart-product-tipo">${product.tipo}</p>
                     <p class="cart-product-medida">${product.medida}</p>
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const products = await response.json();
 
         // Limpia los contenedores anteriores
-        ['itemcont1', 'itemcont2', 'itemcont3'].forEach(containerClass => {
+        ['itemcont1', 'itemcont2', 'itemcont3','itemcont4','itemcont5','itemcont6'].forEach(containerClass => {
             const container = document.querySelector(`.${containerClass}`);
             container.innerHTML = '';
         });
