@@ -59,6 +59,7 @@ function displayProducts(products) {
                     <p class="product-description">${product.dimensiones}</p>
                     <p class="product-price">$${product.precio_unidad}</p>
                     <button class="addtocart" onclick='addToCart({
+                        "id_producto": "${product.id_producto}",
                         "name": "${product.nombre_prod}",
                         "tipo": "${product.tipo}",
                         "medida": "${product.medidas}",
@@ -75,6 +76,7 @@ function displayProducts(products) {
     });
 }
 
+
 window.onload = async () => {
     const productos = await (await fetch("/productos")).json();
     console.log(productos);
@@ -88,7 +90,7 @@ function saveCart() {
 }
 
 function addToCart(product) {
-    const existingProductIndex = cart.findIndex(p => p.name === product.name);
+    const existingProductIndex = cart.findIndex(p => p.id_producto === product.id_producto);
 
     if (existingProductIndex !== -1) {
         cart[existingProductIndex].quantity += 1;
@@ -115,6 +117,7 @@ function updateQuantity(index, quantity) {
     saveCart();
     updateCartDisplay();
 }
+
 
 function updateCartDisplay() {
     const cartCount = document.querySelector('.cart-count');
@@ -158,6 +161,7 @@ function updateCartDisplay() {
         cartContainer.appendChild(totalPriceElement);
     }
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCartDisplay();
