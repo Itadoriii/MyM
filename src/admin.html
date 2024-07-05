@@ -8,11 +8,7 @@
     <link href='https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css' rel='stylesheet'>
     <title>Admin</title>
 </head>
-
-
-
 <body>
-
     <div class="menu-dashboard">
         <!-- TOP MENU -->
         <div class="top-menu">
@@ -26,31 +22,30 @@
         </div>
         <!-- MENU -->
         <div class="menu">
-            <div class="enlace">
+            <div class="enlace" data-content="usuarios">
                 <i class="bx bx-user"></i>
                 <span>Usuarios</span>
             </div>
 
-            <div class="enlace">
+            <div class="enlace" data-content="productos">
                 <i class="bx bx-file-blank"></i>
-                <span>Archivos</span>
+                <span>Productos</span>
             </div>
 
-            <div class="enlace">
+            <div class="enlace" data-content="pedidos">
                 <i class="bx bx-cart"></i>
                 <span>Pedidos</span>
             </div>
-
-
+            <button class="button">Cerrar sesión</button>
         </div>
+        
     </div>
-    <main>
-
-        <button class="button">Cerrar sesion</button>
-                
-</main>
-<script src="admin.js"></script>
+    <main id="main-content">
+        <!-- Contenido dinámico se cargará aquí -->
+    </main>
+   
     
-</body>
 
+    <script src="admin.js"></script>
+</body>
 </html>
