@@ -271,9 +271,20 @@ body {
     grid-gap: 1em;
 }
 .conteiner .sidebar {
-    background-color: #ff7675;
-    padding: 20px;
+    background-color: aliceblue;
+    padding: 30px;
     grid-area: slidebar;
+    color: black;
+    display: flex;
+    flex-direction: column;
+}
+.conteiner .sidebar a{
+    color: rgb(0, 0, 0);
+}
+.conteiner .sidebar p a:hover{
+    cursor: pointer;
+    transform: scale(1.05);
+    transition: all 1s ease;
 }
 
 .conteiner .itemcont1 {
@@ -282,25 +293,48 @@ body {
 }
 .conteiner .itemcont1:hover{
     background-color: #e2d7d7b7;
-    cursor: pointer;
-    transform: scale(1.05);
-    transition: all 1s ease;
+   
 }
 .conteiner .itemcont2 {
-    background-color: #ce1313;
+    background-color: aliceblue;
+    border-radius: 15px;
     
 }
+.conteiner .itemcont2:hover{
+    background-color: #e2d7d7b7;
+   
+}
 .conteiner .itemcont3 {
-    background-color: #8013ce;
+    background-color: aliceblue;
+    border-radius: 15px;
+}
+.conteiner .itemcont3:hover{
+    background-color: #e2d7d7b7;
+   
 }
 .conteiner .itemcont4 {
-    background-color: #798489;
+    background-color: aliceblue;
+    border-radius: 15px;
+}
+.conteiner .itemcont4:hover{
+    background-color: #e2d7d7b7;
+   
 }
 .conteiner .itemcont5 {
-    background-color: #ce19;
+    background-color: aliceblue;
+    border-radius: 15px;
+}
+.conteiner .itemcont5:hover{
+    background-color: #e2d7d7b7;
+   
 }
 .conteiner .itemcont6{
-    background-color: #32c1da;
+    background-color: aliceblue;
+    border-radius: 15px;
+}
+.conteiner .itemcont6:hover{
+    background-color: #e2d7d7b7;
+   
 }
 
 .footer {
@@ -466,6 +500,12 @@ i {
     padding: 15px 20px;
     margin: 20px 50px;
     flex-direction: flex-end;
+    border: none;
+  }
+  .addtocart:hover {
+    cursor: pointer;
+    transform: scale(1.05);
+    transition: all 1s ease;
   }
   .fa-solid fa-cart-shopping{
     width: 80%;
