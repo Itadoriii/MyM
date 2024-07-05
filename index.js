@@ -43,14 +43,27 @@ app.get('/admin', (req, res) => {
   res.sendFile(__dirname + '/src/admin.html');
 });
 
+// app.js o el archivo principal de tu servidor Express
 app.get('/productos', async (req, res) => {
+  const searchQuery = req.query.q; // Obtiene el parámetro de búsqueda de la consulta
+
   try {
-    const [rows] = await pool.query('SELECT * FROM productos');
+    let query = 'SELECT * FROM productos';
+    const params = [];
+
+    if (searchQuery) {
+      query += ` WHERE nombre_prod LIKE ? OR tipo LIKE ? OR medidas LIKE ? OR dimensiones LIKE ? OR precio_unidad LIKE ?`;
+      const likeQuery = `%${searchQuery}%`;
+      params.push(likeQuery, likeQuery, likeQuery, likeQuery, likeQuery);
+    }
+
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 app.get('/api/usuarios', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM clientes'); // Asegúrate de que la tabla 'usuarios' existe y contiene datos.
