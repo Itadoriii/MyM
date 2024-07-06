@@ -42,6 +42,9 @@ app.get('/admin', authorization.soloAdmin, (req, res) => {
 app.get('/admin', (req, res) => {
   res.sendFile(__dirname + '/src/admin.html');
 });
+app.get('/profile', (req, res) => {
+  res.sendFile(__dirname + '/src/profile.html');
+});
 
 // app.js o el archivo principal de tu servidor Express
 app.get('/productos', async (req, res) => {
