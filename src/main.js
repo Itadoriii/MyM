@@ -3,14 +3,14 @@
     const list = document.querySelector('.menu__links');
     const menu = document.querySelector('.menu__hamburguer');
 
-    const addClick = ()=>{
-        listElements.forEach(element =>{
-            element.addEventListener('click', ()=>{
+    const addClick = () => {
+        listElements.forEach(element => {
+            element.addEventListener('click', () => {
                 let subMenu = element.children[1];
                 let height = 0;
                 element.classList.toggle('menu__item--active');
 
-                if(subMenu.clientHeight === 0){
+                if (subMenu.clientHeight === 0) {
                     height = subMenu.scrollHeight;
                 }
 
@@ -19,34 +19,68 @@
         });
     }
 
-    const deleteStyleHeight = ()=>{
-        listElements.forEach(element=>{
-            if(element.children[1].getAttribute('style')){
+    const deleteStyleHeight = () => {
+        listElements.forEach(element => {
+            if (element.children[1].getAttribute('style')) {
                 element.children[1].removeAttribute('style');
                 element.classList.remove('menu__item--active');
             }
         });
     }
 
-    window.addEventListener('resize', ()=>{
-        if(window.innerWidth > 800){
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 800) {
             deleteStyleHeight();
-            if(list.classList.contains('menu__links--show'))
+            if (list.classList.contains('menu__links--show'))
                 list.classList.remove('menu__links--show');
-        }else{
+        } else {
             addClick();
         }
     });
 
-    if(window.innerWidth <= 800){
+    if (window.innerWidth <= 800) {
         addClick();
     }
 
-    menu.addEventListener('click', ()=> list.classList.toggle('menu__links--show'));
+    menu.addEventListener('click', () => list.classList.toggle('menu__links--show'));
 })();
 
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+function checkLoggedIn() {
+    const token = getCookie('jwt');
+    return !!token; // Retorna true si el token existe
+}
+
+function updateLoginButton() {
+    const loginButton = document.getElementById('login-button');
+    if (checkLoggedIn()) {
+        loginButton.href = "/profile";
+        loginButton.innerHTML = `
+            <img src="assets/Cuenta.png" alt="Cuenta" class="menu__img">
+        `;
+    } else {
+        loginButton.href = "/login";
+        loginButton.innerHTML = `
+            <img src="assets/Cuenta.png" alt="Cuenta" class="menu__img">
+        `;
+    }
+}
+
+window.onload = async () => {
+    const productos = await (await fetch("/productos")).json();
+    console.log(productos);
+    displayProducts(productos);
+    updateLoginButton(); // Actualiza el botón al cargar la página
+    updateCartDisplay(); // Actualiza la visualización del carrito al cargar la página
+}
+
 function displayProducts(products) {
-    const containers = ['itemcont1', 'itemcont2', 'itemcont3', 'itemcont4','itemcont5','itemcont6'];
+    const containers = ['itemcont1', 'itemcont2', 'itemcont3', 'itemcont4', 'itemcont5', 'itemcont6'];
     products.forEach((product, index) => {
         if (containers[index]) {
             const container = document.querySelector(`.${containers[index]}`);
@@ -74,13 +108,6 @@ function displayProducts(products) {
             `;
         }
     });
-}
-
-
-window.onload = async () => {
-    const productos = await (await fetch("/productos")).json();
-    console.log(productos);
-    displayProducts(productos);
 }
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -117,7 +144,6 @@ function updateQuantity(index, quantity) {
     saveCart();
     updateCartDisplay();
 }
-
 
 function updateCartDisplay() {
     const cartCount = document.querySelector('.cart-count');
@@ -162,6 +188,12 @@ function updateCartDisplay() {
     }
 }
 
+function checkout() {
+    // Aquí puedes implementar la lógica para el checkout, por ejemplo, redirigir a una página de pago
+    alert('Procediendo al pago...');
+    // Por ejemplo, podrías redirigir a una página de checkout:
+    // window.location.href = '/checkout';
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCartDisplay();
@@ -190,6 +222,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', (event) => {
+    const button = document.querySelector(".button");
+    if (button) {
+        button.addEventListener("click", () => {
+            document.cookie = 'jwt=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            document.location.href = "/";
+        });
+    } else {
+        console.error("Button with class 'button' not found");
+    }
     const performSearch = async (query) => {
         const response = await fetch(`/productos?q=${encodeURIComponent(query)}`);
         const products = await response.json();
