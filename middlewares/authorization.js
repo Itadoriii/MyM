@@ -1,29 +1,27 @@
 import jsonwebtoken from "jsonwebtoken";
 import dotenv from "dotenv";
-import { usuarios } from "./../controllers/authentication.controller.js";
+import pool from './../db.js';
 
 dotenv.config();
 
-function soloAdmin(req, res, next) {
-    const logueado = revisarCookie(req);
+async function soloAdmin(req, res, next) {
+    const logueado = await revisarCookie(req);
     if (logueado && logueado.role === 'admin') return next();
     return res.redirect("/");
 }
 
-function soloPublico(req, res, next) {
-    const logueado = revisarCookie(req);
+async function soloPublico(req, res, next) {
+    const logueado = await revisarCookie(req);
     if (!logueado) return next();
     return res.redirect("/admin");
 }
 
-function revisarCookie(req) {
+async function revisarCookie(req) {
     try {
         const cookieJWT = req.headers.cookie.split("; ").find(cookie => cookie.startsWith("jwt=")).slice(4);
         const decodificada = jsonwebtoken.verify(cookieJWT, process.env.JWT_SECRET);
-        console.log(decodificada);
-        const usuarioAResvisar = usuarios.find(usuario => usuario.user === decodificada.user);
-        console.log(usuarioAResvisar);
-        if (!usuarioAResvisar) {
+        const [rows] = await pool.query('SELECT * FROM usuarios WHERE user = ?', [decodificada.user]);
+        if (rows.length === 0) {
             return false;
         }
         return decodificada; // Devolvemos la información decodificada del usuario
