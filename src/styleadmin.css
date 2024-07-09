@@ -22,6 +22,7 @@ body {
     display: flex; /* Añade flexbox al body */
     height: 100vh; /* Para que ocupe toda la altura de la ventana */
     overflow: hidden; /* Para evitar scroll innecesario */
+    
 }
 
 .menu-dashboard {
@@ -129,4 +130,8 @@ body {
 
 .menu-dashboard.open .menu .enlace span {
     opacity: 1;
+}
+.main-content{
+    color: #1111;
+    
 }
