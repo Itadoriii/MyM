@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 fetchUsuarios();
                 break;
             case 'productos':
-                fetchProductos()
+                fetchProductos();
                 break;
             case 'pedidos':
                 mainContent.innerHTML = '<h1>Pedidos</h1><p>Contenido de pedidos...</p>';
@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", function() {
             mainContent.innerHTML = '<p>Error loading usuarios.</p>';
         }
     }
+
     async function fetchProductos() {
         try {
             const response = await fetch('/productos');
@@ -69,7 +70,9 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log(productos); // Verifica la estructura de los datos recibidos
             if (Array.isArray(productos)) {
                 mainContent.innerHTML = `
-                    <h1>Productos</h1>
+                    <button class="button enlace" id="crearProductoBtn">Crear nuevo producto</button>
+
+                    <h1>Productos Actuales:</h1>
                     <table>
                         <thead>
                             <tr>
@@ -99,6 +102,68 @@ document.addEventListener("DOMContentLoaded", function() {
                         </tbody>
                     </table>
                 `;
+
+                document.getElementById('crearProductoBtn').addEventListener('click', () => {
+                    mainContent.innerHTML = `
+                        <h1>Crear Nuevo Producto</h1>
+                        <form id="nuevoProductoForm">
+                            <label for="nombre_prod">Nombre:</label>
+                            <input type="text" id="nombre_prod" name="nombre_prod" required><br>
+                            <label for="precio_unidad">Precio Unidad:</label>
+                            <input type="number" id="precio_unidad" name="precio_unidad" required><br>
+                            <label for="disponibilidad">Disponibilidad:</label>
+                            <input type="number" id="disponibilidad" name="disponibilidad" required><br>
+                            <label for="tipo">Tipo:</label>
+                            <input type="text" id="tipo" name="tipo" required><br>
+                            <label for="medidas">Medidas:</label>
+                            <input type="text" id="medidas" name="medidas" required><br>
+                            <label for="dimensiones">Dimensiones:</label>
+                            <input type="text" id="dimensiones" name="dimensiones" required><br>
+                            <label for="fecha_add">Fecha Añadido:</label>
+                            <input type="date" id="fecha_add" name="fecha_add" required><br>
+                            <button type="submit">Guardar Producto</button>
+                        </form>
+                    `;
+
+                    document.getElementById('nuevoProductoForm').addEventListener('submit', async (event) => {
+                        event.preventDefault();
+                        const formData = new FormData(event.target);
+                        const producto = {
+                            nombre_prod: formData.get('nombre_prod'),
+                            precio_unidad: formData.get('precio_unidad'),
+                            disponibilidad: formData.get('disponibilidad'),
+                            tipo: formData.get('tipo'),
+                            medidas: formData.get('medidas'),
+                            dimensiones: formData.get('dimensiones'),
+                            fecha_add: formData.get('fecha_add'),
+                        };
+
+                        console.log(producto); // Verifica que todos los campos están presentes y tienen valores correctos
+
+                        try {
+                            const response = await fetch('/api/productos', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(producto)
+                            });
+
+                            const result = await response.json();
+                            console.log('Server response:', result);
+
+                            if (response.ok) {
+                                loadContent('productos');
+                            } else {
+                                console.error('Error saving producto:', result);
+                                mainContent.innerHTML = `<p>Error saving producto: ${result.error}</p>`;
+                            }
+                        } catch (error) {
+                            console.error('Error saving producto:', error);
+                            mainContent.innerHTML = '<p>Error saving producto.</p>';
+                        }
+                    });
+                });
             } else {
                 mainContent.innerHTML = '<p>No se encontraron productos.</p>';
             }
@@ -107,6 +172,4 @@ document.addEventListener("DOMContentLoaded", function() {
             mainContent.innerHTML = '<p>Error loading productos.</p>';
         }
     }
-
-   
 });

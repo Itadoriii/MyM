@@ -59,9 +59,8 @@ app.get('/profile', (req, res) => {
   res.sendFile(__dirname + '/src/profile.html');
 });
 
-// app.js o el archivo principal de tu servidor Express
 app.get('/productos', async (req, res) => {
-  const searchQuery = req.query.q; // Obtiene el parámetro de búsqueda de la consulta
+  const searchQuery = req.query.q; 
 
   try {
     let query = 'SELECT * FROM productos';
@@ -84,6 +83,26 @@ app.get('/api/usuarios', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM clientes'); // Asegúrate de que la tabla 'usuarios' existe y contiene datos.
     res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+);
+// Nueva ruta POST para crear productos
+app.post('/api/productos', async (req, res) => {
+  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
+
+  console.log(req.body); // Verifica que los datos están llegando correctamente
+
+  if (!nombre_prod || !precio_unidad || !disponibilidad || !tipo || !medidas || !dimensiones || !fecha_add) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add];
+    await pool.query(query, params);
+    res.status(201).json({ message: 'Producto creado exitosamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
