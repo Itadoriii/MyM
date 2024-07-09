@@ -225,14 +225,14 @@ body {
 }
 
 #conteitemcarrusel {
-    height: 300px;
+    height: 400px;
     overflow: hidden;
     position: relative;
     z-index: 1; 
 }
 
 .itemcarrusel {
-    height: 350px;
+    height: 500px;
     position: relative;
     padding: 20px;
 }
@@ -579,7 +579,7 @@ i {
       font-size: 28px;
       font-weight: bold;
   }
-  .close:hover,
+  .close:hover
   .close:focus {
       color: black;
       text-decoration: none;
