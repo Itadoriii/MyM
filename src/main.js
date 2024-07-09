@@ -85,22 +85,22 @@ function displayProducts(products) {
         if (containers[index]) {
             const container = document.querySelector(`.${containers[index]}`);
             container.innerHTML = `
-                <div class="product">
+                <div class="product" onclick="redirectToProductPage('${product.id_producto}')">
                     <img src="assets/productos/1.jpg" alt="${product.nombre_prod}" class="product-img">
                     <h2 class="product-name">${product.nombre_prod}</h2>
                     <p class="product-tipo">${product.tipo}</p>
                     <p class="product-medida">${product.medidas}</p>
                     <p class="product-description">${product.dimensiones}</p>
                     <p class="product-price">$${product.precio_unidad}</p>
-                    <button class="addtocart" onclick='addToCart({
-                        "id_producto": "${product.id_producto}",
-                        "name": "${product.nombre_prod}",
-                        "tipo": "${product.tipo}",
-                        "medida": "${product.medidas}",
-                        "descripcion": "${product.dimensiones}",
-                        "precio": ${product.precio_unidad},
-                        "Linkimg": "${product.id_producto}.jpg"
-                    })'>
+                    <button class="addtocart" onclick="event.stopPropagation(); addToCart({
+                        id_producto: '${product.id_producto}',
+                        name: '${product.nombre_prod}',
+                        tipo: '${product.tipo}',
+                        medida: '${product.medidas}',
+                        descripcion: '${product.dimensiones}',
+                        precio: ${product.precio_unidad},
+                        Linkimg: '${product.id_producto}.jpg'
+                    })">
                         Añadir al carro
                         <i class="fa-solid fa-cart-shopping" style="color: #ffffff;"></i>
                     </button>  
@@ -109,6 +109,11 @@ function displayProducts(products) {
         }
     });
 }
+
+function redirectToProductPage(productId) {
+    window.location.href = 'detalleproducto.html?product=' + productId;
+}
+
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
