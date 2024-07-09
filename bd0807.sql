@@ -137,6 +137,33 @@ LOCK TABLES `productos` WRITE;
 INSERT INTO `productos` VALUES (1,'Pino oregon',15000,'3m','cepillado','7/4/2024','30','5x5x2'),(2,'Pino oregon',6666,'1m','natural','7/4/2024','2','5x3x1'),(3,'Madera normal',12,'5m','cepillado','7/4/2024','2','2x2x2'),(4,'Tablas',242,'2m','natural','7/4/2024','2','2x3x4');
 /*!40000 ALTER TABLE `productos` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `usuarios`
+--
+
+DROP TABLE IF EXISTS `usuarios`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `usuarios` (
+  `id_usuarios` int NOT NULL AUTO_INCREMENT,
+  `user` varchar(45) DEFAULT NULL,
+  `password` varchar(100) DEFAULT NULL,
+  `email` varchar(45) DEFAULT NULL,
+  `role` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id_usuarios`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `usuarios`
+--
+
+LOCK TABLES `usuarios` WRITE;
+/*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
+INSERT INTO `usuarios` VALUES (1,'a','$2b$05$6y5hh4Eg.pES9vCaSr/RIuMvxWOFbN96Qki84Nkfy/qHv9ElCfwIK','a@a.cl','admin'),(2,'b','$2b$05$b4/ET8phIZjzJMbv3ha9euPUB3bbUTScY9BfkyhxZOKfrdwxy1KW6','b@b.cl','user'),(3,'c','$2b$05$boJ.mgnbYO/Xvyff6VexhuKMunQiLfNHXA4TgqtdScg9f4pvADztO','c@c.cl','user');
+/*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
+UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -147,4 +174,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-07-04 22:38:51
+-- Dump completed on 2024-07-08 18:07:08
