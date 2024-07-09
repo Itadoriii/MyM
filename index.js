@@ -58,6 +58,9 @@ app.get('/admin', authorization.soloAdmin, (req, res) => {
 app.get('/profile', (req, res) => {
   res.sendFile(__dirname + '/src/profile.html');
 });
+app.get('/aboutus', (req, res) => {
+  res.sendFile(__dirname + '/src/sobrenosotros.html');
+});
 
 app.get('/productos', async (req, res) => {
   const searchQuery = req.query.q; 
