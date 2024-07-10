@@ -86,7 +86,7 @@ function displayProducts(products) {
             const container = document.querySelector(`.${containers[index]}`);
             container.innerHTML = `
                 <div class="product" onclick="redirectToProductPage('${product.id_producto}')">
-                    <img src="assets/productos/1.jpg" alt="${product.nombre_prod}" class="product-img">
+                    <img src="assets/productos/${product.id_producto}.jpg"alt="${product.nombre_prod}" class="product-img">
                     <h2 class="product-name">${product.nombre_prod}</h2>
                     <p class="product-tipo">${product.tipo}</p>
                     <p class="product-medida">${product.medidas}</p>
