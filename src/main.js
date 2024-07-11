@@ -85,7 +85,7 @@ function displayProducts(products) {
         if (containers[index]) {
             const container = document.querySelector(`.${containers[index]}`);
             container.innerHTML = `
-                <div class="product" onclick="redirectToProductPage('${product.id_producto}')">
+                <div class="product" onclick="displayCard('${product.id_producto}')">
                     <img src="assets/productos/${product.id_producto}.jpg"alt="${product.nombre_prod}" class="product-img">
                     <h2 class="product-name">${product.nombre_prod}</h2>
                     <p class="product-tipo">${product.tipo}</p>
@@ -110,9 +110,57 @@ function displayProducts(products) {
     });
 }
 
-function redirectToProductPage(productId) {
-    window.location.href = 'detalleproducto.html?product=' + productId;
+function displayCard(productId) {
+    fetch(`/productos/${productId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(product => {
+            // Asegúrate de que el contenedor principal exista
+            const contentContainer = document.getElementById('conteiner');
+            if (!contentContainer) {
+                console.error('Content container not found');
+                return;
+            }
+
+            // Elimina el contenido del contenedor principal
+            contentContainer.innerHTML = '';
+
+            // Inserta el contenido del producto
+            const productContainer = document.createElement('div');
+            productContainer.className = 'product-details';
+            productContainer.innerHTML = `
+                <img src="assets/productos/${product.id_producto}.jpg" alt="${product.nombre_prod}" class="product-img">
+                <h2 class="product-name">${product.nombre_prod}</h2>
+                <p class="product-tipo"><strong>Tipo:</strong> ${product.tipo}</p>
+                <p class="product-medida"><strong>Medidas:</strong> ${product.medidas}</p>
+                <p class="product-description"><strong>Dimensiones:</strong> ${product.dimensiones}</p>
+                <p class="product-disponibilidad"><strong>Disponibilidad:</strong> ${product.disponibilidad}</p>
+                <p class="product-price"><strong>Precio:</strong> $${product.precio_unidad}</p>
+                <button class="addtocart" onclick="addToCart({
+                    id_producto: '${product.id_producto}',
+                    name: '${product.nombre_prod}',
+                    tipo: '${product.tipo}',
+                    medida: '${product.medidas}',
+                    descripcion: '${product.dimensiones}',
+                    disponibilidad: '${product.disponibilidad}',
+                    precio: ${product.precio_unidad},
+                    Linkimg: '${product.id_producto}.jpg'
+                })">
+                    Añadir al carro
+                    <i class="fa-solid fa-cart-shopping" style="color: #ffffff;"></i>
+                </button>  
+            `;
+            contentContainer.appendChild(productContainer);
+        })
+        .catch(error => {
+            console.error('Error fetching product:', error);
+        });
 }
+
 
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
