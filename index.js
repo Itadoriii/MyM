@@ -62,6 +62,8 @@ app.get('/aboutus', (req, res) => {
   res.sendFile(__dirname + '/src/sobrenosotros.html');
 });
 
+
+
 app.get('/productos', async (req, res) => {
   const searchQuery = req.query.q; 
 
@@ -81,6 +83,26 @@ app.get('/productos', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+app.get('/productos/:productId', async (req, res) => {
+  const productId = req.params.productId;
+
+  try {
+    const [rows] = await pool.query('SELECT * FROM productos WHERE id_producto = ?', [productId]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).json({ error: 'Producto no encontrado' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
 
 app.get('/api/usuarios', async (req, res) => {
   try {
