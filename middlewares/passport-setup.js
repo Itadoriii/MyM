@@ -2,6 +2,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import pool from '../db.js';
 import dotenv from 'dotenv';
+import jsonwebtoken from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -27,20 +28,20 @@ passport.use(new GoogleStrategy({
         newUser.id = result.insertId;
         user = newUser;
       }
-      done(null, user);
+      return done(null, user);
     } catch (err) {
-      done(err, null);
+      return done(err, null);
     }
   }
 ));
 
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  done(null, user.id_usuarios);
 });
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [id]);
+    const [rows] = await pool.query('SELECT * FROM usuarios WHERE id_usuarios = ?', [id]);
     done(null, rows[0]);
   } catch (err) {
     done(err, null);
