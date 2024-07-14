@@ -32,20 +32,23 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // MIDDLEWARE PARA PROTEGER RUTAS
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const token = req.cookies.jwt;
   if (!token) {
     return res.redirect('/login');
   }
   try {
     const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const [rows] = await pool.query('SELECT * FROM usuarios WHERE user = ?', [decoded.user]);
+    if (rows.length === 0) {
+      return res.redirect('/login');
+    }
+    req.user = rows[0]; // Asignamos los datos completos del usuario a `req.user`
     next();
   } catch (err) {
     return res.redirect('/login');
   }
 };
-
 // RUTAS 
 app.get('/', authorization.soloPublico, (req, res) => {
   res.send('Hello World!');
@@ -122,7 +125,14 @@ app.get('/productos/:productId', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+app.get('/api/user', verifyToken, (req, res) => {
+  res.json({
+    user: req.user.user,
+    email: req.user.email,
+    role: req.user.role,
+    google_id: req.user.google_id
+  });
+});
 app.get('/api/usuarios', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM clientes'); // Asegúrate de que la tabla 'usuarios' existe y contiene datos.
