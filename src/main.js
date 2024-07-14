@@ -49,15 +49,22 @@ function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
 }
 
 function checkLoggedIn() {
     const token = getCookie('jwt');
+    console.log("JWT Token in checkLoggedIn:", token); // Verificar el token
     return !!token; // Retorna true si el token existe
 }
 
 function updateLoginButton() {
     const loginButton = document.getElementById('login-button');
+    if (!loginButton) {
+        console.error("login-button not found in DOM");
+        return;
+    }
+    console.log("Updating login button"); // Añadir log
     if (checkLoggedIn()) {
         loginButton.href = "/profile";
         loginButton.innerHTML = `
@@ -70,7 +77,6 @@ function updateLoginButton() {
         `;
     }
 }
-
 window.onload = async () => {
     const productos = await (await fetch("/productos")).json();
     console.log(productos);
@@ -86,7 +92,7 @@ function displayProducts(products) {
             const container = document.querySelector(`.${containers[index]}`);
             container.innerHTML = `
                 <div class="product" onclick="displayCard('${product.id_producto}')">
-                    <img src="assets/productos/${product.id_producto}.jpg"alt="${product.nombre_prod}" class="product-img">
+                    <img src="assets/productos/${product.id_producto}.jpg" alt="${product.nombre_prod}" class="product-img">
                     <h2 class="product-name">${product.nombre_prod}</h2>
                     <p class="product-tipo">${product.tipo}</p>
                     <p class="product-medida">${product.medidas}</p>
@@ -119,17 +125,14 @@ function displayCard(productId) {
             return response.json();
         })
         .then(product => {
-            // Asegúrate de que el contenedor principal exista
             const contentContainer = document.getElementById('conteiner');
             if (!contentContainer) {
                 console.error('Content container not found');
                 return;
             }
 
-            // Elimina el contenido del contenedor principal
             contentContainer.innerHTML = '';
 
-            // Inserta el contenido del producto
             const productContainer = document.createElement('div');
             productContainer.className = 'product-details';
             productContainer.innerHTML = `
@@ -160,8 +163,6 @@ function displayCard(productId) {
             console.error('Error fetching product:', error);
         });
 }
-
-
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
@@ -233,7 +234,6 @@ function updateCartDisplay() {
             cartContainer.appendChild(productElement);
         });
 
-        // Mostrar el precio total
         const totalPriceElement = document.createElement('div');
         totalPriceElement.className = 'cart-total';
         totalPriceElement.innerHTML = `<h3>Total: $${totalPrice.toFixed(2)}</h3>`;
@@ -242,14 +242,12 @@ function updateCartDisplay() {
 }
 
 function checkout() {
-    // Aquí puedes implementar la lógica para el checkout, por ejemplo, redirigir a una página de pago
     alert('Procediendo al pago...');
-    // Por ejemplo, podrías redirigir a una página de checkout:
-    // window.location.href = '/checkout';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCartDisplay();
+    
 
     const cartLink = document.getElementById('cart-link');
     const modal = document.getElementById('cartModal');
@@ -272,9 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.style.display = 'none';
         }
     });
-});
 
-document.addEventListener('DOMContentLoaded', (event) => {
     const button = document.querySelector(".button");
     if (button) {
         button.addEventListener("click", () => {
@@ -284,40 +280,32 @@ document.addEventListener('DOMContentLoaded', (event) => {
     } else {
         console.error("Button with class 'button' not found");
     }
+
     const performSearch = async (query) => {
         const response = await fetch(`/productos?q=${encodeURIComponent(query)}`);
         const products = await response.json();
-        // Elimina el contenido del contenedor 'conteitemcarrusel'
         const conteitemcarrusel = document.getElementById('conteitemcarrusel');
-        
-        // Actualiza el texto del resultado de búsqueda
         const resultadobusqueda = document.getElementById('resultq');
         if (resultadobusqueda) {
             resultadobusqueda.innerHTML = `<p>Resultado de su búsqueda: "${query}"</p>`;
         }
         if (conteitemcarrusel) {
-            conteitemcarrusel.remove()
+            conteitemcarrusel.remove();
             resultadobusqueda.innerHTML = `<p>Resultado de su búsqueda: "${query}"</p>`;
-            console.log('Contenido de conteitemcarrusel eliminado');
-        } else {
-            console.log('Elemento conteitemcarrusel no encontrado');
         }
-        // Limpia los contenedores anteriores
         ['itemcont1', 'itemcont2', 'itemcont3', 'itemcont4', 'itemcont5', 'itemcont6'].forEach(containerClass => {
             const container = document.querySelector(`.${containerClass}`);
             container.innerHTML = '';
         });
-        // Muestra los nuevos productos
         displayProducts(products);
     };
 
     document.getElementById('search-form').addEventListener('submit', async (event) => {
-        event.preventDefault(); // Evita el comportamiento por defecto del formulario
+        event.preventDefault(); 
         const searchInput = document.getElementById('search-input').value;
         await performSearch(searchInput);
     });
 
-    // Añadir manejadores de clics a los enlaces de la barra lateral
     const categoryLinks = document.querySelectorAll('.category-link');
     categoryLinks.forEach(link => {
         link.addEventListener('click', async (event) => {
@@ -326,4 +314,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
             await performSearch(category);
         });
     });
+
+    updateLoginButton();// Asegúrate de actualizar el botón después de que el DOM esté completamente cargado
 });

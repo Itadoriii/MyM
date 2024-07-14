@@ -6,8 +6,13 @@ import passport from 'passport';
 import session from 'express-session';
 import { methods as metodos } from './controllers/authentication.controller.js';
 import { methods as authorization } from './middlewares/authorization.js';
+import isAuthenticated from './middlewares/isAuthenticated.js'; // Importa el nuevo middleware
 import './middlewares/passport-setup.js'; // Importa la configuración de passport
 import pool from './db.js';
+import jsonwebtoken from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,12 +31,27 @@ app.use(session({ secret: 'your_secret_key', resave: false, saveUninitialized: t
 app.use(passport.initialize());
 app.use(passport.session());
 
+// MIDDLEWARE PARA PROTEGER RUTAS
+const verifyToken = (req, res, next) => {
+  const token = req.cookies.jwt;
+  if (!token) {
+    return res.redirect('/login');
+  }
+  try {
+    const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.redirect('/login');
+  }
+};
+
 // RUTAS 
 app.get('/', authorization.soloPublico, (req, res) => {
   res.send('Hello World!');
 });
 
-app.get('/login', (req, res) => {
+app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
   res.sendFile(__dirname + '/src/login.html');
 });
 
@@ -48,21 +68,22 @@ app.get('/auth/google',
 app.get('/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: '/login' }),
   (req, res) => {
-    res.redirect('/admin');
+    const token = jsonwebtoken.sign({ user: req.user.user, role: req.user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.cookie('jwt', token, { httpOnly: true, secure: false }); // Asegúrate de que `secure` esté en false para pruebas locales
+    res.redirect('/profile');
   });
 
-app.get('/admin', authorization.soloAdmin, (req, res) => {
+app.get('/admin', verifyToken, authorization.soloAdmin, (req, res) => {
   res.sendFile(__dirname + '/src/admin.html');
 });
 
-app.get('/profile', (req, res) => {
+app.get('/profile', verifyToken, (req, res) => {
   res.sendFile(__dirname + '/src/profile.html');
 });
+
 app.get('/aboutus', (req, res) => {
   res.sendFile(__dirname + '/src/sobrenosotros.html');
 });
-
-
 
 app.get('/productos', async (req, res) => {
   const searchQuery = req.query.q; 
@@ -83,8 +104,10 @@ app.get('/productos', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-
+app.get('/logout', (req, res) => {
+  res.clearCookie('jwt'); // Elimina la cookie JWT
+  res.redirect('/'); // Redirige al usuario a la página de inicio de sesión
+});
 app.get('/productos/:productId', async (req, res) => {
   const productId = req.params.productId;
 
@@ -100,10 +123,6 @@ app.get('/productos/:productId', async (req, res) => {
   }
 });
 
-
-
-
-
 app.get('/api/usuarios', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM clientes'); // Asegúrate de que la tabla 'usuarios' existe y contiene datos.
@@ -111,8 +130,8 @@ app.get('/api/usuarios', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}
-);
+});
+
 // Nueva ruta POST para crear productos
 app.post('/api/productos', async (req, res) => {
   const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
