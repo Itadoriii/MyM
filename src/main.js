@@ -136,14 +136,14 @@ function displayCard(productId) {
             const productContainer = document.createElement('div');
             productContainer.className = 'product-details';
             productContainer.innerHTML = `
-                <img src="assets/productos/${product.id_producto}.jpg" alt="${product.nombre_prod}" class="product-img">
+                <img src="assets/productos/${product.id_producto}.jpg" alt="${product.nombre_prod}" class="pproduct-img">
                 <h2 class="product-name">${product.nombre_prod}</h2>
                 <p class="product-tipo"><strong>Tipo:</strong> ${product.tipo}</p>
                 <p class="product-medida"><strong>Medidas:</strong> ${product.medidas}</p>
                 <p class="product-description"><strong>Dimensiones:</strong> ${product.dimensiones}</p>
                 <p class="product-disponibilidad"><strong>Disponibilidad:</strong> ${product.disponibilidad}</p>
                 <p class="product-price"><strong>Precio:</strong> $${product.precio_unidad}</p>
-                <button class="addtocart" onclick="addToCart({
+                <button class="paddtocart" onclick="addToCart({
                     id_producto: '${product.id_producto}',
                     name: '${product.nombre_prod}',
                     tipo: '${product.tipo}',

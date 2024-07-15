@@ -660,3 +660,55 @@ i {
     width: 30px;
     height: 30px;
 }
+.product-details{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 50px 25px 25px 50px 50px;
+    grid-template-areas:
+     "img nombre nombre"
+     "img tipo ."
+     "img medida ."
+     "img descrip dispo"
+     "img precio carro"
+    ;
+    width: 1200px;
+    height: 300px;
+    gap: 1em;
+    background-color: #ccc;
+    text-align: left;
+}
+.product-tipo{
+    grid-area: tipo;
+}
+.product-description{
+    grid-area: descrip;
+}
+.pproduct-img{
+    grid-area: img;
+    height: 300px;
+
+}
+.product-name{
+   grid-area: nombre;
+}
+.product-medida{
+    grid-area: medida;
+}
+.product-disponibilidad{
+    grid-area: dispo;
+}
+.product-price{
+    grid-area: precio;
+
+}
+.paddtocart {
+    background-color: #e17055;
+    color: whitesmoke;
+    grid-area: carro;
+    border: none;
+  }
+  .paddtocart:hover {
+    cursor: pointer;
+    transform: scale(1.05);
+    transition: all 1s ease;
+  }
