@@ -671,11 +671,12 @@ i {
      "img descrip dispo"
      "img precio carro"
     ;
-    width: 1200px;
-    height: 300px;
+    width: 1250px;
+    height: 350px;
     gap: 1em;
-    background-color: #ccc;
+    background-color: #f1f1f1;
     text-align: left;
+    padding: 15px;
 }
 .product-tipo{
     grid-area: tipo;
