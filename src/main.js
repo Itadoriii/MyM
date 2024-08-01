@@ -81,7 +81,6 @@ window.onload = async () => {
     const productos = await (await fetch("/productos")).json();
     console.log(productos);
     displayProducts(productos);
-    updateLoginButton(); // Actualiza el botón al cargar la página
     updateCartDisplay(); // Actualiza la visualización del carrito al cargar la página
 }
 
@@ -162,6 +161,11 @@ function displayCard(productId) {
         .catch(error => {
             console.error('Error fetching product:', error);
         });
+        const conteitemcarrusel = document.getElementById('conteitemcarrusel');
+        if (conteitemcarrusel) {
+            conteitemcarrusel.remove();
+            resultadobusqueda.innerHTML = `<p>Resultado de su búsqueda: "${query}"</p>`;
+        }
 }
 
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
