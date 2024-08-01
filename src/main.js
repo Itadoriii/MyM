@@ -251,12 +251,30 @@ function checkout() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCartDisplay();
-    
-
     const cartLink = document.getElementById('cart-link');
     const modal = document.getElementById('cartModal');
     const span = document.getElementsByClassName('close')[0];
+    var printButton = document.getElementById('printCart');
+    var generateButton = document.getElementById('generateOrder');
+    
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
 
+    printButton.onclick = function() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        console.log("imprimiendo carrito")
+        console.log(cart);
+        
+    }
+
+    generateButton.onclick = function() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        console.log("generando pedido...")
+        console.log(cart);
+    }
     if (cartLink) {
         cartLink.addEventListener('click', () => {
             modal.style.display = 'block';
@@ -319,5 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    
     updateLoginButton();// Asegúrate de actualizar el botón después de que el DOM esté completamente cargado
 });
