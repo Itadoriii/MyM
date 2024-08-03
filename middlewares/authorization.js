@@ -16,7 +16,7 @@ async function soloPublico(req, res, next) {
     return res.redirect("/profile");
 }
 
-async function revisarCookie(req) {
+export async function revisarCookie(req) {
     try {
         const cookieJWT = req.cookies.jwt; // Cambiar para usar req.cookies.jwt
         console.log("JWT Cookie:", cookieJWT); // Verificar la cookie

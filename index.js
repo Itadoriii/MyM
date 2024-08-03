@@ -11,6 +11,7 @@ import './middlewares/passport-setup.js'; // Importa la configuración de passpo
 import pool from './db.js';
 import jsonwebtoken from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { revisarCookie } from './middlewares/authorization.js';
 
 dotenv.config();
 
@@ -133,11 +134,15 @@ app.get('/api/user', verifyToken, (req, res) => {
     google_id: req.user.google_id
   });
 });
+
 app.get('/api/usuarios', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM clientes'); // Asegúrate de que la tabla 'usuarios' existe y contiene datos.
+    const [rows] = await pool.query('SELECT * FROM usuarios');
+    console.log('Número de usuarios encontrados:', rows.length);
+    console.log('Usuarios:', rows);
     res.json(rows);
   } catch (err) {
+    console.error('Error al obtener usuarios:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -159,5 +164,99 @@ app.post('/api/productos', async (req, res) => {
     res.status(201).json({ message: 'Producto creado exitosamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/generar-pedido', async (req, res) => {
+  const cart = req.body;
+  const connection = await pool.getConnection();
+
+  try {
+      const userData = await revisarCookie(req);
+      if (!userData) {
+          return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+      }
+
+      await connection.beginTransaction();
+
+      // Obtener el id_usuarios del usuario autenticado
+      const [userResult] = await connection.query(
+          'SELECT id_usuarios FROM usuarios WHERE user = ?',
+          [userData.user]
+      );
+      
+      if (userResult.length === 0) {
+          throw new Error('Usuario no encontrado');
+      }
+      
+      const userId = userResult[0].id_usuarios;
+
+      console.log('Intentando insertar pedido para usuario ID:', userId);
+
+      // Calcular el precio total del carrito
+      const precioTotal = cart.reduce((total, item) => total + item.precio * item.quantity, 0);
+
+      // Insertar en la tabla pedidos
+      const [pedidoResult] = await connection.query(
+          'INSERT INTO pedidos (id_usuario, precio_total, fecha_pedido) VALUES (?, ?, NOW())',
+          [userId, precioTotal]
+      );
+
+      const idPedido = pedidoResult.insertId;
+
+      // Insertar detalles del pedido
+      for (const item of cart) {
+          await connection.query(
+              'INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_detalle) VALUES (?, ?, ?, ?)',
+              [idPedido, item.id_producto, item.quantity, item.precio]
+          );
+
+          // Actualizar el stock del producto
+          await connection.query(
+              'UPDATE productos SET disponibilidad = disponibilidad - ? WHERE id_producto = ?',
+              [item.quantity, item.id_producto]
+          );
+      }
+
+      await connection.commit();
+      res.json({ success: true, id_pedido: idPedido });
+  } catch (error) {
+      await connection.rollback();
+      console.error('Error al generar el pedido:', error);
+      res.status(500).json({ success: false, error: 'Error al generar el pedido: ' + error.message });
+  } finally {
+      connection.release();
+  }
+});
+
+app.get('/api/pedidos', async (req, res) => {
+  try {
+      const [pedidos] = await pool.query(`
+          SELECT p.id_pedido, p.id_usuario, p.precio_total, p.fecha_pedido,
+                 u.user, u.email
+          FROM pedidos p
+          JOIN usuarios u ON p.id_usuario = u.id_usuarios
+          ORDER BY p.fecha_pedido DESC
+      `);
+
+      const pedidosConDetalles = await Promise.all(pedidos.map(async (pedido) => {
+          const [detalles] = await pool.query(`
+              SELECT dp.id_producto, dp.cantidad, dp.precio_detalle,
+                     pr.nombre_prod
+              FROM detalle_pedido dp
+              JOIN productos pr ON dp.id_producto = pr.id_producto
+              WHERE dp.id_pedido = ?
+          `, [pedido.id_pedido]);
+
+          return {
+              ...pedido,
+              detalles
+          };
+      }));
+
+      res.json(pedidosConDetalles);
+  } catch (error) {
+      console.error('Error al obtener pedidos:', error);
+      res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 });

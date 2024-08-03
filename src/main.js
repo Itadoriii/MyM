@@ -270,11 +270,47 @@ document.addEventListener('DOMContentLoaded', () => {
         
     }
 
-    generateButton.onclick = function() {
-        const cart = JSON.parse(localStorage.getItem('cart')) || [];
-        console.log("generando pedido...")
-        console.log(cart);
-    }
+    generateButton.onclick = async function() {
+        try {
+            console.log('Iniciando generación de pedido');
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            console.log('Carrito:', cart);
+    
+            if (cart.length === 0) {
+                console.log('El carrito está vacío');
+                alert('El carrito está vacío');
+                return;
+            }
+    
+            console.log('Enviando solicitud al servidor');
+            const response = await fetch('/api/generar-pedido', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(cart),
+                credentials: 'include'
+            });
+    
+            console.log('Respuesta recibida, status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Respuesta no ok:', errorText);
+                throw new Error(`Error al generar el pedido: ${response.status} ${errorText}`);
+            }
+    
+            const result = await response.json();
+            console.log('Resultado:', result);
+    
+            alert(`Pedido generado con éxito. Número de pedido: ${result.id_pedido}`);
+            localStorage.removeItem('cart');
+            updateCartDisplay();
+        } catch (error) {
+            console.error('Error detallado:', error);
+            alert('Hubo un error al generar el pedido. Por favor, intenta de nuevo. Detalles: ' + error.message);
+        }
+    };
     if (cartLink) {
         cartLink.addEventListener('click', () => {
             modal.style.display = 'block';
