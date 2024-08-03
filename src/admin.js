@@ -45,23 +45,91 @@ document.addEventListener("DOMContentLoaded", function() {
                 fetchProductos();
                 break;
             case 'pedidos':
-                mainContent.innerHTML = '<h1>Pedidos</h1><p>Contenido de pedidos...</p>';
+                fetchPedidos()
                 break;
             default:
                 mainContent.innerHTML = '<h1>Bienvenido</h1><p>Seleccione una opción del menú.</p>';
         }
     }
-
-    async function fetchUsuarios() {
+    async function fetchPedidos() {
         try {
-            const response = await fetch('/api/usuarios');
-            const usuarios = await response.json();
-            mainContent.innerHTML = `<h1>Usuarios</h1><ul>${usuarios.map(usuario => `<li>${usuario.nombre} - ${usuario.email}</li>`).join('')}</ul>`;
+            console.log('Iniciando fetchPedidos');
+            const response = await fetch('/api/pedidos');
+            console.log('Respuesta recibida:', response);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const pedidos = await response.json();
+            console.log('Pedidos recibidos:', pedidos);
+    
+            let html = '<h1>Pedidos</h1>';
+            
+            if (pedidos.length === 0) {
+                html += '<p>No hay pedidos registrados.</p>';
+            } else {
+                html += '<table border="1">';
+                html += '<tr><th>ID Pedido</th><th>Usuario</th><th>Fecha</th><th>Precio Total</th><th>Detalles</th></tr>';
+                
+                pedidos.forEach(pedido => {
+                    html += `
+                        <tr>
+                            <td>${pedido.id_pedido}</td>
+                            <td>${pedido.user}</td>
+                            <td>${new Date(pedido.fecha_pedido).toLocaleString()}</td>
+                            <td>$${pedido.precio_total.toFixed(2)}</td>
+                            <td>
+                                <ul>
+                    `;
+                    
+                    pedido.detalles.forEach(detalle => {
+                        html += `
+                            <li>
+                                ${detalle.nombre_prod} - 
+                                Cantidad: ${detalle.cantidad} - 
+                                Precio: $${detalle.precio_detalle.toFixed(2)}
+                            </li>
+                        `;
+                    });
+    
+                    html += `
+                                </ul>
+                            </td>
+                        </tr>
+                    `;
+                });
+    
+                html += '</table>';
+            }
+    
+            mainContent.innerHTML = html;
         } catch (error) {
-            console.error('Error fetching usuarios:', error);
-            mainContent.innerHTML = '<p>Error loading usuarios.</p>';
+            console.error('Error en fetchPedidos:', error);
+            mainContent.innerHTML = '<h1>Pedidos</h1><p>Error al cargar los pedidos: ' + error.message + '</p>';
         }
     }
+    async function fetchUsuarios() {
+        try {
+          const response = await fetch('/api/usuarios');
+          const usuarios = await response.json();
+          console.log('Respuesta recibida:', usuarios);
+          console.log('Número de usuarios:', usuarios.length);
+          
+          if (!Array.isArray(usuarios)) {
+            console.error('La respuesta no es un array:', usuarios);
+            mainContent.innerHTML = '<p>Error: La respuesta no tiene el formato esperado.</p>';
+            return;
+          }
+          
+          mainContent.innerHTML = `
+            <h1>Usuarios</h1>
+            <p>Total de usuarios: ${usuarios.length}</p>
+            <ul>${usuarios.map(usuario => `<li>${usuario.user} - ${usuario.email}</li>`).join('')}</ul>
+          `;
+        } catch (error) {
+          console.error('Error fetching usuarios:', error);
+          mainContent.innerHTML = '<p>Error loading usuarios.</p>';
+        }
+      }
 
     async function fetchProductos() {
         try {

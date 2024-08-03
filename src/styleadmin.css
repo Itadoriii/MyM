@@ -3,7 +3,7 @@
 
 /* VARIABLES */
 :root {
-    --blanco: #E0E0E0;
+    --blanco: #000000;
     --azul-opacidad: #e17055;
     --bg-menu: #ff7675;
     --bg-body: #C7E1FF;
@@ -132,6 +132,6 @@ body {
     opacity: 1;
 }
 .main-content{
-    color: #1111;
+    color: #00000011;
     
 }
