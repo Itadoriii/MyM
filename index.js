@@ -147,22 +147,23 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
-// Nueva ruta POST para crear productos
+// Actualizar la ruta POST para crear productos
 app.post('/api/productos', async (req, res) => {
   const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
 
-  console.log(req.body); // Verifica que los datos están llegando correctamente
+  console.log('Creando nuevo producto:', req.body);
 
-  if (!nombre_prod || !precio_unidad || !disponibilidad || !tipo || !medidas || !dimensiones || !fecha_add) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
   }
 
   try {
     const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add) VALUES (?, ?, ?, ?, ?, ?, ?)';
     const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add];
-    await pool.query(query, params);
-    res.status(201).json({ message: 'Producto creado exitosamente' });
+    const [result] = await pool.query(query, params);
+    res.status(201).json({ message: 'Producto creado exitosamente', id: result.insertId });
   } catch (err) {
+    console.error('Error al crear producto:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -258,5 +259,42 @@ app.get('/api/pedidos', async (req, res) => {
   } catch (error) {
       console.error('Error al obtener pedidos:', error);
       res.status(500).json({ error: 'Error al obtener pedidos' });
+  }
+});
+// Ruta PUT para actualizar productos
+app.put('/api/productos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
+
+  console.log('Actualizando producto:', req.body);
+
+  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
+  }
+
+  try {
+    const query = `
+      UPDATE productos 
+      SET nombre_prod = ?, 
+          precio_unidad = ?, 
+          disponibilidad = ?, 
+          tipo = ?, 
+          medidas = ?, 
+          dimensiones = ?, 
+          fecha_add = ?
+      WHERE id_producto = ?
+    `;
+    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, id];
+    
+    const [result] = await pool.query(query, params);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+    
+    res.json({ message: 'Producto actualizado exitosamente' });
+  } catch (err) {
+    console.error('Error al actualizar producto:', err);
+    res.status(500).json({ error: err.message });
   }
 });
