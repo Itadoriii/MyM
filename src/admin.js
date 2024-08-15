@@ -131,11 +131,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       }
 
-    async function fetchProductos() {
+      async function fetchProductos() {
         try {
             const response = await fetch('/productos');
             const productos = await response.json();
-            console.log(productos); // Verifica la estructura de los datos recibidos
+            console.log(productos);
             if (Array.isArray(productos)) {
                 mainContent.innerHTML = `
                     <button class="button enlace" id="crearProductoBtn">Crear nuevo producto</button>
@@ -152,6 +152,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 <th>Medidas</th>
                                 <th>Dimensiones</th>
                                 <th>Fecha Añadido</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -165,70 +166,27 @@ document.addEventListener("DOMContentLoaded", function() {
                                     <td>${producto.medidas}</td>
                                     <td>${producto.dimensiones}</td>
                                     <td>${producto.fecha_add}</td>
+                                    <td>
+                                        <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
+                                    </td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
                 `;
 
+                // Event listener para el botón de crear producto
                 document.getElementById('crearProductoBtn').addEventListener('click', () => {
-                    mainContent.innerHTML = `
-                        <h1>Crear Nuevo Producto</h1>
-                        <form id="nuevoProductoForm">
-                            <label for="nombre_prod">Nombre:</label>
-                            <input type="text" id="nombre_prod" name="nombre_prod" required><br>
-                            <label for="precio_unidad">Precio Unidad:</label>
-                            <input type="number" id="precio_unidad" name="precio_unidad" required><br>
-                            <label for="disponibilidad">Disponibilidad:</label>
-                            <input type="number" id="disponibilidad" name="disponibilidad" required><br>
-                            <label for="tipo">Tipo:</label>
-                            <input type="text" id="tipo" name="tipo" required><br>
-                            <label for="medidas">Medidas:</label>
-                            <input type="text" id="medidas" name="medidas" required><br>
-                            <label for="dimensiones">Dimensiones:</label>
-                            <input type="text" id="dimensiones" name="dimensiones" required><br>
-                            <label for="fecha_add">Fecha Añadido:</label>
-                            <input type="date" id="fecha_add" name="fecha_add" required><br>
-                            <button type="submit">Guardar Producto</button>
-                        </form>
-                    `;
+                    showProductForm();
+                });
 
-                    document.getElementById('nuevoProductoForm').addEventListener('submit', async (event) => {
-                        event.preventDefault();
-                        const formData = new FormData(event.target);
-                        const producto = {
-                            nombre_prod: formData.get('nombre_prod'),
-                            precio_unidad: formData.get('precio_unidad'),
-                            disponibilidad: formData.get('disponibilidad'),
-                            tipo: formData.get('tipo'),
-                            medidas: formData.get('medidas'),
-                            dimensiones: formData.get('dimensiones'),
-                            fecha_add: formData.get('fecha_add'),
-                        };
-
-                        console.log(producto); // Verifica que todos los campos están presentes y tienen valores correctos
-
-                        try {
-                            const response = await fetch('/api/productos', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(producto)
-                            });
-
-                            const result = await response.json();
-                            console.log('Server response:', result);
-
-                            if (response.ok) {
-                                loadContent('productos');
-                            } else {
-                                console.error('Error saving producto:', result);
-                                mainContent.innerHTML = `<p>Error saving producto: ${result.error}</p>`;
-                            }
-                        } catch (error) {
-                            console.error('Error saving producto:', error);
-                            mainContent.innerHTML = '<p>Error saving producto.</p>';
+                // Event listeners para los botones de editar
+                document.querySelectorAll('.editBtn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const productId = event.target.getAttribute('data-id');
+                        const product = productos.find(p => p.id_producto == productId);
+                        if (product) {
+                            showProductForm(product);
                         }
                     });
                 });
@@ -239,5 +197,61 @@ document.addEventListener("DOMContentLoaded", function() {
             console.error('Error fetching productos:', error);
             mainContent.innerHTML = '<p>Error loading productos.</p>';
         }
+    }
+    function showProductForm(product = null) {
+        const isEditing = !!product;
+        mainContent.innerHTML = `
+            <h1>${isEditing ? 'Editar' : 'Crear Nuevo'} Producto</h1>
+            <form id="productoForm">
+                ${isEditing ? `<input type="hidden" id="id_producto" name="id_producto" value="${product.id_producto}">` : ''}
+                <label for="nombre_prod">Nombre:</label>
+                <input type="text" id="nombre_prod" name="nombre_prod" value="${isEditing ? product.nombre_prod : ''}" required><br>
+                <label for="precio_unidad">Precio Unidad:</label>
+                <input type="number" id="precio_unidad" name="precio_unidad" value="${isEditing ? product.precio_unidad : ''}" required><br>
+                <label for="disponibilidad">Disponibilidad:</label>
+                <input type="number" id="disponibilidad" name="disponibilidad" value="${isEditing ? product.disponibilidad : ''}" required><br>
+                <label for="tipo">Tipo:</label>
+                <input type="text" id="tipo" name="tipo" value="${isEditing ? product.tipo : ''}" required><br>
+                <label for="medidas">Medidas:</label>
+                <input type="text" id="medidas" name="medidas" value="${isEditing ? product.medidas : ''}" required><br>
+                <label for="dimensiones">Dimensiones:</label>
+                <input type="text" id="dimensiones" name="dimensiones" value="${isEditing ? product.dimensiones : ''}" required><br>
+                <label for="fecha_add">Fecha Añadido:</label>
+                <input type="date" id="fecha_add" name="fecha_add" value="${isEditing ? product.fecha_add : ''}" required><br>
+                <button type="submit">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
+            </form>
+        `;
+
+        document.getElementById('productoForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const productoData = Object.fromEntries(formData.entries());
+
+            try {
+                const url = isEditing ? `/api/productos/${productoData.id_producto}` : '/api/productos';
+                const method = isEditing ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(productoData)
+                });
+
+                const result = await response.json();
+                console.log('Server response:', result);
+
+                if (response.ok) {
+                    loadContent('productos');
+                } else {
+                    console.error('Error saving producto:', result);
+                    mainContent.innerHTML = `<p>Error saving producto: ${result.error}</p>`;
+                }
+            } catch (error) {
+                console.error('Error saving producto:', error);
+                mainContent.innerHTML = '<p>Error saving producto.</p>';
+            }
+        });
     }
 });
