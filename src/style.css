@@ -737,3 +737,39 @@ i {
     background-color: #128C7E;
     transform: scale(1.1);
 }
+.popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.popup-content p {
+    margin: 0;
+    padding-bottom: 10px;
+}
+
+.popup-close {
+    background-color: #e17055;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
