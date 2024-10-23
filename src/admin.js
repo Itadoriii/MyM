@@ -25,12 +25,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
+    // Mostrar los productos automáticamente al cargar la página
+    fetchProductos();
+
     enlacesMenu.forEach(enlace => {
         enlace.addEventListener("click", () => {
-            menuDashboard.classList.add("open");
-            iconoMenu.classList.replace("bx-menu", "bx-x");
-
-            // Cargar contenido dinámico
             const content = enlace.getAttribute("data-content");
             loadContent(content);
         });
@@ -45,68 +44,52 @@ document.addEventListener("DOMContentLoaded", function() {
                 fetchProductos();
                 break;
             case 'pedidos':
-                fetchPedidos()
+                fetchPedidos();
                 break;
             default:
                 mainContent.innerHTML = '<h1>Bienvenido</h1><p>Seleccione una opción del menú.</p>';
         }
     }
-    async function fetchPedidos() {
-        try {
-            console.log('Iniciando fetchPedidos');
-            const response = await fetch('/api/pedidos');
-            console.log('Respuesta recibida:', response);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+
+    function showPopup(message) {
+        const popup = document.createElement('div');
+        popup.className = 'popup';
+        popup.innerHTML = `
+            <div class="popup-content">
+                <p>${message}</p>
+                <button class="popup-close">Cerrar</button>
+            </div>
+        `;
+        document.body.appendChild(popup);
+    
+        const closeButton = popup.querySelector('.popup-close');
+        closeButton.addEventListener('click', () => {
+            document.body.removeChild(popup);
+        });
+    
+        // Quitar el popup después de unos segundos
+        setTimeout(() => {
+            if (popup) {
+                document.body.removeChild(popup);
             }
-            const pedidos = await response.json();
-            console.log('Pedidos recibidos:', pedidos);
-    
-            let html = '<h1>Pedidos</h1>';
-            
-            if (pedidos.length === 0) {
-                html += '<p>No hay pedidos registrados.</p>';
-            } else {
-                html += '<table border="1">';
-                html += '<tr><th>ID Pedido</th><th>Usuario</th><th>Fecha</th><th>Precio Total</th><th>Detalles</th></tr>';
-                
-                pedidos.forEach(pedido => {
-                    html += `
-                        <tr>
-                            <td>${pedido.id_pedido}</td>
-                            <td>${pedido.user}</td>
-                            <td>${new Date(pedido.fecha_pedido).toLocaleString()}</td>
-                            <td>$${pedido.precio_total.toFixed(2)}</td>
-                            <td>
-                                <ul>
-                    `;
-                    
-                    pedido.detalles.forEach(detalle => {
-                        html += `
-                            <li>
-                                ${detalle.nombre_prod} - 
-                                Cantidad: ${detalle.cantidad} - 
-                                Precio: $${detalle.precio_detalle.toFixed(2)}
-                            </li>
-                        `;
-                    });
-    
-                    html += `
-                                </ul>
-                            </td>
-                        </tr>
-                    `;
-                });
-    
-                html += '</table>';
-            }
-    
-            mainContent.innerHTML = html;
-        } catch (error) {
-            console.error('Error en fetchPedidos:', error);
-            mainContent.innerHTML = '<h1>Pedidos</h1><p>Error al cargar los pedidos: ' + error.message + '</p>';
-        }
+        }, 3000);
     }
+    
+    function addToCart(product) {
+        const existingProductIndex = cart.findIndex(p => p.id_producto === product.id_producto);
+    
+        if (existingProductIndex !== -1) {
+            cart[existingProductIndex].quantity += 1;
+        } else {
+            product.quantity = 1;
+            cart.push(product);
+        }
+    
+        saveCart();
+        updateCartDisplay();
+        showPopup('Producto añadido al carrito');
+    }
+    
     async function fetchUsuarios() {
         try {
           const response = await fetch('/api/usuarios');
@@ -138,58 +121,83 @@ document.addEventListener("DOMContentLoaded", function() {
             console.log(productos);
             if (Array.isArray(productos)) {
                 mainContent.innerHTML = `
-                    <button class="button enlace" id="crearProductoBtn">Crear nuevo producto</button>
-
-                    <h1>Productos Actuales:</h1>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID Producto</th>
-                                <th>Nombre</th>
-                                <th>Precio Unidad</th>
-                                <th>Disponibilidad</th>
-                                <th>Tipo</th>
-                                <th>Medidas</th>
-                                <th>Dimensiones</th>
-                                <th>Fecha Añadido</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${productos.map(producto => `
+                    <input type="text" id="search-input" placeholder="Buscar producto..." style="width: 100%; padding: 10px; margin-bottom: 20px;">
+                    <button class="buttonenlace" id="crearProductoBtn">Crear nuevo producto</button>
+    
+                    <h1 class="titulotable">Productos Actuales:</h1>
+                    <div class="table-container" style="max-height: 400px; overflow-y: scroll;">
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td>${producto.id_producto}</td>
-                                    <td>${producto.nombre_prod}</td>
-                                    <td>${producto.precio_unidad}</td>
-                                    <td>${producto.disponibilidad}</td>
-                                    <td>${producto.tipo}</td>
-                                    <td>${producto.medidas}</td>
-                                    <td>${producto.dimensiones}</td>
-                                    <td>${producto.fecha_add}</td>
-                                    <td>
-                                        <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
-                                    </td>
+                                    <th>ID Producto</th>
+                                    <th>Nombre</th>
+                                    <th>Precio Unidad</th>
+                                    <th>Disponibilidad</th>
+                                    <th>Tipo</th>
+                                    <th>Medidas</th>
+                                    <th>Dimensiones</th>
+                                    <th>Fecha Añadido</th>
+                                    <th>Acciones</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody id="productos-tbody">
+                                ${productos.map(producto => `
+                                    <tr>
+                                        <td>${producto.id_producto}</td>
+                                        <td>${producto.nombre_prod}</td>
+                                        <td>${producto.precio_unidad}</td>
+                                        <td>${producto.disponibilidad}</td>
+                                        <td>${producto.tipo}</td>
+                                        <td>${producto.medidas}</td>
+                                        <td>${producto.dimensiones}</td>
+                                        <td>${producto.fecha_add}</td>
+                                        <td>
+                                            <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 `;
-
+    
+                // Filtrar productos por el valor de búsqueda
+                const searchInput = document.getElementById('search-input');
+                searchInput.addEventListener('input', function() {
+                    const searchValue = searchInput.value.toLowerCase();
+                    const filteredProducts = productos.filter(producto =>
+                        producto.nombre_prod.toLowerCase().includes(searchValue)
+                    );
+                    renderProductos(filteredProducts);
+                });
+    
                 // Event listener para el botón de crear producto
                 document.getElementById('crearProductoBtn').addEventListener('click', () => {
                     showProductForm();
                 });
-
-                // Event listeners para los botones de editar
-                document.querySelectorAll('.editBtn').forEach(button => {
-                    button.addEventListener('click', (event) => {
-                        const productId = event.target.getAttribute('data-id');
-                        const product = productos.find(p => p.id_producto == productId);
-                        if (product) {
-                            showProductForm(product);
-                        }
-                    });
-                });
+    
+                // Renderiza los productos
+                function renderProductos(productos) {
+                    const tbody = document.getElementById('productos-tbody');
+                    tbody.innerHTML = productos.map(producto => `
+                        <tr>
+                            <td>${producto.id_producto}</td>
+                            <td>${producto.nombre_prod}</td>
+                            <td>${producto.precio_unidad}</td>
+                            <td>${producto.disponibilidad}</td>
+                            <td>${producto.tipo}</td>
+                            <td>${producto.medidas}</td>
+                            <td>${producto.dimensiones}</td>
+                            <td>${producto.fecha_add}</td>
+                            <td>
+                                <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+    
+                // Inicializar el renderizado
+                renderProductos(productos);
             } else {
                 mainContent.innerHTML = '<p>No se encontraron productos.</p>';
             }
@@ -198,6 +206,7 @@ document.addEventListener("DOMContentLoaded", function() {
             mainContent.innerHTML = '<p>Error loading productos.</p>';
         }
     }
+    
     function showProductForm(product = null) {
         const isEditing = !!product;
         mainContent.innerHTML = `

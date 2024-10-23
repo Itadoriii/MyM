@@ -244,6 +244,52 @@ function updateCartDisplay() {
         cartContainer.appendChild(totalPriceElement);
     }
 }
+function showPopup(message) {
+    const popup = document.createElement('div');
+    popup.className = 'popup';
+    popup.innerHTML = `
+        <div class="popup-content">
+            <p>${message}</p>
+            <button class="popup-close">Cerrar</button>
+        </div>
+    `;
+    document.body.appendChild(popup);
+
+    const closeButton = popup.querySelector('.popup-close');
+    closeButton.addEventListener('click', () => {
+        document.body.removeChild(popup);
+    });
+
+    // Quitar el popup después de unos segundos
+    setTimeout(() => {
+        if (popup) {
+            document.body.removeChild(popup);
+        }
+    }, 3000);
+}
+
+function addToCart(product) {
+    const existingProductIndex = cart.findIndex(p => p.id_producto === product.id_producto);
+
+    if (existingProductIndex !== -1) {
+        cart[existingProductIndex].quantity += 1;
+    } else {
+        product.quantity = 1;
+        cart.push(product);
+    }
+
+    saveCart();
+    updateCartDisplay();
+    showPopup('Producto añadido al carrito');
+}
+function proceedToCheckout() {
+    if (cart.length === 0) {
+        alert('El carrito está vacío');
+        return;
+    }
+
+    window.location.href = "/checkout"; // Redirige a la vista de pedidos
+}
 
 function checkout() {
     alert('Procediendo al pago...');
