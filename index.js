@@ -146,6 +146,10 @@ app.get('/api/usuarios', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get('/checkout', (req, res) => {
+  res.sendFile(__dirname + '/src/checkout.html'); // Asegúrate de ajustar la ruta correctamente
+});
+
 
 // Actualizar la ruta POST para crear productos
 app.post('/api/productos', async (req, res) => {

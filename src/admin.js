@@ -113,6 +113,57 @@ document.addEventListener("DOMContentLoaded", function() {
           mainContent.innerHTML = '<p>Error loading usuarios.</p>';
         }
       }
+      async function fetchPedidos() {
+        try {
+            const response = await fetch('/api/pedidos');
+            const pedidos = await response.json();
+    
+            let html = '<h1>Pedidos</h1>';
+            if (pedidos.length === 0) {
+                html += '<p>No hay pedidos registrados.</p>';
+            } else {
+                html += '<table border="1">';
+                html += '<tr><th>ID Pedido</th><th>Usuario</th><th>Email</th><th>Dirección</th><th>Precio Total</th><th>Detalles</th></tr>';
+    
+                pedidos.forEach(pedido => {
+                    html += `
+                        <tr>
+                            <td>${pedido.id_pedido}</td>
+                            <td>${pedido.userDetails.name}</td>
+                            <td>${pedido.userDetails.email}</td>
+                            <td>${pedido.userDetails.address}</td>
+                            <td>$${pedido.precio_total.toFixed(2)}</td>
+                            <td>
+                                <ul>
+                    `;
+                    
+                    pedido.detalles.forEach(detalle => {
+                        html += `
+                            <li>
+                                ${detalle.nombre_prod} - 
+                                Cantidad: ${detalle.cantidad} - 
+                                Precio: $${detalle.precio_detalle.toFixed(2)}
+                            </li>
+                        `;
+                    });
+    
+                    html += `
+                                </ul>
+                            </td>
+                        </tr>
+                    `;
+                });
+    
+                html += '</table>';
+            }
+    
+            mainContent.innerHTML = html;
+        } catch (error) {
+            console.error('Error al cargar los pedidos:', error);
+            mainContent.innerHTML = '<p>Error al cargar los pedidos.</p>';
+        }
+    }
+    
 
       async function fetchProductos() {
         try {
