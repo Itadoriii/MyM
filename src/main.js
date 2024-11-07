@@ -280,24 +280,93 @@ function clearCart() {
     updateCartDisplay();
 }
 
-ddocument.getElementById('clear-cart-btn').addEventListener('click', () => {
+document.getElementById('clear-cart-btn').addEventListener('click', () => {
     localStorage.removeItem('cart');
     updateCartDisplay();
 });
-document.getElementById('checkout-btn').addEventListener('click', () => {
+// Función para obtener el valor de una cookie específica
+function getCookie(name) {
+    const cookieString = document.cookie;
+    const cookies = cookieString.split('; ').map(cookie => cookie.split('='));
+    for (const [key, value] of cookies) {
+        if (key === name) {
+            return decodeURIComponent(value);
+        }
+    }
+    return null;
+}
+
+async function isUserLoggedIn() {
+    try {
+        const response = await fetch('/api/verificar-usuario', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Usuario no autenticado');
+        }
+
+        const data = await response.json();
+        console.log('Estado de autenticación:', data);
+        return data.loggedIn;
+    } catch (error) {
+        console.error('Error al verificar autenticación:', error);
+        return false;
+    }
+}
+
+document.getElementById('checkout-btn').addEventListener('click', async () => {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    
+    console.log("Botón 'Generar pedido' presionado");
+
     if (cart.length === 0) {
         alert('El carrito está vacío.');
         return;
     }
 
-    // Guarda el carrito en localStorage o en la sesión antes de redirigir
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
-    // Redirige a la página de checkout para capturar los datos del cliente
-    window.location.href = "/checkout"; // Asegúrate de tener esta ruta configurada
+    // Verificar si el usuario está autenticado
+    const loggedIn = await isUserLoggedIn();
+    if (!loggedIn) {
+        alert('Debes iniciar sesión para generar el pedido.');
+        window.location.href = '/login';
+        return;
+    }
+
+    try {
+        console.log('Enviando solicitud al servidor para generar el pedido...');
+        // Realiza la solicitud POST al servidor
+        const response = await fetch('/api/generar-pedido', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(cart),
+            credentials: 'include' // Envía cookies para mantener autenticación
+        });
+
+        console.log('Respuesta recibida, estado:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error en la respuesta:', errorText);
+            throw new Error(`Error al generar el pedido: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Resultado del pedido:', result);
+
+        alert(`Pedido generado con éxito. Número de pedido: ${result.id_pedido}`);
+
+        // Limpia el carrito y actualiza la visualización
+        localStorage.removeItem('cart');
+        updateCartDisplay();
+    } catch (error) {
+        console.error('Error detallado al generar el pedido:', error);
+        alert('Hubo un error al generar el pedido. Intenta de nuevo.');
+    }
 });
+
 
 function showPopup(message) {
     const popup = document.createElement('div');
@@ -363,7 +432,6 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.style.display = 'none';
         }
     }
-
     printButton.onclick = function() {
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
         console.log("imprimiendo carrito")
@@ -464,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input').value;
         await performSearch(searchInput);
     });
+  
 
     const categoryLinks = document.querySelectorAll('.category-link');
     categoryLinks.forEach(link => {
