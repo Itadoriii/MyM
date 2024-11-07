@@ -331,33 +331,37 @@ app.get('/api/verificar-usuario', async (req, res) => {
 
 app.get('/api/pedidos', async (req, res) => {
   try {
-      const [pedidos] = await pool.query(`
-          SELECT p.id_pedido, p.id_usuario, p.precio_total, p.fecha_pedido,
-                 u.user, u.email
-          FROM pedidos p
-          JOIN usuarios u ON p.id_usuario = u.id_usuarios
-          ORDER BY p.fecha_pedido DESC
-      `);
+    // Consulta para obtener los pedidos con la información del usuario asociado
+    const [pedidos] = await pool.query(`
+      SELECT p.id_pedido, p.id_usuario, p.precio_total, p.fecha_pedido,p.estado,
+             u.user AS userName, u.email
+      FROM pedidos p
+      JOIN usuarios u ON p.id_usuario = u.id_usuarios
+      ORDER BY p.fecha_pedido DESC
+    `);
 
-      const pedidosConDetalles = await Promise.all(pedidos.map(async (pedido) => {
-          const [detalles] = await pool.query(`
-              SELECT dp.id_producto, dp.cantidad, dp.precio_detalle,
-                     pr.nombre_prod
-              FROM detalle_pedido dp
-              JOIN productos pr ON dp.id_producto = pr.id_producto
-              WHERE dp.id_pedido = ?
-          `, [pedido.id_pedido]);
+    // Para cada pedido, obtener sus detalles (productos, cantidades, etc.)
+    const pedidosConDetalles = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const [detalles] = await pool.query(`
+          SELECT dp.id_producto, dp.cantidad, dp.precio_detalle, pr.nombre_prod
+          FROM detalle_pedido dp
+          JOIN productos pr ON dp.id_producto = pr.id_producto
+          WHERE dp.id_pedido = ?
+        `, [pedido.id_pedido]);
 
-          return {
-              ...pedido,
-              detalles
-          };
-      }));
+        // Agregar los detalles al pedido
+        return {
+          ...pedido,
+          detalles
+        };
+      })
+    );
 
-      res.json(pedidosConDetalles);
+    res.json(pedidosConDetalles); // Enviar los pedidos con los detalles al cliente
   } catch (error) {
-      console.error('Error al obtener pedidos:', error);
-      res.status(500).json({ error: 'Error al obtener pedidos' });
+    console.error('Error al obtener pedidos:', error);
+    res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 });
 // Ruta PUT para actualizar productos
@@ -395,5 +399,45 @@ app.put('/api/productos/:id', async (req, res) => {
   } catch (err) {
     console.error('Error al actualizar producto:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Ruta para aceptar un pedido
+app.put('/api/pedidos/:id/aceptar', async (req, res) => {
+  const { id } = req.params;
+  try {
+      const [result] = await pool.query(
+          'UPDATE pedidos SET estado = "aceptado" WHERE id_pedido = ?',
+          [id]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(404).json({ error: 'Pedido no encontrado' });
+      }
+
+      res.json({ message: 'Pedido aceptado exitosamente' });
+  } catch (error) {
+      console.error('Error al aceptar el pedido:', error);
+      res.status(500).json({ error: 'Error al aceptar el pedido' });
+  }
+});
+
+// Ruta para rechazar un pedido
+app.put('/api/pedidos/:id/rechazar', async (req, res) => {
+  const { id } = req.params;
+  try {
+      const [result] = await pool.query(
+          'UPDATE pedidos SET estado = "rechazado" WHERE id_pedido = ?',
+          [id]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(404).json({ error: 'Pedido no encontrado' });
+      }
+
+      res.json({ message: 'Pedido rechazado exitosamente' });
+  } catch (error) {
+      console.error('Error al rechazar el pedido:', error);
+      res.status(500).json({ error: 'Error al rechazar el pedido' });
   }
 });
