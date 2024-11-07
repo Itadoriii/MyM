@@ -113,50 +113,65 @@ document.addEventListener("DOMContentLoaded", function() {
           mainContent.innerHTML = '<p>Error loading usuarios.</p>';
         }
       }
+      // Obtener lista de pedidos
       async function fetchPedidos() {
         try {
             const response = await fetch('/api/pedidos');
             const pedidos = await response.json();
-    
+
             let html = '<h1>Pedidos</h1>';
             if (pedidos.length === 0) {
                 html += '<p>No hay pedidos registrados.</p>';
             } else {
                 html += '<table border="1">';
-                html += '<tr><th>ID Pedido</th><th>Usuario</th><th>Email</th><th>Dirección</th><th>Precio Total</th><th>Detalles</th></tr>';
-    
+                html += `
+                    <tr>
+                        <th>ID Pedido</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Precio Total</th>
+                        <th>Fecha Pedido</th>
+                        <th>Estado</th>
+                        <th>Detalles</th>
+                        <th>Acciones</th>
+                    </tr>`;
+
                 pedidos.forEach(pedido => {
                     html += `
                         <tr>
                             <td>${pedido.id_pedido}</td>
-                            <td>${pedido.userDetails.name}</td>
-                            <td>${pedido.userDetails.email}</td>
-                            <td>${pedido.userDetails.address}</td>
+                            <td>${pedido.user}</td>
+                            <td>${pedido.email}</td>
                             <td>$${pedido.precio_total.toFixed(2)}</td>
+                            <td>${pedido.fecha_pedido}</td>
+                            <td>${pedido.estado}</td>
                             <td>
                                 <ul>
                     `;
-                    
+
+                    // Mostrar cada detalle del pedido
                     pedido.detalles.forEach(detalle => {
                         html += `
                             <li>
-                                ${detalle.nombre_prod} - 
+                                Producto: ${detalle.nombre_prod} - 
                                 Cantidad: ${detalle.cantidad} - 
-                                Precio: $${detalle.precio_detalle.toFixed(2)}
-                            </li>
-                        `;
+                                Precio Detalle: $${detalle.precio_detalle.toFixed(2)}
+                            </li>`;
                     });
-    
+
                     html += `
                                 </ul>
                             </td>
-                        </tr>
-                    `;
+                            <td>
+                                <button onclick="aceptarPedido(${pedido.id_pedido})">Aceptar</button>
+                                <button onclick="rechazarPedido(${pedido.id_pedido})">Rechazar</button>
+                            </td>
+                        </tr>`;
                 });
-    
+
                 html += '</table>';
             }
-    
+
             mainContent.innerHTML = html;
         } catch (error) {
             console.error('Error al cargar los pedidos:', error);
@@ -164,6 +179,46 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
     
+    // Asegúrate de que estas funciones estén definidas al nivel superior
+    async function aceptarPedido(idPedido) {
+        try {
+            const response = await fetch(`/api/pedidos/${idPedido}/aceptar`, {
+                method: 'PUT'
+            });
+            if (response.ok) {
+                alert('Pedido aceptado con éxito');
+                fetchPedidos(); // Recargar la lista de pedidos después de la acción
+            } else {
+                alert('Error al aceptar el pedido');
+            }
+        } catch (error) {
+            console.error('Error al aceptar el pedido:', error);
+            alert('Hubo un error al aceptar el pedido');
+        }
+    }
+
+    async function rechazarPedido(idPedido) {
+        try {
+            const response = await fetch(`/api/pedidos/${idPedido}/rechazar`, {
+                method: 'PUT'
+            });
+            if (response.ok) {
+                alert('Pedido rechazado con éxito');
+                fetchPedidos(); // Recargar la lista de pedidos después de la acción
+            } else {
+                alert('Error al rechazar el pedido');
+            }
+        } catch (error) {
+            console.error('Error al rechazar el pedido:', error);
+            alert('Hubo un error al rechazar el pedido');
+        }
+    }
+
+    // Asignar las funciones al objeto global `window`
+    window.aceptarPedido = aceptarPedido;
+    window.rechazarPedido = rechazarPedido;
+
+
 
       async function fetchProductos() {
         try {
