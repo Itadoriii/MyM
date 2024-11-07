@@ -17,23 +17,25 @@ async function login(req, res) {
             return res.status(400).send({ status: "Error", message: "Error durante login" });
         }
 
-        const usuarioAResvisar = rows[0];
-        const loginCorrecto = await bcrypt.compare(password, usuarioAResvisar.password);
+        const usuarioARevisar = rows[0];
+        const loginCorrecto = await bcrypt.compare(password, usuarioARevisar.password);
         if (!loginCorrecto) {
             return res.status(400).send({ status: "Error", message: "Error durante login" });
         }
 
         const token = jsonwebtoken.sign(
-            { user: usuarioAResvisar.user, role: usuarioAResvisar.role },
+            { user: usuarioARevisar.user, role: usuarioARevisar.role },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRATION }
         );
 
-        const cookieOption = {
-            expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES * 24 * 60 * 60 * 1000),
-            path: "/"
-        };
-        res.cookie("jwt", token, cookieOption);
+        // Establece la cookie con opciones adecuadas para desarrollo
+        res.cookie("jwt", token, {
+            httpOnly: true,
+            secure: true,  // Para desarrollo local, cambiar a true si estás en producción con HTTPS
+            sameSite: 'Lax', // Asegura que la cookie sea enviada con peticiones "same-site"
+            maxAge: process.env.JWT_COOKIE_EXPIRES * 24 * 60 * 60 * 1000,
+        });
         res.send({ status: "ok", message: "Usuario loggeado", redirect: "/admin" });
     } catch (err) {
         res.status(500).send({ status: "Error", message: err.message });
