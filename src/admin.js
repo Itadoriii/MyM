@@ -221,152 +221,241 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
       async function fetchProductos() {
-        try {
-            const response = await fetch('/productos');
-            const productos = await response.json();
-            console.log(productos);
-            if (Array.isArray(productos)) {
-                mainContent.innerHTML = `
-                    <input type="text" id="search-input" placeholder="Buscar producto..." style="width: 100%; padding: 10px; margin-bottom: 20px;">
-                    <button class="buttonenlace" id="crearProductoBtn">Crear nuevo producto</button>
-    
-                    <h1 class="titulotable">Productos Actuales:</h1>
-                    <div class="table-container" style="max-height: 400px; overflow-y: scroll;">
-                        <table>
-                            <thead>
+    try {
+        const response = await fetch('/productos');
+        const productos = await response.json();
+        console.log(productos);
+        if (Array.isArray(productos)) {
+            mainContent.innerHTML = `
+                <input type="text" id="search-input" placeholder="Buscar producto..." style="width: 100%; padding: 10px; margin-bottom: 20px;">
+                <button class="buttonenlace" id="crearProductoBtn">Crear nuevo producto</button>
+
+                <h1 class="titulotable">Productos Actuales:</h1>
+                <div class="table-container" style="max-height: 400px; overflow-y: scroll;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID Producto</th>
+                                <th>Nombre</th>
+                                <th>Precio Unidad</th>
+                                <th>Disponibilidad</th>
+                                <th>Tipo</th>
+                                <th>Medidas</th>
+                                <th>Dimensiones</th>
+                                <th>Fecha Añadido</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productos-tbody">
+                            ${productos.map(producto => `
                                 <tr>
-                                    <th>ID Producto</th>
-                                    <th>Nombre</th>
-                                    <th>Precio Unidad</th>
-                                    <th>Disponibilidad</th>
-                                    <th>Tipo</th>
-                                    <th>Medidas</th>
-                                    <th>Dimensiones</th>
-                                    <th>Fecha Añadido</th>
-                                    <th>Acciones</th>
+                                    <td>${producto.id_producto}</td>
+                                    <td>${producto.nombre_prod}</td>
+                                    <td>${producto.precio_unidad}</td>
+                                    <td>${producto.disponibilidad}</td>
+                                    <td>${producto.tipo}</td>
+                                    <td>${producto.medidas}</td>
+                                    <td>${producto.dimensiones}</td>
+                                    <td>${producto.fecha_add}</td>
+                                    <td>
+                                        <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
+                                        <button class="deleteBtn" data-id="${producto.id_producto}">Eliminar</button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody id="productos-tbody">
-                                ${productos.map(producto => `
-                                    <tr>
-                                        <td>${producto.id_producto}</td>
-                                        <td>${producto.nombre_prod}</td>
-                                        <td>${producto.precio_unidad}</td>
-                                        <td>${producto.disponibilidad}</td>
-                                        <td>${producto.tipo}</td>
-                                        <td>${producto.medidas}</td>
-                                        <td>${producto.dimensiones}</td>
-                                        <td>${producto.fecha_add}</td>
-                                        <td>
-                                            <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-    
-                // Filtrar productos por el valor de búsqueda
-                const searchInput = document.getElementById('search-input');
-                searchInput.addEventListener('input', function() {
-                    const searchValue = searchInput.value.toLowerCase();
-                    const filteredProducts = productos.filter(producto =>
-                        producto.nombre_prod.toLowerCase().includes(searchValue)
-                    );
-                    renderProductos(filteredProducts);
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Agregar event listeners a los botones de editar
+            document.querySelectorAll('.editBtn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const productId = e.target.getAttribute('data-id');
+                    await editProduct(productId);
                 });
-    
-                // Event listener para el botón de crear producto
-                document.getElementById('crearProductoBtn').addEventListener('click', () => {
-                    showProductForm();
+            });
+
+            // Agregar event listeners a los botones de eliminar
+            document.querySelectorAll('.deleteBtn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const productId = e.target.getAttribute('data-id');
+                    await deleteProduct(productId);
                 });
-    
-                // Renderiza los productos
-                function renderProductos(productos) {
-                    const tbody = document.getElementById('productos-tbody');
-                    tbody.innerHTML = productos.map(producto => `
-                        <tr>
-                            <td>${producto.id_producto}</td>
-                            <td>${producto.nombre_prod}</td>
-                            <td>${producto.precio_unidad}</td>
-                            <td>${producto.disponibilidad}</td>
-                            <td>${producto.tipo}</td>
-                            <td>${producto.medidas}</td>
-                            <td>${producto.dimensiones}</td>
-                            <td>${producto.fecha_add}</td>
-                            <td>
-                                <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-    
-                // Inicializar el renderizado
-                renderProductos(productos);
+            });
+
+            // Resto del código de búsqueda...
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', function() {
+                const searchValue = searchInput.value.toLowerCase();
+                const filteredProducts = productos.filter(producto =>
+                    producto.nombre_prod.toLowerCase().includes(searchValue)
+                );
+                renderProductos(filteredProducts);
+            });
+
+            document.getElementById('crearProductoBtn').addEventListener('click', () => {
+                showProductForm();
+            });
+
+            function renderProductos(productos) {
+                const tbody = document.getElementById('productos-tbody');
+                tbody.innerHTML = productos.map(producto => `
+                    <tr>
+                        <td>${producto.id_producto}</td>
+                        <td>${producto.nombre_prod}</td>
+                        <td>${producto.precio_unidad}</td>
+                        <td>${producto.disponibilidad}</td>
+                        <td>${producto.tipo}</td>
+                        <td>${producto.medidas}</td>
+                        <td>${producto.dimensiones}</td>
+                        <td>${producto.fecha_add}</td>
+                        <td>
+                            <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
+                            <button class="deleteBtn" data-id="${producto.id_producto}">Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Volver a agregar los event listeners después de renderizar
+                document.querySelectorAll('.editBtn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const productId = e.target.getAttribute('data-id');
+                        await editProduct(productId);
+                    });
+                });
+
+                document.querySelectorAll('.deleteBtn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const productId = e.target.getAttribute('data-id');
+                        await deleteProduct(productId);
+                    });
+                });
+            }
+
+            renderProductos(productos);
+        } else {
+            mainContent.innerHTML = '<p>No se encontraron productos.</p>';
+        }
+    } catch (error) {
+        console.error('Error fetching productos:', error);
+        mainContent.innerHTML = '<p>Error loading productos.</p>';
+    }
+}
+    async function editProduct(productId) {
+    try {
+        // Obtener los datos del producto
+        const response = await fetch(`/productos/${productId}`);
+        if (!response.ok) {
+            throw new Error('Error al obtener el producto');
+        }
+        const product = await response.json();
+        
+        // Mostrar el formulario de edición
+        showProductForm(product);
+    } catch (error) {
+        console.error('Error al editar producto:', error);
+        showPopup('Error al cargar el producto para editar: ' + error.message);
+    }
+}
+async function deleteProduct(productId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/productos/${productId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showPopup('Producto eliminado con éxito');
+            fetchProductos(); // Recargar la lista de productos
+        } else {
+            const errorData = await response.json();
+            console.error('Error al eliminar producto:', errorData);
+            showPopup('Error al eliminar el producto');
+        }
+    } catch (error) {
+        console.error('Error al eliminar producto:', error);
+        showPopup('Error al eliminar el producto');
+    }
+}
+
+function showProductForm(product = null) {
+    const isEditing = !!product;
+    mainContent.innerHTML = `
+        <h1>${isEditing ? 'Editar' : 'Crear Nuevo'} Producto</h1>
+        <form id="productoForm">
+            ${isEditing ? `<input type="hidden" id="id_producto" name="id_producto" value="${product.id_producto}">` : ''}
+            <div class="form-group">
+                <label for="nombre_prod">Nombre:</label>
+                <input type="text" id="nombre_prod" name="nombre_prod" value="${isEditing ? product.nombre_prod : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="precio_unidad">Precio Unidad:</label>
+                <input type="number" id="precio_unidad" name="precio_unidad" step="0.01" value="${isEditing ? product.precio_unidad : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="disponibilidad">Disponibilidad:</label>
+                <input type="number" id="disponibilidad" name="disponibilidad" value="${isEditing ? product.disponibilidad : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="tipo">Tipo:</label>
+                <input type="text" id="tipo" name="tipo" value="${isEditing ? product.tipo : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="medidas">Medidas:</label>
+                <input type="text" id="medidas" name="medidas" value="${isEditing ? product.medidas : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="dimensiones">Dimensiones:</label>
+                <input type="text" id="dimensiones" name="dimensiones" value="${isEditing ? product.dimensiones : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="fecha_add">Fecha Añadido:</label>
+                <input type="date" id="fecha_add" name="fecha_add" value="${isEditing ? product.fecha_add.split('T')[0] : ''}" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
+                <button type="button" class="btn btn-secondary" onclick="fetchProductos()">Cancelar</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('productoForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const productoData = Object.fromEntries(formData.entries());
+
+        try {
+            const url = isEditing ? `/api/productos/${productoData.id_producto}` : '/api/productos';
+            const method = isEditing ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(productoData)
+            });
+
+            const result = await response.json();
+            console.log('Server response:', result);
+
+            if (response.ok) {
+                showPopup(isEditing ? 'Producto actualizado con éxito' : 'Producto creado con éxito');
+                fetchProductos(); // Recargar la lista de productos
             } else {
-                mainContent.innerHTML = '<p>No se encontraron productos.</p>';
+                console.error('Error saving producto:', result);
+                showPopup(`Error: ${result.message || 'Error al guardar el producto'}`);
             }
         } catch (error) {
-            console.error('Error fetching productos:', error);
-            mainContent.innerHTML = '<p>Error loading productos.</p>';
+            console.error('Error saving producto:', error);
+            showPopup('Error al guardar el producto');
         }
-    }
+    });
+}
+
     
-    function showProductForm(product = null) {
-        const isEditing = !!product;
-        mainContent.innerHTML = `
-            <h1>${isEditing ? 'Editar' : 'Crear Nuevo'} Producto</h1>
-            <form id="productoForm">
-                ${isEditing ? `<input type="hidden" id="id_producto" name="id_producto" value="${product.id_producto}">` : ''}
-                <label for="nombre_prod">Nombre:</label>
-                <input type="text" id="nombre_prod" name="nombre_prod" value="${isEditing ? product.nombre_prod : ''}" required><br>
-                <label for="precio_unidad">Precio Unidad:</label>
-                <input type="number" id="precio_unidad" name="precio_unidad" value="${isEditing ? product.precio_unidad : ''}" required><br>
-                <label for="disponibilidad">Disponibilidad:</label>
-                <input type="number" id="disponibilidad" name="disponibilidad" value="${isEditing ? product.disponibilidad : ''}" required><br>
-                <label for="tipo">Tipo:</label>
-                <input type="text" id="tipo" name="tipo" value="${isEditing ? product.tipo : ''}" required><br>
-                <label for="medidas">Medidas:</label>
-                <input type="text" id="medidas" name="medidas" value="${isEditing ? product.medidas : ''}" required><br>
-                <label for="dimensiones">Dimensiones:</label>
-                <input type="text" id="dimensiones" name="dimensiones" value="${isEditing ? product.dimensiones : ''}" required><br>
-                <label for="fecha_add">Fecha Añadido:</label>
-                <input type="date" id="fecha_add" name="fecha_add" value="${isEditing ? product.fecha_add : ''}" required><br>
-                <button type="submit">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
-            </form>
-        `;
-
-        document.getElementById('productoForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            const productoData = Object.fromEntries(formData.entries());
-
-            try {
-                const url = isEditing ? `/api/productos/${productoData.id_producto}` : '/api/productos';
-                const method = isEditing ? 'PUT' : 'POST';
-                
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(productoData)
-                });
-
-                const result = await response.json();
-                console.log('Server response:', result);
-
-                if (response.ok) {
-                    loadContent('productos');
-                } else {
-                    console.error('Error saving producto:', result);
-                    mainContent.innerHTML = `<p>Error saving producto: ${result.error}</p>`;
-                }
-            } catch (error) {
-                console.error('Error saving producto:', error);
-                mainContent.innerHTML = '<p>Error saving producto.</p>';
-            }
-        });
-    }
 });
