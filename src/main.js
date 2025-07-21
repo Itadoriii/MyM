@@ -208,54 +208,77 @@ function removeFromCart(index) {
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartDisplay(); // Actualiza el carrito y el contador en el menú
 }
+// Función mejorada para realizar búsquedas
+const performSearch = async (query) => {
+    try {
+        if (!query || query.trim() === '') {
+            // Si la búsqueda está vacía, recargar los productos normales
+            const productos = await (await fetch("/productos")).json();
+            displayProducts(productos);
+            return;
+        }
 
-function updateCartDisplay() {
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    const cartContainer = document.querySelector('.cart-container');
-    const cartTotalElement = document.getElementById('cart-total');
-    const cartCountElement = document.querySelector('.cart-count'); // Elemento para mostrar la cantidad en el menú
+        const response = await fetch(`/productos?q=${encodeURIComponent(query)}`);
+        
+        if (!response.ok) {
+            throw new Error('Error en la búsqueda');
+        }
 
-    // Limpiar el contenido del carrito
-    cartContainer.innerHTML = ''; 
-    let totalPrice = 0;
+        const products = await response.json();
+        const resultadobusqueda = document.getElementById('resultq');
+        
+        // Mostrar resultados de búsqueda
+        if (resultadobusqueda) {
+            resultadobusqueda.innerHTML = `<p>Resultado de su búsqueda: "${query}"</p>`;
+            resultadobusqueda.classList.remove('resultadooculto');
+        }
 
-    // Actualizar la cantidad de productos en el menú
-    const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0); // Calcula la cantidad total de productos
-    if (cartCountElement) {
-        cartCountElement.textContent = totalItems; // Actualiza el contador en el menú
-    }
+        // Ocultar carrusel si existe
+        const conteitemcarrusel = document.getElementById('conteitemcarrusel');
+        if (conteitemcarrusel) {
+            conteitemcarrusel.style.display = 'none';
+        }
 
-    // Mostrar los productos en el carrito
-    if (cart.length === 0) {
-        cartContainer.innerHTML = '<p>El carrito está vacío.</p>';
-    } else {
-        cart.forEach((product, index) => {
-            totalPrice += product.precio * product.quantity;
-
-            const cartItem = document.createElement('div');
-            cartItem.className = 'cart-item';
-            cartItem.innerHTML = `
-                <img src="assets/productos/${product.id_producto}.jpg" alt="${product.name}">
-                <div class="cart-item-info">
-                    <h4>${product.name}</h4>
-                    <p>Precio: $${product.precio}</p>
-                </div>
-                <div class="cart-quantity">
-                    <button onclick="updateQuantity(${index}, -1)">-</button>
-                    <span>${product.quantity}</span>
-                    <button onclick="updateQuantity(${index}, 1)">+</button>
-                </div>
-                <button class="remove-btn" onclick="removeFromCart(${index})">Eliminar</button>
-            `;
-            cartContainer.appendChild(cartItem);
+        // Limpiar contenedores de productos
+        ['itemcont1', 'itemcont2', 'itemcont3', 'itemcont4', 'itemcont5', 'itemcont6'].forEach(containerClass => {
+            const container = document.querySelector(`.${containerClass}`);
+            if (container) container.innerHTML = '';
         });
+
+        // Mostrar productos encontrados
+        displayProducts(products);
+    } catch (error) {
+        console.error('Error en la búsqueda:', error);
+        const resultadobusqueda = document.getElementById('resultq');
+        if (resultadobusqueda) {
+            resultadobusqueda.innerHTML = `<p>Error en la búsqueda: ${error.message}</p>`;
+        }
     }
+    };
+
+    // Manejador del formulario de búsqueda mejorado
+    document.getElementById('search-form')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            await performSearch(searchInput.value.trim());
+        }
+    });
+
+    // Manejadores para categorías
+    document.querySelectorAll('.category-link').forEach(link => {
+        link.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const category = event.target.textContent.trim();
+            await performSearch(category);
+        });
+    });
 
     // Actualizar el precio total
     if (cartTotalElement) {
         cartTotalElement.textContent = totalPrice.toFixed(2);
     }
-}
+
 
 function removeFromCart(index) {
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -550,3 +573,4 @@ document.addEventListener('DOMContentLoaded', () => {
     
     updateLoginButton();// Asegúrate de actualizar el botón después de que el DOM esté completamente cargado
 });
+
