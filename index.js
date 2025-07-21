@@ -171,68 +171,6 @@ app.post('/api/productos', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-/*
-app.post('/api/generar-pedido', async (req, res) => {
-  const cart = req.body;
-  const connection = await pool.getConnection();
-
-  try {
-      const userData = await revisarCookie(req);
-      if (!userData) {
-          return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
-      }
-
-      await connection.beginTransaction();
-
-      // Obtener el id_usuarios del usuario autenticado
-      const [userResult] = await connection.query(
-          'SELECT id_usuarios FROM usuarios WHERE user = ?',
-          [userData.user]
-      );
-      
-      if (userResult.length === 0) {
-          throw new Error('Usuario no encontrado');
-      }
-      
-      const userId = userResult[0].id_usuarios;
-
-      console.log('Intentando insertar pedido para usuario ID:', userId);
-
-      // Calcular el precio total del carrito
-      const precioTotal = cart.reduce((total, item) => total + item.precio * item.quantity, 0);
-
-      // Insertar en la tabla pedidos
-      const [pedidoResult] = await connection.query(
-          'INSERT INTO pedidos (id_usuario, precio_total, fecha_pedido) VALUES (?, ?, NOW())',
-          [userId, precioTotal]
-      );
-
-      const idPedido = pedidoResult.insertId;
-
-      // Insertar detalles del pedido
-      for (const item of cart) {
-          await connection.query(
-              'INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_detalle) VALUES (?, ?, ?, ?)',
-              [idPedido, item.id_producto, item.quantity, item.precio]
-          );
-
-          // Actualizar el stock del producto
-          await connection.query(
-              'UPDATE productos SET disponibilidad = disponibilidad - ? WHERE id_producto = ?',
-              [item.quantity, item.id_producto]
-          );
-      }
-
-      await connection.commit();
-      res.json({ success: true, id_pedido: idPedido });
-  } catch (error) {
-      await connection.rollback();
-      console.error('Error al generar el pedido:', error);
-      res.status(500).json({ success: false, error: 'Error al generar el pedido: ' + error.message });
-  } finally {
-      connection.release();
-  }
-}); */
 
 app.post('/api/generar-pedido', async (req, res) => {
   const cart = req.body;  // Array de objetos con productos del carrito
@@ -441,3 +379,4 @@ app.put('/api/pedidos/:id/rechazar', async (req, res) => {
       res.status(500).json({ error: 'Error al rechazar el pedido' });
   }
 });
+
