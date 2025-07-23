@@ -498,49 +498,61 @@ app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async 
 
 // Obtener todos los adelantos
 
-// Obtener adelantos con filtros mejorados
 app.get('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res) => {
-    try {
-        const { trabajador, mes, año } = req.query;
-        
-        let query = `
-            SELECT a.*, t.nombres, t.apellidos, t.rut, t.sueldo 
-            FROM adelantos a
-            JOIN trabajadores t ON a.id_trabajador = t.id_trabajador
-            WHERE 1=1
-        `;
-        
-        const params = [];
-        
-        if (trabajador && !isNaN(trabajador)) {
-            query += ' AND a.id_trabajador = ?';
-            params.push(parseInt(trabajador));
-        }
-        
-        if (mes && !isNaN(mes) && año && !isNaN(año)) {
-            query += ' AND MONTH(a.fecha) = ? AND YEAR(a.fecha) = ?';
-            params.push(parseInt(mes), parseInt(año));
-        } else if (año && !isNaN(año)) {
-            query += ' AND YEAR(a.fecha) = ?';
-            params.push(parseInt(año));
-        }
-        
-        query += ' ORDER BY a.fecha DESC, a.id_adelanto DESC';
-        
-        const [rows] = await pool.query(query, params);
-        
-        // Formatear fechas para consistencia
-        const formattedRows = rows.map(row => ({
-            ...row,
-            fecha: new Date(row.fecha).toISOString().split('T')[0] // Formato YYYY-MM-DD
-        }));
-        
-        res.json(formattedRows);
-    } catch (err) {
-        console.error('Error al obtener adelantos:', err);
-        res.status(500).json({ error: 'Error interno del servidor' });
+  try {
+    const { trabajador, mes, año, page = 1, limit = 50 } = req.query;
+
+    let query = `
+      SELECT a.*, t.nombres, t.apellidos, t.rut, t.sueldo 
+      FROM adelantos a
+      JOIN trabajadores t ON a.id_trabajador = t.id_trabajador
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (trabajador && !isNaN(trabajador)) {
+      query += ' AND a.id_trabajador = ?';
+      params.push(parseInt(trabajador));
     }
+
+    if (mes && !isNaN(mes) && año && !isNaN(año)) {
+      query += ' AND MONTH(a.fecha) = ? AND YEAR(a.fecha) = ?';
+      params.push(parseInt(mes), parseInt(año));
+    } else if (año && !isNaN(año)) {
+      query += ' AND YEAR(a.fecha) = ?';
+      params.push(parseInt(año));
+    }
+
+    query += ' ORDER BY a.fecha DESC, a.id_adelanto DESC';
+
+    // Obtener total antes de aplicar paginación
+    const [totalRows] = await pool.query(query, params);
+    const total = totalRows.length;
+
+    // Aplicar paginación
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    query += ' LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), offset);
+
+    const [pagedRows] = await pool.query(query, params);
+
+    // Formatear fechas
+    const formattedRows = pagedRows.map(row => ({
+      ...row,
+      fecha: new Date(row.fecha).toISOString().split('T')[0]
+    }));
+
+    res.json({
+      adelantos: formattedRows,
+      total
+    });
+  } catch (err) {
+    console.error('Error al obtener adelantos:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
+
+
 // Obtener un adelanto específico
 app.get('/api/adelantos/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
 const { id } = req.params;

@@ -669,7 +669,7 @@ function showTrabajadorForm(trabajador = null) {
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Agregar Trabajador'}</button>
-                <button type="button" class="btn btn-secondary" onclick="fetchTrabajadores()">Cancelar</button>
+                
             </div>
         </form>
     `;
@@ -707,238 +707,342 @@ function showTrabajadorForm(trabajador = null) {
     });
 }
 
-async function fetchAdelantos() {
+
+let currentPage = 1;
+const pageSize = 50;
+
+
+async function fetchAdelantos(page = 1) {
     try {
-        const response = await fetch('/api/adelantos');
-        const adelantos = await response.json();
-        
-        if (!Array.isArray(adelantos)) {
-            console.error('La respuesta no es un array:', adelantos);
-            mainContent.innerHTML = '<p>Error: La respuesta no tiene el formato esperado.</p>';
-            return;
-        }
+        mainContent.innerHTML = `<p>Cargando adelantos...</p>`;
 
-        mainContent.innerHTML = `
-            <div class="filtros-container">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label for="filtro-trabajador">Trabajador</label>
-                        <select id="filtro-trabajador" class="form-control">
-                            <option value="">Todos los trabajadores</option>
-                            <!-- Se llenará dinámicamente -->
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filtro-mes">Mes</label>
-                        <select id="filtro-mes" class="form-control">
-                            <option value="">Todos</option>
-                            <option value="1">Enero</option>
-                            <option value="2">Febrero</option>
-                            <option value="3">Marzo</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Mayo</option>
-                            <option value="6">Junio</option>
-                            <option value="7">Julio</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Septiembre</option>
-                            <option value="10">Octubre</option>
-                            <option value="11">Noviembre</option>
-                            <option value="12">Diciembre</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filtro-anio">Año</label>
-                        <select id="filtro-anio" class="form-control">
-                            <option value="">Todos</option>
-                            <!-- Se llenará dinámicamente -->
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label>&nbsp;</label>
-                        <button id="btn-filtrar" class="btn btn-primary btn-block">
-                            <i class="bx bx-filter-alt"></i> Filtrar
-                        </button>
-                    </div>
-                    <div class="col-md-2">
-                        <label>&nbsp;</label>
-                        <button id="btn-limpiar" class="btn btn-secondary btn-block">
-                            <i class="bx bx-reset"></i> Limpiar
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <button class="buttonenlace" id="crearAdelantoBtn">Agregar nuevo adelanto</button>
-
-            <h1 class="titulotable">Adelantos:</h1>
-            <div class="table-container" style="max-height: 400px; overflow-y: scroll;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Acciones</th>
-                            <th>Correlativo</th>
-                            <th>Empleado</th>
-                            <th>Fecha</th>
-                            <th>Motivos</th>
-                            <th>Anticipo</th>
-                            <th>Bono</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adelantos-tbody">
-                        ${adelantos.map(adelanto => `
-                            <tr>
-                                <td>
-                                    <button class="editBtn" data-id="${adelanto.id_adelanto}">Editar</button>
-                                    <button class="deleteBtn" data-id="${adelanto.id_adelanto}">Eliminar</button>
-                                </td>
-                                <td>${adelanto.id_adelanto}</td>
-                                <td>${adelanto.nombres} ${adelanto.apellidos}</td>
-                                <td>${adelanto.fecha}</td>
-                                <td>${adelanto.motivos || '-'}</td>
-                                <td>$${adelanto.monto.toLocaleString()}</td>
-                                <td>${adelanto.bono ? `$${adelanto.bono.toLocaleString()}` : '-'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        // Cargar trabajadores en el select de filtro
+        // Obtener trabajadores para el filtro
         const trabajadoresResponse = await fetch('/api/trabajadores');
         const trabajadores = await trabajadoresResponse.json();
-        const trabajadorSelect = document.getElementById('filtro-trabajador');
+
+        // Obtener adelantos con paginación
+        const adelantosResponse = await fetch(`/api/adelantos?page=${page}&limit=${pageSize}`);
+        const { adelantos, total } = await adelantosResponse.json();
+
+        renderAdelantosTable(adelantos, trabajadores, total, page);
+
+    } catch (error) {
+        console.error('Error al cargar adelantos:', error);
+        mainContent.innerHTML = `<p>Error al cargar los adelantos.</p>`;
+    }
+}
+
+function renderAdelantosTable(adelantos, trabajadores, total, page) {
+    mainContent.innerHTML = `
+    <h1 class="titulotable">Adelantos</h1>
+
+    <!-- Filtros -->
+    <div class="filters" style="margin-bottom: 1rem;">
+        <select id="filtroTrabajador">
+            <option value="">Todos los trabajadores</option>
+            ${trabajadores.map(t => 
+                `<option value="${t.id_trabajador}">${t.id_trabajador}.- ${t.nombres} ${t.apellidos}</option>`
+            ).join('')}
+        </select>
         
-        trabajadores.forEach(trabajador => {
-            const option = document.createElement('option');
-            option.value = trabajador.id_trabajador;
-            option.textContent = `${trabajador.nombres} ${trabajador.apellidos}`;
-            trabajadorSelect.appendChild(option);
-        });
+        <select id="filtroMes">
+            <option value="">Todos los meses</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+        </select>
+        
+        <input type="number" id="filtroAnio" placeholder="Año" style="width: 80px;" />
+        <button id="buscarBtn">Buscar</button>
+        <button id="resetBtn">Resetear</button>
+    </div>
 
-        // Cargar años en el select de filtro
-        const anioSelect = document.getElementById('filtro-anio');
-        const currentYear = new Date().getFullYear();
-        for (let i = currentYear; i >= currentYear - 5; i--) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = i;
-            anioSelect.appendChild(option);
-        }
+    <!-- Resultados del filtro -->
+    <div id="resultados-filtro" style="margin: 1rem 0; font-weight: bold;"></div>
 
-        // Agregar event listeners a los botones de editar
-        document.querySelectorAll('.editBtn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const adelantoId = e.target.getAttribute('data-id');
-                await editAdelanto(adelantoId);
-            });
-        });
+    <!-- Tabla de resultados -->
+    <div class="table-container" style="margin-top: 1rem; max-height: 500px; overflow-y: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Acciones</th>
+                    <th>Correlativo</th>
+                    <th>Empleado</th>
+                    <th>Fecha</th>
+                    <th>Motivos</th>
+                    <th>Anticipo</th>
+                    <th>Bono</th>
+                </tr>
+            </thead>
+            <tbody id="adelantos-tbody"></tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align: right;"><strong>Totales</strong></td>
+                    <td><strong id="total-anticipos">$ 0</strong></td>
+                    <td><strong id="total-bonos">$ 0</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <div id="pagination-controls" class="pagination"></div>
+`;
 
-        // Agregar event listeners a los botones de eliminar
-        document.querySelectorAll('.deleteBtn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const adelantoId = e.target.getAttribute('data-id');
-                await deleteAdelanto(adelantoId);
-            });
-        });
+    // Renderizar los datos iniciales
+    renderAdelantosData(adelantos);
+    renderPaginationControls(total, page);
 
-        // Evento para filtrar
-        document.getElementById('btn-filtrar').addEventListener('click', async () => {
-            const trabajadorId = document.getElementById('filtro-trabajador').value;
-            const mes = document.getElementById('filtro-mes').value;
-            const anio = document.getElementById('filtro-anio').value;
-            
-            let url = '/api/adelantos?';
-            if (trabajadorId) url += `trabajador=${trabajadorId}&`;
-            if (mes) url += `mes=${mes}&`;
-            if (anio) url += `año=${anio}&`;
-            
+    // Eventos
+    document.getElementById('buscarBtn').addEventListener('click', async () => {
+        const trabajadorId = document.getElementById('filtroTrabajador').value;
+        const mes = document.getElementById('filtroMes').value;
+        const anio = document.getElementById('filtroAnio').value;
+        
+        // Construir URL de filtro
+        let url = `/api/adelantos?page=1&limit=${pageSize}`;
+        
+        if (trabajadorId) url += `&trabajador=${trabajadorId}`;
+        if (mes) url += `&mes=${mes}`;
+        if (anio) url += `&año=${anio}`;
+
+        try {
             const response = await fetch(url);
-            const adelantosFiltrados = await response.json();
-            renderAdelantos(adelantosFiltrados);
-        });
+            const { adelantos, total } = await response.json();
+            
+            renderAdelantosData(adelantos);
+            renderPaginationControls(total, 1);
+            
+            // Mostrar información del filtro
+            if (trabajadorId) {
+                const trabajador = trabajadores.find(t => t.id_trabajador == trabajadorId);
+                document.getElementById('resultados-filtro').textContent = 
+                    `Resultados para: ${trabajador.id_trabajador}.- ${trabajador.nombres} ${trabajador.apellidos}`;
+            } else {
+                document.getElementById('resultados-filtro').textContent = 'Todos los trabajadores';
+            }
+        } catch (error) {
+            console.error('Error al filtrar adelantos:', error);
+            showPopup('Error al aplicar los filtros');
+        }
+    });
 
-        // Evento para limpiar filtros
-        document.getElementById('btn-limpiar').addEventListener('click', () => {
-            document.getElementById('filtro-trabajador').value = '';
-            document.getElementById('filtro-mes').value = '';
-            document.getElementById('filtro-anio').value = '';
-            renderAdelantos(adelantos);
-        });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        document.getElementById('filtroTrabajador').value = '';
+        document.getElementById('filtroMes').value = '';
+        document.getElementById('filtroAnio').value = '';
+        document.getElementById('resultados-filtro').textContent = '';
+        fetchAdelantos(1);
+    });
+}
 
-        // Evento para crear nuevo adelanto
-        document.getElementById('crearAdelantoBtn').addEventListener('click', () => {
-            showAdelantoForm();
-        });
-
-        function renderAdelantos(adelantos) {
+function renderAdelantosData(adelantos) {
     const tbody = document.getElementById('adelantos-tbody');
+    tbody.innerHTML = '';
     
-    // Calcular totales
-    const totalAnticipo = adelantos.reduce((sum, adelanto) => sum + (adelanto.monto || 0), 0);
-    const totalBono = adelantos.reduce((sum, adelanto) => sum + (adelanto.bono || 0), 0);
-    const totalGeneral = totalAnticipo + totalBono;
-    
-    tbody.innerHTML = adelantos.map(adelanto => `
-        <tr>
+    let totalAnticipos = 0;
+    let totalBonos = 0;
+
+    adelantos.forEach(adelanto => {
+        // Formatear los motivos con saltos de línea
+        const motivosFormateados = adelanto.motivos ? 
+            adelanto.motivos.split('\n').map(m => `${m}<br>`).join('') : 
+            '-';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
             <td>
-                <button class="editBtn btn-accion" data-id="${adelanto.id_adelanto}">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="deleteBtn btn-accion btn-eliminar" data-id="${adelanto.id_adelanto}">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
+                <button class="editBtn" data-id="${adelanto.id_adelanto}">Modificar</button>
+                <button class="deleteBtn" data-id="${adelanto.id_adelanto}">Eliminar</button>
             </td>
             <td>${adelanto.id_adelanto}</td>
-            <td>${adelanto.nombres} ${adelanto.apellidos}</td>
+            <td>${adelanto.id_trabajador}.- ${adelanto.nombres} ${adelanto.apellidos}</td>
             <td>${formatDate(adelanto.fecha)}</td>
-            <td>${adelanto.motivos || '-'}</td>
-            <td class="text-right">$${formatCurrency(adelanto.monto)}</td>
-            <td class="text-right">${adelanto.bono ? `$${formatCurrency(adelanto.bono)}` : '-'}</td>
-        </tr>
-    `).join('') + `
-        <tr class="fila-total">
-            <td colspan="5" class="text-right"><strong>TOTALES</strong></td>
-            <td class="text-right"><strong>$${formatCurrency(totalAnticipo)}</strong></td>
-            <td class="text-right"><strong>$${formatCurrency(totalBono)}</strong></td>
-        </tr>
-        <tr class="fila-total-general">
-            <td colspan="5" class="text-right"><strong>TOTAL GENERAL</strong></td>
-            <td colspan="2" class="text-right"><strong>$${formatCurrency(totalGeneral)}</strong></td>
-        </tr>
-    `;
+            <td>${motivosFormateados}</td>
+            <td>$ ${formatNumber(adelanto.monto)}</td>
+            <td>${adelanto.bono ? `$ ${formatNumber(adelanto.bono)}` : '$ 0'}</td>
+        `;
+        tbody.appendChild(row);
+        
+        // Sumar a los totales
+        totalAnticipos += parseFloat(adelanto.monto) || 0;
+        totalBonos += parseFloat(adelanto.bono) || 0;
+    });
 
-    // Volver a agregar los event listeners
+    // Actualizar totales
+    document.getElementById('total-anticipos').textContent = `$ ${formatNumber(totalAnticipos)}`;
+    document.getElementById('total-bonos').textContent = `$ ${formatNumber(totalBonos)}`;
+
+    // Agregar event listeners a los botones
     document.querySelectorAll('.editBtn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const adelantoId = e.target.closest('button').getAttribute('data-id');
-            await editAdelanto(adelantoId);
+        btn.addEventListener('click', (e) => {
+            const adelantoId = e.target.getAttribute('data-id');
+            editAdelanto(adelantoId);
         });
     });
 
     document.querySelectorAll('.deleteBtn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const adelantoId = e.target.closest('button').getAttribute('data-id');
-            await deleteAdelanto(adelantoId);
+        btn.addEventListener('click', (e) => {
+            const adelantoId = e.target.getAttribute('data-id');
+            deleteAdelanto(adelantoId);
         });
     });
-        }
+}
+function renderPaginationControls(totalItems, currentPage) {
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const container = document.getElementById('pagination-controls');
+    container.innerHTML = '';
 
-        // Funciones auxiliares para formato
-        function formatCurrency(value) {
-            return value.toLocaleString('es-CL');
-        }
+    if (totalPages <= 1) return;
 
-        function formatDate(dateString) {
-            const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-            return new Date(dateString).toLocaleDateString('es-CL', options);
+    const fragment = document.createDocumentFragment();
+
+    // Botón anterior
+    if (currentPage > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = 'Anterior';
+        prevBtn.addEventListener('click', () => {
+            const trabajadorId = document.getElementById('filtroTrabajador').value;
+            const mes = document.getElementById('filtroMes').value;
+            const anio = document.getElementById('filtroAnio').value;
+            fetchFilteredAdelantos(currentPage - 1, trabajadorId, mes, anio);
+        });
+        fragment.appendChild(prevBtn);
+    }
+
+    // Números de página
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage || i <= 2 || i > totalPages - 2 || Math.abs(i - currentPage) <= 1) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            pageBtn.classList.toggle('active', i === currentPage);
+            pageBtn.addEventListener('click', () => {
+                const trabajadorId = document.getElementById('filtroTrabajador').value;
+                const mes = document.getElementById('filtroMes').value;
+                const anio = document.getElementById('filtroAnio').value;
+                fetchFilteredAdelantos(i, trabajadorId, mes, anio);
+            });
+            fragment.appendChild(pageBtn);
+        } else if (i === 3 && currentPage > 4 || i === totalPages - 2 && currentPage < totalPages - 3) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            fragment.appendChild(dots);
         }
-        renderAdelantos(adelantos);
+    }
+
+    // Botón siguiente
+    if (currentPage < totalPages) {
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Siguiente';
+        nextBtn.addEventListener('click', () => {
+            const trabajadorId = document.getElementById('filtroTrabajador').value;
+            const mes = document.getElementById('filtroMes').value;
+            const anio = document.getElementById('filtroAnio').value;
+            fetchFilteredAdelantos(currentPage + 1, trabajadorId, mes, anio);
+        });
+        fragment.appendChild(nextBtn);
+    }
+
+    container.appendChild(fragment);
+}
+
+async function fetchFilteredAdelantos(page, trabajadorId, mes, anio) {
+    try {
+        // Construir URL de filtro
+        let url = `/api/adelantos?page=${page}&limit=${pageSize}`;
+        
+        if (trabajadorId) url += `&trabajador=${trabajadorId}`;
+        if (mes) url += `&mes=${mes}`;
+        if (anio) url += `&año=${anio}`;
+
+        const response = await fetch(url);
+        const { adelantos, total } = await response.json();
+        
+        renderAdelantosData(adelantos);
+        renderPaginationControls(total, page);
+        
     } catch (error) {
-        console.error('Error fetching adelantos:', error);
-        mainContent.innerHTML = '<p>Error al cargar los adelantos.</p>';
+        console.error('Error al cargar adelantos filtrados:', error);
+        showPopup('Error al cargar los datos');
     }
 }
+
+function formatNumber(value) {
+    return new Intl.NumberFormat('es-CL').format(value);
+}
+
+function formatDate(dateString) {
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const date = new Date(dateString);
+    const dia = date.getDate();
+    const mes = meses[date.getMonth()];
+    const anio = date.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+}
+
+// Resto de las funciones (editAdelanto, deleteAdelanto) se mantienen igual
+// Resto de las funciones (renderPaginationControls, editAdelanto, deleteAdelanto) se mantienen igual
+function renderPaginationControls(totalItems, currentPage) {
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const container = document.getElementById('pagination-controls');
+    container.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    const fragment = document.createDocumentFragment();
+
+    // Botón anterior
+    if (currentPage > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = 'Anterior';
+        prevBtn.addEventListener('click', () => fetchAdelantos(currentPage - 1));
+        fragment.appendChild(prevBtn);
+    }
+
+    // Números de página
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage || i <= 2 || i > totalPages - 2 || Math.abs(i - currentPage) <= 1) {
+            const pageBtn = document.createElement('button');
+            pageBtn.textContent = i;
+            pageBtn.classList.toggle('active', i === currentPage);
+            pageBtn.addEventListener('click', () => fetchAdelantos(i));
+            fragment.appendChild(pageBtn);
+        } else if (i === 3 && currentPage > 4 || i === totalPages - 2 && currentPage < totalPages - 3) {
+            const dots = document.createElement('span');
+            dots.textContent = '...';
+            fragment.appendChild(dots);
+        }
+    }
+
+    // Botón siguiente
+    if (currentPage < totalPages) {
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Siguiente';
+        nextBtn.addEventListener('click', () => fetchAdelantos(currentPage + 1));
+        fragment.appendChild(nextBtn);
+    }
+
+    container.appendChild(fragment);
+}
+
+// Utilidades
+function formatCurrency(value) {
+    return Number(value || 0).toLocaleString('es-CL');
+}
+
+function formatDate(dateString) {
+    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    return new Date(dateString).toLocaleDateString('es-CL', options);
+}
+
 
 async function editAdelanto(adelantoId) {
     try {
@@ -982,93 +1086,126 @@ async function deleteAdelanto(adelantoId) {
 }
 
 function showAdelantoForm(adelanto = null) {
-    const isEditing = !!adelanto;
-    
-    // Primero necesitamos cargar los trabajadores para el select
-    fetch('/api/trabajadores')
-        .then(response => response.json())
-        .then(trabajadores => {
-            mainContent.innerHTML = `
-                <h1>${isEditing ? 'Editar' : 'Agregar Nuevo'} Adelanto</h1>
-                <form id="adelantoForm">
-                    ${isEditing ? `<input type="hidden" id="id_adelanto" name="id_adelanto" value="${adelanto.id_adelanto}">` : ''}
-                    
-                    <div class="form-group">
-                        <label for="id_trabajador">Trabajador:</label>
-                        <select id="id_trabajador" name="id_trabajador" required>
-                            ${trabajadores.map(t => `
-                                <option value="${t.id_trabajador}" 
-                                    ${isEditing && adelanto.id_trabajador == t.id_trabajador ? 'selected' : ''}>
-                                    ${t.nombres} ${t.apellidos} (${t.rut})
-                                </option>
-                            `).join('')}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="monto">Monto del adelanto:</label>
-                        <input type="number" id="monto" name="monto" step="1000" value="${isEditing ? adelanto.monto : ''}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="bono">Bono:</label>
-                        <input type="number" id="bono" name="bono" step="1000" value="${isEditing ? (adelanto.bono || '') : ''}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="motivos">Motivos:</label>
-                        <textarea id="motivos" name="motivos">${isEditing ? (adelanto.motivos || '') : ''}</textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="fecha">Fecha:</label>
-                        <input type="date" id="fecha" name="fecha" value="${isEditing ? adelanto.fecha : new Date().toISOString().split('T')[0]}" required>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Agregar Adelanto'}</button>
-                        <button type="button" class="btn btn-secondary" onclick="fetchAdelantos()">Cancelar</button>
-                    </div>
-                </form>
-            `;
+    // Crear el formulario modal
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>${adelanto ? 'Editar Adelanto' : 'Nuevo Adelanto'}</h2>
+            <form id="adelantoForm">
+                <input type="hidden" id="id_adelanto" value="${adelanto ? adelanto.id_adelanto : ''}">
+                
+                <div class="form-group">
+                    <label for="id_trabajador">Trabajador:</label>
+                    <select id="id_trabajador" required>
+                        <option value="">Seleccione un trabajador</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fecha">Fecha:</label>
+                    <input type="date" id="fecha" required value="${adelanto ? adelanto.fecha : ''}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="monto">Monto:</label>
+                    <input type="number" id="monto" required value="${adelanto ? adelanto.monto : ''}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="motivos">Motivos:</label>
+                    <textarea id="motivos" rows="3">${adelanto ? adelanto.motivos : ''}</textarea>
+                </div>
+                
+                <button type="submit">Guardar</button>
+            </form>
+        </div>
+    `;
 
-            document.getElementById('adelantoForm').addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const formData = new FormData(event.target);
-                const adelantoData = Object.fromEntries(formData.entries());
+    document.body.appendChild(modal);
 
-                try {
-                    const url = isEditing ? `/api/adelantos/${adelantoData.id_adelanto}` : '/api/adelantos';
-                    const method = isEditing ? 'PUT' : 'POST';
-                    
-                    const response = await fetch(url, {
-                        method: method,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(adelantoData)
-                    });
+    // Cargar trabajadores en el select
+    loadTrabajadoresForForm(adelanto ? adelanto.id_trabajador : null);
 
-                    const result = await response.json();
+    // Cerrar modal
+    modal.querySelector('.close-btn').addEventListener('click', () => {
+        modal.remove();
+    });
 
-                    if (response.ok) {
-                        showPopup(isEditing ? 'Adelanto actualizado con éxito' : 'Adelanto agregado con éxito');
-                        fetchAdelantos();
-                    } else {
-                        console.error('Error saving adelanto:', result);
-                        showPopup(`Error: ${result.error || 'Error al guardar el adelanto'}`);
-                    }
-                } catch (error) {
-                    console.error('Error saving adelanto:', error);
-                    showPopup('Error al guardar el adelanto');
-                }
-            });
-        })
-        .catch(error => {
-            console.error('Error al cargar trabajadores:', error);
-            showPopup('Error al cargar los trabajadores para el formulario');
-        });
+    // Enviar formulario
+    document.getElementById('adelantoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveAdelanto(adelanto ? 'edit' : 'create');
+        modal.remove();
+    });
 }
-window.fetchAdelantos = fetchAdelantos;
+
+async function loadTrabajadoresForForm(selectedId = null) {
+    try {
+        const response = await fetch('/api/trabajadores');
+        const trabajadores = await response.json();
+        
+        const select = document.getElementById('id_trabajador');
+        trabajadores.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t.id_trabajador;
+            option.textContent = `${t.id_trabajador}.- ${t.nombres} ${t.apellidos}`;
+            if (selectedId && t.id_trabajador == selectedId) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error al cargar trabajadores:', error);
+        showPopup('Error al cargar la lista de trabajadores');
+    }
+}
+
+async function saveAdelanto(action) {
+    const formData = {
+        id_adelanto: document.getElementById('id_adelanto').value,
+        id_trabajador: document.getElementById('id_trabajador').value,
+        fecha: document.getElementById('fecha').value,
+        monto: document.getElementById('monto').value,
+        motivos: document.getElementById('motivos').value
+    };
+
+    try {
+        let response;
+        if (action === 'edit') {
+            response = await fetch(`/api/adelantos/${formData.id_adelanto}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(formData)
+            });
+        } else {
+            response = await fetch('/api/adelantos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(formData)
+            });
+        }
+
+        if (response.ok) {
+            showPopup('Adelanto guardado con éxito');
+            fetchAdelantos();
+        } else {
+            const errorData = await response.json();
+            console.error('Error al guardar adelanto:', errorData);
+            showPopup('Error al guardar el adelanto: ' + (errorData.error || ''));
+        }
+    } catch (error) {
+        console.error('Error al guardar adelanto:', error);
+        showPopup('Error al guardar el adelanto');
+    }
+}
+
+
 });
