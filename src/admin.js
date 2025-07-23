@@ -463,7 +463,7 @@ function showProductForm(product = null) {
     });
 }
 
-    
+
 
 async function fetchTrabajadores() {
     try {
@@ -503,7 +503,7 @@ async function fetchTrabajadores() {
                                 <td>${trabajador.rut}</td>
                                 <td>${trabajador.nombres}</td>
                                 <td>${trabajador.apellidos}</td>
-                                <td>${trabajador.fecha_ingreso}</td>
+                                <td>${trabajador.fechaIngreso}</td>
                                 <td>$${trabajador.sueldo.toLocaleString()}</td>
                                 <td>${trabajador.fono}</td>
                                 <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
@@ -558,7 +558,7 @@ async function fetchTrabajadores() {
                     <td>${trabajador.rut}</td>
                     <td>${trabajador.nombres}</td>
                     <td>${trabajador.apellidos}</td>
-                    <td>${trabajador.fecha_ingreso}</td>
+                    <td>${trabajador.fechaIngreso}</td>
                     <td>$${trabajador.sueldo.toLocaleString()}</td>
                     <td>${trabajador.fono}</td>
                     <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
@@ -649,8 +649,8 @@ function showTrabajadorForm(trabajador = null) {
                 <input type="text" id="apellidos" name="apellidos" value="${isEditing ? trabajador.apellidos : ''}" required>
             </div>
             <div class="form-group">
-                <label for="fecha_ingreso">Fecha Ingreso:</label>
-                <input type="date" id="fecha_ingreso" name="fecha_ingreso" value="${isEditing ? trabajador.fecha_ingreso : ''}" required>
+                <label for="fechaIngreso">Fecha Ingreso:</label>
+                <input type="date" id="fechaIngreso" name="fechaIngreso" value="${isEditing ? trabajador.fechaIngreso : ''}" required>
             </div>
             <div class="form-group">
                 <label for="sueldo">Sueldo:</label>

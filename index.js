@@ -411,11 +411,11 @@ app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (re
 
 // Crear nuevo trabajador
 app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
-  const { rut, nombres, apellidos, fecha_ingreso, sueldo, fono, estado } = req.body;
+  const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
   console.log('Creando nuevo trabajador:', req.body);
 
-  if (!rut || !nombres || !apellidos || !fecha_ingreso || !sueldo || !fono || !estado) {
+  if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
     return res.status(400).json({ error: 'Todos los campos son obligatorios' });
   }
 
@@ -425,7 +425,7 @@ app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, 
       (rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado) 
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [rut, nombres, apellidos, fecha_ingreso, sueldo, fono, estado];
+    const params = [rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado];
     const [result] = await pool.query(query, params);
     res.status(201).json({ 
       message: 'Trabajador creado exitosamente', 
@@ -440,11 +440,11 @@ app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, 
 // Actualizar trabajador
 app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
   const { id } = req.params;
-  const { rut, nombres, apellidos, fecha_ingreso, sueldo, fono, estado } = req.body;
+  const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
   console.log('Actualizando trabajador:', req.body);
 
-  if (!rut || !nombres || !apellidos || !fecha_ingreso || !sueldo || !fono || !estado) {
+  if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
     return res.status(400).json({ error: 'Todos los campos son obligatorios' });
   }
 
@@ -454,13 +454,13 @@ app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (re
       SET rut = ?, 
           nombres = ?, 
           apellidos = ?, 
-          fecha_ingreso = ?, 
+          fechaIngreso = ?, 
           sueldo = ?, 
           fono = ?, 
           estado = ?
       WHERE id_trabajador = ?
     `;
-    const params = [rut, nombres, apellidos, fecha_ingreso, sueldo, fono, estado, id];
+    const params = [rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado, id];
     
     const [result] = await pool.query(query, params);
     
