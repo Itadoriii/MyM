@@ -46,6 +46,12 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'pedidos':
                 fetchPedidos();
                 break;
+            case 'trabajadores':
+                fetchTrabajadores();
+                break;
+            case 'adelantos':
+                fetchAdelantos();
+                break;
             default:
                 mainContent.innerHTML = '<h1>Bienvenido</h1><p>Seleccione una opción del menú.</p>';
         }
@@ -458,4 +464,611 @@ function showProductForm(product = null) {
 }
 
     
+
+async function fetchTrabajadores() {
+    try {
+        const response = await fetch('/api/trabajadores');
+        const trabajadores = await response.json();
+        
+        if (!Array.isArray(trabajadores)) {
+            console.error('La respuesta no es un array:', trabajadores);
+            mainContent.innerHTML = '<p>Error: La respuesta no tiene el formato esperado.</p>';
+            return;
+        }
+
+        mainContent.innerHTML = `
+            <input type="text" id="search-input" placeholder="Buscar trabajador..." style="width: 100%; padding: 10px; margin-bottom: 20px;">
+            <button class="buttonenlace" id="crearTrabajadorBtn">Agregar nuevo trabajador</button>
+
+            <h1 class="titulotable">Trabajadores Actuales:</h1>
+            <div class="table-container" style="max-height: 400px; overflow-y: scroll;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>RUT</th>
+                            <th>Nombres</th>
+                            <th>Apellidos</th>
+                            <th>F. Ingreso</th>
+                            <th>Sueldo</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trabajadores-tbody">
+                        ${trabajadores.map(trabajador => `
+                            <tr>
+                                <td>${trabajador.id_trabajador}</td>
+                                <td>${trabajador.rut}</td>
+                                <td>${trabajador.nombres}</td>
+                                <td>${trabajador.apellidos}</td>
+                                <td>${trabajador.fecha_ingreso}</td>
+                                <td>$${trabajador.sueldo.toLocaleString()}</td>
+                                <td>${trabajador.fono}</td>
+                                <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
+                                <td>
+                                    <button class="editBtn" data-id="${trabajador.id_trabajador}">Editar</button>
+                                    <button class="deleteBtn" data-id="${trabajador.id_trabajador}">Eliminar</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        // Agregar event listeners a los botones de editar
+        document.querySelectorAll('.editBtn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const trabajadorId = e.target.getAttribute('data-id');
+                await editTrabajador(trabajadorId);
+            });
+        });
+
+        // Agregar event listeners a los botones de eliminar
+        document.querySelectorAll('.deleteBtn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const trabajadorId = e.target.getAttribute('data-id');
+                await deleteTrabajador(trabajadorId);
+            });
+        });
+
+        // Búsqueda en tiempo real
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', function() {
+            const searchValue = searchInput.value.toLowerCase();
+            const filteredTrabajadores = trabajadores.filter(trabajador =>
+                trabajador.nombres.toLowerCase().includes(searchValue) ||
+                trabajador.apellidos.toLowerCase().includes(searchValue) ||
+                trabajador.rut.toLowerCase().includes(searchValue)
+            );
+            renderTrabajadores(filteredTrabajadores);
+        });
+
+        document.getElementById('crearTrabajadorBtn').addEventListener('click', () => {
+            showTrabajadorForm();
+        });
+
+        function renderTrabajadores(trabajadores) {
+            const tbody = document.getElementById('trabajadores-tbody');
+            tbody.innerHTML = trabajadores.map(trabajador => `
+                <tr>
+                    <td>${trabajador.id_trabajador}</td>
+                    <td>${trabajador.rut}</td>
+                    <td>${trabajador.nombres}</td>
+                    <td>${trabajador.apellidos}</td>
+                    <td>${trabajador.fecha_ingreso}</td>
+                    <td>$${trabajador.sueldo.toLocaleString()}</td>
+                    <td>${trabajador.fono}</td>
+                    <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
+                    <td>
+                        <button class="editBtn" data-id="${trabajador.id_trabajador}">Editar</button>
+                        <button class="deleteBtn" data-id="${trabajador.id_trabajador}">Eliminar</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Volver a agregar los event listeners después de renderizar 
+            document.querySelectorAll('.editBtn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const trabajadorId = e.target.getAttribute('data-id');
+                    await editTrabajador(trabajadorId);
+                });
+            });
+
+            document.querySelectorAll('.deleteBtn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const trabajadorId = e.target.getAttribute('data-id');
+                    await deleteTrabajador(trabajadorId);
+                });
+            });
+        }
+
+        renderTrabajadores(trabajadores);
+    } catch (error) {
+        console.error('Error fetching trabajadores:', error);
+        mainContent.innerHTML = '<p>Error al cargar los trabajadores.</p>';
+    }
+}
+
+async function editTrabajador(trabajadorId) {
+    try {
+        const response = await fetch(`/api/trabajadores/${trabajadorId}`);
+        if (!response.ok) {
+            throw new Error('Error al obtener el trabajador');
+        }
+        const trabajador = await response.json();
+        showTrabajadorForm(trabajador);
+    } catch (error) {
+        console.error('Error al editar trabajador:', error);
+        showPopup('Error al cargar el trabajador para editar: ' + error.message);
+    }
+}
+
+async function deleteTrabajador(trabajadorId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este trabajador?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/trabajadores/${trabajadorId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showPopup('Trabajador eliminado con éxito');
+            fetchTrabajadores();
+        } else {
+            const errorData = await response.json();
+            console.error('Error al eliminar trabajador:', errorData);
+            showPopup('Error al eliminar el trabajador');
+        }
+    } catch (error) {
+        console.error('Error al eliminar trabajador:', error);
+        showPopup('Error al eliminar el trabajador');
+    }
+}
+
+function showTrabajadorForm(trabajador = null) {
+    const isEditing = !!trabajador;
+    mainContent.innerHTML = `
+        <h1>${isEditing ? 'Editar' : 'Agregar Nuevo'} Trabajador</h1>
+        <form id="trabajadorForm">
+            ${isEditing ? `<input type="hidden" id="id_trabajador" name="id_trabajador" value="${trabajador.id_trabajador}">` : ''}
+            <div class="form-group">
+                <label for="rut">RUT:</label>
+                <input type="text" id="rut" name="rut" value="${isEditing ? trabajador.rut : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="nombres">Nombres:</label>
+                <input type="text" id="nombres" name="nombres" value="${isEditing ? trabajador.nombres : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="apellidos">Apellidos:</label>
+                <input type="text" id="apellidos" name="apellidos" value="${isEditing ? trabajador.apellidos : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="fecha_ingreso">Fecha Ingreso:</label>
+                <input type="date" id="fecha_ingreso" name="fecha_ingreso" value="${isEditing ? trabajador.fecha_ingreso : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="sueldo">Sueldo:</label>
+                <input type="number" id="sueldo" name="sueldo" step="1000" value="${isEditing ? trabajador.sueldo : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="fono">Teléfono:</label>
+                <input type="tel" id="fono" name="fono" value="${isEditing ? trabajador.fono : ''}" required>
+            </div>
+            <div class="form-group">
+                <label for="estado">Estado:</label>
+                <select id="estado" name="estado" required>
+                    <option value="Y" ${isEditing && trabajador.estado === 'Y' ? 'selected' : ''}>Y</option>
+                    <option value="N" ${isEditing && trabajador.estado === 'N' ? 'selected' : ''}>N</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Agregar Trabajador'}</button>
+                <button type="button" class="btn btn-secondary" onclick="fetchTrabajadores()">Cancelar</button>
+            </div>
+        </form>
+    `;
+
+    document.getElementById('trabajadorForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const trabajadorData = Object.fromEntries(formData.entries());
+
+        try {
+            const url = isEditing ? `/api/trabajadores/${trabajadorData.id_trabajador}` : '/api/trabajadores';
+            const method = isEditing ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(trabajadorData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showPopup(isEditing ? 'Trabajador actualizado con éxito' : 'Trabajador agregado con éxito');
+                fetchTrabajadores();
+            } else {
+                console.error('Error saving trabajador:', result);
+                showPopup(`Error: ${result.message || 'Error al guardar el trabajador'}`);
+            }
+        } catch (error) {
+            console.error('Error saving trabajador:', error);
+            showPopup('Error al guardar el trabajador');
+        }
+    });
+}
+
+async function fetchAdelantos() {
+    try {
+        const response = await fetch('/api/adelantos');
+        const adelantos = await response.json();
+        
+        if (!Array.isArray(adelantos)) {
+            console.error('La respuesta no es un array:', adelantos);
+            mainContent.innerHTML = '<p>Error: La respuesta no tiene el formato esperado.</p>';
+            return;
+        }
+
+        mainContent.innerHTML = `
+            <div class="filtros-container">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="filtro-trabajador">Trabajador</label>
+                        <select id="filtro-trabajador" class="form-control">
+                            <option value="">Todos los trabajadores</option>
+                            <!-- Se llenará dinámicamente -->
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filtro-mes">Mes</label>
+                        <select id="filtro-mes" class="form-control">
+                            <option value="">Todos</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filtro-anio">Año</label>
+                        <select id="filtro-anio" class="form-control">
+                            <option value="">Todos</option>
+                            <!-- Se llenará dinámicamente -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label>&nbsp;</label>
+                        <button id="btn-filtrar" class="btn btn-primary btn-block">
+                            <i class="bx bx-filter-alt"></i> Filtrar
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <label>&nbsp;</label>
+                        <button id="btn-limpiar" class="btn btn-secondary btn-block">
+                            <i class="bx bx-reset"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="buttonenlace" id="crearAdelantoBtn">Agregar nuevo adelanto</button>
+
+            <h1 class="titulotable">Adelantos:</h1>
+            <div class="table-container" style="max-height: 400px; overflow-y: scroll;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Acciones</th>
+                            <th>Correlativo</th>
+                            <th>Empleado</th>
+                            <th>Fecha</th>
+                            <th>Motivos</th>
+                            <th>Anticipo</th>
+                            <th>Bono</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adelantos-tbody">
+                        ${adelantos.map(adelanto => `
+                            <tr>
+                                <td>
+                                    <button class="editBtn" data-id="${adelanto.id_adelanto}">Editar</button>
+                                    <button class="deleteBtn" data-id="${adelanto.id_adelanto}">Eliminar</button>
+                                </td>
+                                <td>${adelanto.id_adelanto}</td>
+                                <td>${adelanto.nombres} ${adelanto.apellidos}</td>
+                                <td>${adelanto.fecha}</td>
+                                <td>${adelanto.motivos || '-'}</td>
+                                <td>$${adelanto.monto.toLocaleString()}</td>
+                                <td>${adelanto.bono ? `$${adelanto.bono.toLocaleString()}` : '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        // Cargar trabajadores en el select de filtro
+        const trabajadoresResponse = await fetch('/api/trabajadores');
+        const trabajadores = await trabajadoresResponse.json();
+        const trabajadorSelect = document.getElementById('filtro-trabajador');
+        
+        trabajadores.forEach(trabajador => {
+            const option = document.createElement('option');
+            option.value = trabajador.id_trabajador;
+            option.textContent = `${trabajador.nombres} ${trabajador.apellidos}`;
+            trabajadorSelect.appendChild(option);
+        });
+
+        // Cargar años en el select de filtro
+        const anioSelect = document.getElementById('filtro-anio');
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear; i >= currentYear - 5; i--) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            anioSelect.appendChild(option);
+        }
+
+        // Agregar event listeners a los botones de editar
+        document.querySelectorAll('.editBtn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const adelantoId = e.target.getAttribute('data-id');
+                await editAdelanto(adelantoId);
+            });
+        });
+
+        // Agregar event listeners a los botones de eliminar
+        document.querySelectorAll('.deleteBtn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const adelantoId = e.target.getAttribute('data-id');
+                await deleteAdelanto(adelantoId);
+            });
+        });
+
+        // Evento para filtrar
+        document.getElementById('btn-filtrar').addEventListener('click', async () => {
+            const trabajadorId = document.getElementById('filtro-trabajador').value;
+            const mes = document.getElementById('filtro-mes').value;
+            const anio = document.getElementById('filtro-anio').value;
+            
+            let url = '/api/adelantos?';
+            if (trabajadorId) url += `trabajador=${trabajadorId}&`;
+            if (mes) url += `mes=${mes}&`;
+            if (anio) url += `año=${anio}&`;
+            
+            const response = await fetch(url);
+            const adelantosFiltrados = await response.json();
+            renderAdelantos(adelantosFiltrados);
+        });
+
+        // Evento para limpiar filtros
+        document.getElementById('btn-limpiar').addEventListener('click', () => {
+            document.getElementById('filtro-trabajador').value = '';
+            document.getElementById('filtro-mes').value = '';
+            document.getElementById('filtro-anio').value = '';
+            renderAdelantos(adelantos);
+        });
+
+        // Evento para crear nuevo adelanto
+        document.getElementById('crearAdelantoBtn').addEventListener('click', () => {
+            showAdelantoForm();
+        });
+
+        function renderAdelantos(adelantos) {
+    const tbody = document.getElementById('adelantos-tbody');
+    
+    // Calcular totales
+    const totalAnticipo = adelantos.reduce((sum, adelanto) => sum + (adelanto.monto || 0), 0);
+    const totalBono = adelantos.reduce((sum, adelanto) => sum + (adelanto.bono || 0), 0);
+    const totalGeneral = totalAnticipo + totalBono;
+    
+    tbody.innerHTML = adelantos.map(adelanto => `
+        <tr>
+            <td>
+                <button class="editBtn btn-accion" data-id="${adelanto.id_adelanto}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="deleteBtn btn-accion btn-eliminar" data-id="${adelanto.id_adelanto}">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>
+            <td>${adelanto.id_adelanto}</td>
+            <td>${adelanto.nombres} ${adelanto.apellidos}</td>
+            <td>${formatDate(adelanto.fecha)}</td>
+            <td>${adelanto.motivos || '-'}</td>
+            <td class="text-right">$${formatCurrency(adelanto.monto)}</td>
+            <td class="text-right">${adelanto.bono ? `$${formatCurrency(adelanto.bono)}` : '-'}</td>
+        </tr>
+    `).join('') + `
+        <tr class="fila-total">
+            <td colspan="5" class="text-right"><strong>TOTALES</strong></td>
+            <td class="text-right"><strong>$${formatCurrency(totalAnticipo)}</strong></td>
+            <td class="text-right"><strong>$${formatCurrency(totalBono)}</strong></td>
+        </tr>
+        <tr class="fila-total-general">
+            <td colspan="5" class="text-right"><strong>TOTAL GENERAL</strong></td>
+            <td colspan="2" class="text-right"><strong>$${formatCurrency(totalGeneral)}</strong></td>
+        </tr>
+    `;
+
+    // Volver a agregar los event listeners
+    document.querySelectorAll('.editBtn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const adelantoId = e.target.closest('button').getAttribute('data-id');
+            await editAdelanto(adelantoId);
+        });
+    });
+
+    document.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const adelantoId = e.target.closest('button').getAttribute('data-id');
+            await deleteAdelanto(adelantoId);
+        });
+    });
+        }
+
+        // Funciones auxiliares para formato
+        function formatCurrency(value) {
+            return value.toLocaleString('es-CL');
+        }
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            return new Date(dateString).toLocaleDateString('es-CL', options);
+        }
+        renderAdelantos(adelantos);
+    } catch (error) {
+        console.error('Error fetching adelantos:', error);
+        mainContent.innerHTML = '<p>Error al cargar los adelantos.</p>';
+    }
+}
+
+async function editAdelanto(adelantoId) {
+    try {
+        const response = await fetch(`/api/adelantos/${adelantoId}`);
+        if (!response.ok) {
+            throw new Error('Error al obtener el adelanto');
+        }
+        const adelanto = await response.json();
+        showAdelantoForm(adelanto);
+    } catch (error) {
+        console.error('Error al editar adelanto:', error);
+        showPopup('Error al cargar el adelanto para editar: ' + error.message);
+    }
+}
+
+async function deleteAdelanto(adelantoId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este adelanto?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/adelantos/${adelantoId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        
+        if (response.ok) {
+            showPopup('Adelanto eliminado con éxito');
+            fetchAdelantos();
+        } else {
+            const errorData = await response.json();
+            console.error('Error al eliminar adelanto:', errorData);
+            showPopup('Error al eliminar el adelanto');
+        }
+    } catch (error) {
+        console.error('Error al eliminar adelanto:', error);
+        showPopup('Error al eliminar el adelanto');
+    }
+}
+
+function showAdelantoForm(adelanto = null) {
+    const isEditing = !!adelanto;
+    
+    // Primero necesitamos cargar los trabajadores para el select
+    fetch('/api/trabajadores')
+        .then(response => response.json())
+        .then(trabajadores => {
+            mainContent.innerHTML = `
+                <h1>${isEditing ? 'Editar' : 'Agregar Nuevo'} Adelanto</h1>
+                <form id="adelantoForm">
+                    ${isEditing ? `<input type="hidden" id="id_adelanto" name="id_adelanto" value="${adelanto.id_adelanto}">` : ''}
+                    
+                    <div class="form-group">
+                        <label for="id_trabajador">Trabajador:</label>
+                        <select id="id_trabajador" name="id_trabajador" required>
+                            ${trabajadores.map(t => `
+                                <option value="${t.id_trabajador}" 
+                                    ${isEditing && adelanto.id_trabajador == t.id_trabajador ? 'selected' : ''}>
+                                    ${t.nombres} ${t.apellidos} (${t.rut})
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="monto">Monto del adelanto:</label>
+                        <input type="number" id="monto" name="monto" step="1000" value="${isEditing ? adelanto.monto : ''}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bono">Bono:</label>
+                        <input type="number" id="bono" name="bono" step="1000" value="${isEditing ? (adelanto.bono || '') : ''}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="motivos">Motivos:</label>
+                        <textarea id="motivos" name="motivos">${isEditing ? (adelanto.motivos || '') : ''}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fecha">Fecha:</label>
+                        <input type="date" id="fecha" name="fecha" value="${isEditing ? adelanto.fecha : new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Agregar Adelanto'}</button>
+                        <button type="button" class="btn btn-secondary" onclick="fetchAdelantos()">Cancelar</button>
+                    </div>
+                </form>
+            `;
+
+            document.getElementById('adelantoForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(event.target);
+                const adelantoData = Object.fromEntries(formData.entries());
+
+                try {
+                    const url = isEditing ? `/api/adelantos/${adelantoData.id_adelanto}` : '/api/adelantos';
+                    const method = isEditing ? 'PUT' : 'POST';
+                    
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(adelantoData)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showPopup(isEditing ? 'Adelanto actualizado con éxito' : 'Adelanto agregado con éxito');
+                        fetchAdelantos();
+                    } else {
+                        console.error('Error saving adelanto:', result);
+                        showPopup(`Error: ${result.error || 'Error al guardar el adelanto'}`);
+                    }
+                } catch (error) {
+                    console.error('Error saving adelanto:', error);
+                    showPopup('Error al guardar el adelanto');
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error al cargar trabajadores:', error);
+            showPopup('Error al cargar los trabajadores para el formulario');
+        });
+}
+window.fetchAdelantos = fetchAdelantos;
 });
