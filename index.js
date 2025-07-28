@@ -273,7 +273,7 @@ app.get('/api/pedidos', async (req, res) => {
     // Consulta para obtener los pedidos con la información del usuario asociado
     const [pedidos] = await pool.query(`
       SELECT p.id_pedido, p.id_usuario, p.precio_total, p.fecha_pedido,p.estado,
-             u.user AS user, u.email
+             u.user AS user, u.email, u.number
       FROM pedidos p
       JOIN usuarios u ON p.id_usuario = u.id_usuarios
       ORDER BY p.fecha_pedido DESC

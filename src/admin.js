@@ -135,6 +135,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         <th>ID Pedido</th>
                         <th>Usuario</th>
                         <th>Email</th>
+                        <th>Número</th>
                         <th>Precio Total</th>
                         <th>Fecha Pedido</th>
                         <th>Estado</th>
@@ -148,6 +149,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             <td>${pedido.id_pedido}</td>
                             <td>${pedido.user}</td>
                             <td>${pedido.email}</td>
+                            <td>${pedido.number || 'No disponible'}</td>
                             <td>$${pedido.precio_total.toFixed(2)}</td>
                             <td>${pedido.fecha_pedido}</td>
                             <td>${pedido.estado}</td>
