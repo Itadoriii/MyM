@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function() {
           mainContent.innerHTML = `
             <h1>Usuarios</h1>
             <p>Total de usuarios: ${usuarios.length}</p>
-            <ul>${usuarios.map(usuario => `<li>${usuario.user} - ${usuario.email}</li>`).join('')}</ul>
+            <ul>${usuarios.map(usuario => `<li>${usuario.user} - ${usuario.email} - ${usuario.number || 'No disponible'}</li>`).join('')}</ul>
           `;
         } catch (error) {
           console.error('Error fetching usuarios:', error);
