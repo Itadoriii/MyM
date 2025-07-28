@@ -23,7 +23,7 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
-
+ 
 // CONFIGURACION
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
@@ -131,7 +131,8 @@ app.get('/api/user', verifyToken, (req, res) => {
     user: req.user.user,
     email: req.user.email,
     role: req.user.role,
-    google_id: req.user.google_id
+    google_id: req.user.google_id,
+    number: req.user.number
   });
 });
 

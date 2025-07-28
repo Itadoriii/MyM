@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('user-name').textContent = userData.user;
       document.getElementById('user-email').textContent = userData.email;
       document.getElementById('user-role').textContent = userData.role;
+      document.getElementById('user-number').textContent = userData.number || 'No disponible';
       if (userData.google_id) {
         document.getElementById('user-google-id').textContent = userData.google_id;
       } else {
