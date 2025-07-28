@@ -43,8 +43,8 @@ async function login(req, res) {
 }
 
 async function register(req, res) {
-    const { user, password, email } = req.body;
-    if (!user || !password || !email) {
+    const { user, password, email, number } = req.body;
+    if (!user || !password || !email || !number) {
         return res.status(400).send({ status: "Error", message: "Los campos están vacíos" });
     }
 
@@ -57,7 +57,10 @@ async function register(req, res) {
         const salt = await bcrypt.genSalt(5);
         const hashPassword = await bcrypt.hash(password, salt);
 
-        await pool.query('INSERT INTO usuarios (user, email, password, role) VALUES (?, ?, ?, ?)', [user, email, hashPassword, 'user']);
+        await pool.query(
+    'INSERT INTO usuarios (user, email, number, password, role) VALUES (?, ?, ?, ?, ?)',
+    [user, email, number, hashPassword, 'user']
+);
         res.status(201).send({ status: "ok", message: `Usuario ${user} agregado`, redirect: "/" });
     } catch (err) {
         res.status(500).send({ status: "Error", message: err.message });
