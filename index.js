@@ -12,6 +12,13 @@ import pool from './db.js';
 import jsonwebtoken from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { revisarCookie } from './middlewares/authorization.js';
+import { enviarConfirmacion } from './controllers/pedidos.controller.js';
+import cors from 'cors';
+import mailRouter from './routes/pedidosMail.js';
+
+
+
+
 
 dotenv.config();
 
@@ -24,13 +31,20 @@ app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
  
+
 // CONFIGURACION
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(cookieParser());
-app.use(session({ secret: 'your_secret_key', resave: false, saveUninitialized: true }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your_secret_key',
+  resave: false,
+  saveUninitialized: true
+}));
 app.use(passport.initialize());
 app.use(passport.session());
+
 
 // MIDDLEWARE PARA PROTEGER RUTAS
 const verifyToken = async (req, res, next) => {
@@ -51,6 +65,7 @@ const verifyToken = async (req, res, next) => {
   }
 };
 // RUTAS 
+
 app.get('/', authorization.soloPublico, (req, res) => {
   res.send('Hello World!');
 });
@@ -342,7 +357,7 @@ app.put('/api/productos/:id', async (req, res) => {
 });
 
 // Ruta para aceptar un pedido
-app.put('/api/pedidos/:id/aceptar', async (req, res) => {
+/*app.put('/api/pedidos/:id/aceptar', async (req, res) => {
   const { id } = req.params;
   try {
       const [result] = await pool.query(
@@ -359,7 +374,7 @@ app.put('/api/pedidos/:id/aceptar', async (req, res) => {
       console.error('Error al aceptar el pedido:', error);
       res.status(500).json({ error: 'Error al aceptar el pedido' });
   }
-});
+});*/
 
 // Ruta para rechazar un pedido
 app.put('/api/pedidos/:id/rechazar', async (req, res) => {
@@ -380,6 +395,19 @@ app.put('/api/pedidos/:id/rechazar', async (req, res) => {
       res.status(500).json({ error: 'Error al rechazar el pedido' });
   }
 });
+
+
+app.put(
+  '/api/pedidos/:id/confirmar-mail',
+  isAuthenticated,
+  enviarConfirmacion
+);
+
+app.put(
+  '/api/pedidos/:id/aceptar',
+  isAuthenticated,
+  enviarConfirmacion
+);
 
 // Obtener todos los trabajadores
 app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
