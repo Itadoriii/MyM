@@ -1,3 +1,11 @@
+// Evita cualquier envío de formulario accidental
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+});
+
+
+
 document.addEventListener("DOMContentLoaded", function() {
     const button = document.querySelector(".button");
     if (button) {
@@ -171,9 +179,24 @@ document.addEventListener("DOMContentLoaded", function() {
                                 </ul>
                             </td>
                             <td>
-                                <button onclick="aceptarPedido(${pedido.id_pedido})">Aceptar</button>
-                                <button onclick="rechazarPedido(${pedido.id_pedido})">Rechazar</button>
+                            <button 
+                                type="button" 
+                                class="btn-aceptar" 
+                                data-id="${pedido.id_pedido}"
+                            >
+                                Aceptar
+                            </button>
+                            <button 
+                                type="button" 
+                                class="btn-rechazar" 
+                                data-id="${pedido.id_pedido}"
+                            >
+                                Rechazar
+                            </button>
                             </td>
+
+
+
                         </tr>`;
                 });
 
@@ -181,6 +204,24 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             mainContent.innerHTML = html;
+
+            // prevenimos el submit y lanzamos tu función
+            document.querySelectorAll('.btn-aceptar').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.preventDefault();                        // <-- aquí detienes el POST/PUT a /profile
+                const id = btn.dataset.id;
+                aceptarPedido(id);                         // llama a tu fetch al API correcto
+            });
+            });
+
+            document.querySelectorAll('.btn-rechazar').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.preventDefault();
+                const id = btn.dataset.id;
+                rechazarPedido(id);
+            });
+            });
+
         } catch (error) {
             console.error('Error al cargar los pedidos:', error);
             mainContent.innerHTML = '<p>Error al cargar los pedidos.</p>';
@@ -188,22 +229,31 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     
     // Asegúrate de que estas funciones estén definidas al nivel superior
-    async function aceptarPedido(idPedido) {
-        try {
-            const response = await fetch(`/api/pedidos/${idPedido}/aceptar`, {
-                method: 'PUT'
-            });
-            if (response.ok) {
-                alert('Pedido aceptado con éxito');
-                fetchPedidos(); // Recargar la lista de pedidos después de la acción
-            } else {
-                alert('Error al aceptar el pedido');
-            }
-        } catch (error) {
-            console.error('Error al aceptar el pedido:', error);
-            alert('Hubo un error al aceptar el pedido');
+    /*async function aceptarPedido(idPedido) {
+    try {
+        const res = await fetch(
+        `/api/pedidos/${idPedido}/confirmar-mail`, // endpoint exacto
+        {
+            method: 'PUT',
+            credentials: 'same-origin'
         }
+        );
+        if (res.ok) {
+        const data = await res.json();
+        alert(data.message);
+        fetchPedidos();
+        } else {
+        const txt = await res.text();
+        console.error('Error en respuesta:', txt);
+        alert('Error al aceptar el pedido: ' + res.statusText);
+        }
+    } catch (err) {
+        console.error('Fetch error:', err);
+        alert('Error de conexión al aceptar el pedido.');
     }
+    }*/
+
+
 
     async function rechazarPedido(idPedido) {
         try {
@@ -219,6 +269,23 @@ document.addEventListener("DOMContentLoaded", function() {
         } catch (error) {
             console.error('Error al rechazar el pedido:', error);
             alert('Hubo un error al rechazar el pedido');
+        }
+    }
+
+    async function aceptarPedido(idPedido) {
+        try {
+            const response = await fetch(`/api/pedidos/${idPedido}/confirmar-mail`, {
+                method: 'PUT'
+            });
+            if (response.ok) {
+                alert('Pedido aceptado con éxito');
+                fetchPedidos(); // Recargar la lista de pedidos después de la acción
+            } else {
+                alert('Error al aceptar el pedido');
+            }
+        } catch (error) {
+            console.error('Error al aceptar el pedido:', error);
+            alert('Hubo un error al aceptar el pedido');
         }
     }
 
