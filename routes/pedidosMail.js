@@ -7,7 +7,6 @@ const router = Router();
 // PUT /api/pedidos/:id/confirmar-mail
 router.put(
   '/pedidos/:id/confirmar-mail',
-  isAuthenticated,
   enviarConfirmacion
 );
 
