@@ -399,13 +399,11 @@ app.put('/api/pedidos/:id/rechazar', async (req, res) => {
 
 app.put(
   '/api/pedidos/:id/confirmar-mail',
-  isAuthenticated,
   enviarConfirmacion
 );
 
 app.put(
   '/api/pedidos/:id/aceptar',
-  isAuthenticated,
   enviarConfirmacion
 );
 
