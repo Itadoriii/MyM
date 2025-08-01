@@ -628,7 +628,7 @@ try {
   `;
   const params = [
     id_trabajador, 
-    bono ? 1 : 0, 
+    bono , 
     motivos || '', 
     monto, 
     fecha
@@ -686,7 +686,7 @@ try {
   `;
   const params = [
     id_trabajador, 
-    bono ? 1 : 0, 
+    bono, 
     motivos || '', 
     monto, 
     fecha, 

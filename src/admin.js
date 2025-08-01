@@ -807,6 +807,9 @@ function renderAdelantosTable(adelantos, trabajadores, total, page) {
 
     <!-- Filtros -->
     <div class="filters" style="margin-bottom: 1rem;">
+        <button id="nuevoAdelantoBtn" style="padding: 0.5rem 1rem; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        + Nuevo Adelanto
+        </button>
         <select id="filtroTrabajador">
             <option value="">Todos los trabajadores</option>
             ${trabajadores.map(t => 
@@ -911,6 +914,10 @@ function renderAdelantosTable(adelantos, trabajadores, total, page) {
         document.getElementById('resultados-filtro').textContent = '';
         fetchAdelantos(1);
     });
+    document.getElementById('nuevoAdelantoBtn').addEventListener('click', () => {
+    showAdelantoForm(); // Esta función ya está definida para mostrar el formulario
+    });
+
 }
 
 function renderAdelantosData(adelantos) {
@@ -931,6 +938,7 @@ function renderAdelantosData(adelantos) {
             <td>
                 <button class="editBtn" data-id="${adelanto.id_adelanto}">Modificar</button>
                 <button class="deleteBtn" data-id="${adelanto.id_adelanto}">Eliminar</button>
+                <button class="generarpdf" data-id="${adelanto.id_adelanto}">Generar PDF</button>
             </td>
             <td>${adelanto.id_adelanto}</td>
             <td>${adelanto.id_trabajador}.- ${adelanto.nombres} ${adelanto.apellidos}</td>
@@ -962,6 +970,12 @@ function renderAdelantosData(adelantos) {
         btn.addEventListener('click', (e) => {
             const adelantoId = e.target.getAttribute('data-id');
             deleteAdelanto(adelantoId);
+        });
+    });
+    document.querySelectorAll('.generarpdf').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const adelantoId = e.target.getAttribute('data-id');
+            generarPDF(adelantoId);
         });
     });
 }
@@ -1181,7 +1195,10 @@ function showAdelantoForm(adelanto = null) {
                     <label for="monto">Monto:</label>
                     <input type="number" id="monto" required value="${adelanto ? adelanto.monto : ''}">
                 </div>
-                
+                <div class="form-group">
+                    <label for="bono">Bono:</label>
+                    <input type="number" id="bono" required value="${adelanto ? adelanto.bono : ''}">
+                </div>
                 <div class="form-group">
                     <label for="motivos">Motivos:</label>
                     <textarea id="motivos" rows="3">${adelanto ? adelanto.motivos : ''}</textarea>
@@ -1209,6 +1226,168 @@ function showAdelantoForm(adelanto = null) {
         modal.remove();
     });
 }
+async function generarPDF(adelantoId) {
+  // Mostrar indicador de carga
+  showPopup('Generando comprobante PDF, por favor espere...');
+
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      showPopup('No se encontró token de autenticación');
+      return;
+    }
+
+    // Fetch con manejo explícito de errores de red
+    let response;
+    try {
+      response = await fetch(`/api/adelantos/${adelantoId}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (networkError) {
+      console.error('Error de red:', networkError);
+      showPopup('No se pudo conectar con el servidor');
+      return;
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error al obtener adelanto:', errorData);
+      showPopup('Error al obtener datos del adelanto: ' + (errorData.error || response.statusText));
+      return;
+    }
+
+    const data = await response.json();
+
+    // Función auxiliar para formato CLP
+    const formatCLP = valor =>
+      '$' + (Number(valor) || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
+
+    // Formatear fecha de forma amigable en español
+    const fechaFormateada = new Date(data.fecha).toLocaleDateString('es-CL', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    // Crear PDF y configurar página
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([800, 600]);
+    const { width, height } = page.getSize();
+
+    // Embedir fuentes
+    const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const fontSize = 12;
+    const marginX = 50;
+    const maxTextWidth = width - marginX * 2;
+    let y = height - 50;
+
+    // Función para dibujar texto con word wrap
+    function drawWrappedText(text, options = {}) {
+      const {
+        font = fontRegular,
+        size = fontSize,
+        lineHeight = fontSize * 1.2,
+        color = rgb(0, 0, 0),
+      } = options;
+
+      // Dividir texto en líneas que quepan en maxTextWidth
+      const words = text.split(' ');
+      let line = '';
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + (line ? ' ' : '') + words[i];
+        const testWidth = font.widthOfTextAtSize(testLine, size);
+        if (testWidth > maxTextWidth && line) {
+          page.drawText(line, { x: marginX, y, size, font, color });
+          y -= lineHeight;
+          line = words[i];
+        } else {
+          line = testLine;
+        }
+      }
+      if (line) {
+        page.drawText(line, { x: marginX, y, size, font, color });
+        y -= lineHeight;
+      }
+    }
+
+    // Escribir contenido
+    drawWrappedText(`En Santiago a ${fechaFormateada}`);
+
+    const nombreCompleto = `${data.nombres} ${data.apellidos}`.toUpperCase();
+    drawWrappedText(
+      `Maderas MyM ha entregado a don: ${nombreCompleto} la suma de ${formatCLP(data.monto)} por motivos: ${data.motivos || 'No especificados'}.`
+    );
+
+    const authText =
+      'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes. No teniendo ninguna observación al respecto.';
+    drawWrappedText(authText, { lineHeight: fontSize * 1.5 });
+
+    y -= fontSize; // Espacio extra
+
+    // Firma
+    page.drawText('**Firme aquí**', {
+      x: marginX,
+      y,
+      size: fontSize,
+      font: fontBold,
+      color: rgb(0, 0, 0)
+    });
+    y -= fontSize * 1.5;
+
+    page.drawLine({
+      start: { x: marginX, y },
+      end: { x: width - marginX, y },
+      thickness: 1,
+      color: rgb(0, 0, 0)
+    });
+    y -= fontSize * 2;
+
+    page.drawText(nombreCompleto, {
+      x: marginX,
+      y,
+      size: fontSize,
+      font: fontRegular,
+      color: rgb(0, 0, 0)
+    });
+    y -= fontSize * 3;
+
+    // Nota al pie
+    const nota =
+      'Nota: Se imprime este voucher para control interno de Maderas MyM, el cual para ser válido debe ser firmado por el trabajador.';
+    drawWrappedText(nota, { size: fontSize - 2, lineHeight: fontSize });
+
+    // Guardar PDF
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+
+    // Crear enlace solo si no existe para evitar spam
+    let a = document.getElementById('download-pdf-link');
+    if (!a) {
+      a = document.createElement('a');
+      a.id = 'download-pdf-link';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+    }
+    a.href = url;
+    a.download = `comprobante_adelanto_${adelantoId}.pdf`;
+    a.click();
+
+    // Revocar URL después de descarga
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    showPopup('Comprobante PDF generado correctamente');
+
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    showPopup('Error al generar el comprobante PDF');
+  }
+}
+
 
 async function loadTrabajadoresForForm(selectedId = null) {
     try {
@@ -1237,6 +1416,7 @@ async function saveAdelanto(action) {
         id_trabajador: document.getElementById('id_trabajador').value,
         fecha: document.getElementById('fecha').value,
         monto: document.getElementById('monto').value,
+        bono: document.getElementById('bono').value,
         motivos: document.getElementById('motivos').value
     };
 
@@ -1287,3 +1467,4 @@ document.querySelector('.button').addEventListener('click', async () => {
       window.location.href = res.url; // Redirige al usuario a la página de inicio de sesión
     }
   });
+
