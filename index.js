@@ -736,8 +736,51 @@ try {
   res.status(500).json({ error: err.message });
 }
 
-
-
-
 });
 
+app.get('/api/mis-pedidos', async (req, res) => {
+  try {
+    const username = req.query.user;
+    if (!username) return res.status(400).json({ error: 'Falta nombre de usuario' });
+
+    // Buscar el id del usuario por username
+    const [users] = await pool.query(
+      'SELECT id_usuarios FROM usuarios WHERE user = ?',
+      [username]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const userId = users[0].id_usuarios;
+
+    const [pedidos] = await pool.query(`
+      SELECT p.id_pedido, p.precio_total, p.fecha_pedido, p.estado, p.delivery, p.descripcion
+      FROM pedidos p
+      WHERE p.id_usuario = ?
+      ORDER BY p.fecha_pedido DESC
+    `, [userId]);
+
+    const pedidosConDetalles = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const [detalles] = await pool.query(`
+          SELECT dp.cantidad, dp.precio_detalle, pr.nombre_prod
+          FROM detalle_pedido dp
+          JOIN productos pr ON dp.id_producto = pr.id_producto
+          WHERE dp.id_pedido = ?
+        `, [pedido.id_pedido]);
+
+        return {
+          ...pedido,
+          detalles
+        };
+      })
+    );
+
+    res.json(pedidosConDetalles);
+  } catch (err) {
+    console.error('Error al obtener pedidos del usuario:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
