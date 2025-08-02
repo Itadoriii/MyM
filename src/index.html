@@ -55,9 +55,29 @@
                         <div class="cart-container">
                             <!-- Aquí se mostrarán los productos del carrito -->
                         </div>
+                        
+                        <!-- Nuevos campos agregados -->
+                        <div class="delivery-options">
+                            <h3>Método de entrega</h3>
+                            <div class="delivery-option">
+                                <input type="radio" id="delivery-shipping" name="delivery" value="envio" checked>
+                                <label for="delivery-shipping">Envío a domicilio (Indicar direccion en los comentarios)</label>
+                            </div>
+                            <div class="delivery-option">
+                                <input type="radio" id="delivery-pickup" name="delivery" value="retiro">
+                                <label for="delivery-pickup">Retiro en tienda (Sin costo)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-comments">
+                            <h3>Comentarios</h3>
+                            <textarea id="order-comments" placeholder="¿Algún detalle importante para tu pedido? (Opcional)"></textarea>
+                        </div>
+                        
                         <div class="cart-summary">
                             <h3>Total: $<span id="cart-total">0.00</span></h3>
                         </div>
+                        
                         <div class="cart-buttons">
                             <button id="generateOrder" class="cart-action-btn">Generar pedido</button>
                             <button id="clear-cart-btn" class="cart-action-btn">Vaciar carrito</button>
