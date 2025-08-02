@@ -280,7 +280,6 @@ async function isUserLoggedIn() {
         return false;
     }
 }
-
 async function generateOrder() {
     const cart = getCart();
     if (cart.length === 0) {
@@ -295,11 +294,21 @@ async function generateOrder() {
         return;
     }
 
+    // Capturar valores de delivery y comentarios
+    const delivery = document.querySelector('input[name="delivery"]:checked').value;
+    const descripcion = document.getElementById('order-comments').value.trim();
+
+    const payload = {
+        cart,
+        delivery,
+        descripcion
+    };
+
     try {
         const response = await fetch('/api/generar-pedido', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(cart),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
             credentials: 'include'
         });
 
@@ -316,6 +325,7 @@ async function generateOrder() {
         alert('Hubo un error al generar el pedido. Intenta de nuevo.');
     }
 }
+
 
 // Funciones auxiliares
 function showPopup(message) {

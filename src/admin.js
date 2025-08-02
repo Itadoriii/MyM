@@ -60,6 +60,9 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'adelantos':
                 fetchAdelantos();
                 break;
+            case 'informe general':
+                fetchInformeGeneral();
+                break
             default:
                 mainContent.innerHTML = '<h1>Bienvenido</h1><p>Seleccione una opción del menú.</p>';
         }
@@ -89,20 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }, 3000);
     }
     
-    function addToCart(product) {
-        const existingProductIndex = cart.findIndex(p => p.id_producto === product.id_producto);
     
-        if (existingProductIndex !== -1) {
-            cart[existingProductIndex].quantity += 1;
-        } else {
-            product.quantity = 1;
-            cart.push(product);
-        }
-    
-        saveCart();
-        updateCartDisplay();
-        showPopup('Producto añadido al carrito');
-    }
     
     async function fetchUsuarios() {
         try {
@@ -147,6 +137,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         <th>Precio Total</th>
                         <th>Fecha Pedido</th>
                         <th>Estado</th>
+                        <th>Delivery</th>
+                        <th>Descripcion</th>
                         <th>Detalles</th>
                         <th>Acciones</th>
                     </tr>`;
@@ -161,6 +153,8 @@ document.addEventListener("DOMContentLoaded", function() {
                             <td>$${pedido.precio_total.toFixed(2)}</td>
                             <td>${pedido.fecha_pedido}</td>
                             <td>${pedido.estado}</td>
+                            <td>${pedido.delivery}</td>
+                            <td>${pedido.descripcion || 'N/A'}</td>
                             <td>
                                 <ul>
                     `;

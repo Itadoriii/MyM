@@ -189,7 +189,7 @@ app.post('/api/productos', async (req, res) => {
 });
 
 app.post('/api/generar-pedido', async (req, res) => {
-  const cart = req.body;  // Array de objetos con productos del carrito
+  const { cart, delivery, descripcion } = req.body;
   const connection = await pool.getConnection();
 
   try {
@@ -200,7 +200,6 @@ app.post('/api/generar-pedido', async (req, res) => {
 
       await connection.beginTransaction();
 
-      // Obtener el id_usuarios del usuario autenticado
       const [userResult] = await connection.query(
           'SELECT id_usuarios FROM usuarios WHERE user = ?',
           [userData.user]
@@ -211,25 +210,17 @@ app.post('/api/generar-pedido', async (req, res) => {
       }
 
       const userId = userResult[0].id_usuarios;
-
-      console.log('Intentando insertar pedido para usuario ID:', userId);
-
-      // Calcular el precio total del carrito
       const precioTotal = cart.reduce((total, item) => total + item.precio * item.quantity, 0);
 
-      // Insertar en la tabla pedidos
       const [pedidoResult] = await connection.query(
-          'INSERT INTO pedidos (id_usuario, precio_total, fecha_pedido) VALUES (?, ?, NOW())',
-          [userId, precioTotal]
+          `INSERT INTO pedidos (id_usuario, precio_total, fecha_pedido, delivery, descripcion)
+           VALUES (?, ?, NOW(), ?, ?)`,
+          [userId, precioTotal, delivery, descripcion]
       );
 
       const idPedido = pedidoResult.insertId;
 
-      console.log(`Pedido insertado con ID: ${idPedido}`);
-
-      // Insertar detalles del pedido
       for (const item of cart) {
-          // Verificar disponibilidad del producto
           const [productResult] = await connection.query(
               'SELECT disponibilidad FROM productos WHERE id_producto = ?',
               [item.id_producto]
@@ -243,21 +234,15 @@ app.post('/api/generar-pedido', async (req, res) => {
               throw new Error(`No hay suficiente disponibilidad para el producto con id ${item.id_producto}`);
           }
 
-          // Insertar el detalle del pedido
           await connection.query(
               'INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_detalle) VALUES (?, ?, ?, ?)',
               [idPedido, item.id_producto, item.quantity, item.precio]
           );
 
-          console.log(`Detalle del pedido insertado, para el producto: ${item.id_producto}`);
-
-          // Actualizar el stock del producto
           await connection.query(
               'UPDATE productos SET disponibilidad = disponibilidad - ? WHERE id_producto = ?',
               [item.quantity, item.id_producto]
           );
-
-          console.log(`Stock actualizado para el producto con ID: ${item.id_producto}`);
       }
 
       await connection.commit();
@@ -285,10 +270,19 @@ app.get('/api/verificar-usuario', async (req, res) => {
 
 app.get('/api/pedidos', async (req, res) => {
   try {
-    // Consulta para obtener los pedidos con la información del usuario asociado
+    // Consulta para obtener los pedidos con la información del usuario y los nuevos campos
     const [pedidos] = await pool.query(`
-      SELECT p.id_pedido, p.id_usuario, p.precio_total, p.fecha_pedido,p.estado,
-             u.user AS user, u.email, u.number
+      SELECT 
+        p.id_pedido, 
+        p.id_usuario, 
+        p.precio_total, 
+        p.fecha_pedido, 
+        p.estado,
+        p.delivery,
+        p.descripcion,
+        u.user AS user, 
+        u.email, 
+        u.number
       FROM pedidos p
       JOIN usuarios u ON p.id_usuario = u.id_usuarios
       ORDER BY p.fecha_pedido DESC
@@ -298,13 +292,16 @@ app.get('/api/pedidos', async (req, res) => {
     const pedidosConDetalles = await Promise.all(
       pedidos.map(async (pedido) => {
         const [detalles] = await pool.query(`
-          SELECT dp.id_producto, dp.cantidad, dp.precio_detalle, pr.nombre_prod
+          SELECT 
+            dp.id_producto, 
+            dp.cantidad, 
+            dp.precio_detalle, 
+            pr.nombre_prod
           FROM detalle_pedido dp
           JOIN productos pr ON dp.id_producto = pr.id_producto
           WHERE dp.id_pedido = ?
         `, [pedido.id_pedido]);
 
-        // Agregar los detalles al pedido
         return {
           ...pedido,
           detalles
@@ -312,12 +309,14 @@ app.get('/api/pedidos', async (req, res) => {
       })
     );
 
-    res.json(pedidosConDetalles); // Enviar los pedidos con los detalles al cliente
+    res.json(pedidosConDetalles); // Enviar los pedidos con todos los datos
   } catch (error) {
     console.error('Error al obtener pedidos:', error);
     res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 });
+
+
 // Ruta PUT para actualizar productos
 app.put('/api/productos/:id', async (req, res) => {
   const { id } = req.params;
