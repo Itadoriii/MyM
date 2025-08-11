@@ -94,12 +94,6 @@
 
       
     </nav>
-    <form id="search-form" class="search-bar">
-        <input id="search-input" type="search" name="search" pattern=".*\S.*" required>
-        <button class="search-btn" type="submit">
-            <img src="assets/lupa.svg" alt="Buscar">
-        </button>
-    </form>
     <div id="conteitemcarrusel">
         <div class="itemcarrusel" id="itemc1">
             <div class="tarjetacarrusel" id="ccard1">
@@ -141,6 +135,12 @@
             </div>
         </div>
     </div>
+    <form id="search-form" class="search-bar">
+        <input id="search-input" type="search" name="search" pattern=".*\S.*" required>
+        <button class="search-btn" type="submit">
+            <img src="assets/lupa.svg" alt="Buscar">
+        </button>
+    </form>
     <div id="resultq" class="resultadooculto"></div>
     <div class="conteiner" id="conteiner">
         <div class="sidebar">
@@ -178,19 +178,15 @@
 
 
         </div>
-        <div class="itemcont1">item1</div>
-        <div class="itemcont2">item2</div>
-        <div class="itemcont3">item3</div>
-        <div class="itemcont4">item4</div>
-        <div class="itemcont5">item5</div>
-        <div class="itemcont6">Item6</div>
+        <div class="products-area">
+        <div id="catalog-grid" class="catalog-grid"></div>
+        <nav id="pager" class="pager"></nav>
+        </div>
     </div>
     <div class="featured-products" id="featured-products">
-        <h2>Productos Destacados</h2>
-        <div class="featured-container">
-            <!-- Aquí se mostrarán los productos destacados -->
-        </div>
-    </div>    
+    <h2>Productos Destacados</h2>
+    <div class="featured-container"></div> <!-- deja este vacío -->
+    </div> 
     <a href="https://wa.me/56976200646" class="whatsapp-button" target="_blank">
         <i class="fab fa-whatsapp"></i>
     </a>
@@ -241,6 +237,212 @@
         </div>
     </footer>
     <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const GRID = document.getElementById('catalog-grid');
+            const PAGER = document.getElementById('pager');
+            const FORM = document.getElementById('search-form');
+            const INPUT = document.getElementById('search-input');
+
+            const PAGE_SIZE = 6;
+            let currentPage = 1;
+            let currentQuery = '';
+
+            async function loadProducts(page = 1) {
+                currentPage = page;
+                const url = new URL('/productos', window.location.origin);
+                url.searchParams.set('page', page);
+                url.searchParams.set('limit', PAGE_SIZE);
+                if (currentQuery) url.searchParams.set('q', currentQuery);
+
+                const res = await fetch(url);
+                if (!res.ok) {
+                GRID.innerHTML = '<p>Error cargando productos.</p>';
+                PAGER.innerHTML = '';
+                return;
+                }
+                const data = await res.json();
+                renderGrid(data.productos);
+                renderPager(data.page, data.totalPages);
+            }
+
+            function renderGrid(items) {
+                if (!items?.length) {
+                    GRID.innerHTML = '<p>No hay productos para mostrar.</p>';
+                    return;
+                }
+
+                GRID.innerHTML = items.map(p => {
+                    const img = p.imagen_url || 'assets/placeholder.jpg'; // ajusta si tu campo real es otro
+                    return `
+                    <article class="product-card">
+                        <div class="thumb">
+                        <img src="${img}" alt="${p.nombre_prod}">
+                        </div>
+                        <div class="info">
+                        <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
+                        <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
+                        <div class="meta">
+                            <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
+                            <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
+                            <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
+                            <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
+                        </div>
+                        <div class="actions">
+                            <button class="add-btn" data-id="${p.id_producto}">Agregar al carrito</button>
+                        </div>
+                        </div>
+                    </article>
+                    `;
+                }).join('');
+
+                // (Opcional) engancha "Agregar al carrito" a tu lógica
+                GRID.querySelectorAll('.add-btn').forEach((btn, i) => {
+                btn.addEventListener('click', () => {
+                const p = items[i];
+                addToCart({
+                    id_producto: p.id_producto,
+                    name: p.nombre_prod,                      // mapeo a la clave que usa tu carrito
+                    precio: Number(p.precio_unidad) || 0,
+                    Linkimg: p.imagen_url || p.id_producto,   // fallback a id.jpg como ya usas
+                    quantity: 1
+                });
+                });
+            });
+            }
+            function renderPager(page, totalPages) {
+                if (totalPages <= 1) {
+                PAGER.innerHTML = '';
+                return;
+                }
+
+                const btn = (label, gotoPage, disabled = false, active = false) => `
+                <button
+                    ${disabled ? 'disabled' : ''}
+                    class="${active ? 'active' : ''}"
+                    data-goto="${gotoPage}"
+                    type="button">${label}</button>
+                `;
+
+                const parts = [];
+                parts.push(btn('« Anterior', Math.max(1, page - 1), page === 1));
+
+                const windowSize = 2; // cuántos números alrededor
+                const start = Math.max(1, page - windowSize);
+                const end = Math.min(totalPages, page + windowSize);
+
+                if (start > 1) {
+                parts.push(btn('1', 1, false, page === 1));
+                if (start > 2) parts.push('<span>…</span>');
+                }
+
+                for (let p = start; p <= end; p++) {
+                parts.push(btn(String(p), p, false, p === page));
+                }
+
+                if (end < totalPages) {
+                if (end < totalPages - 1) parts.push('<span>…</span>');
+                parts.push(btn(String(totalPages), totalPages, false, page === totalPages));
+                }
+
+                parts.push(btn('Siguiente »', Math.min(totalPages, page + 1), page === totalPages));
+
+                PAGER.innerHTML = parts.join('');
+
+                // eventos
+                PAGER.querySelectorAll('button[data-goto]').forEach(b => {
+                b.addEventListener('click', () => {
+                    const goto = Number(b.dataset.goto);
+                    if (!Number.isNaN(goto)) loadProducts(goto);
+                });
+                });
+            }
+
+            // búsqueda
+            if (FORM) {
+                FORM.addEventListener('submit', (e) => {
+                e.preventDefault();
+                currentQuery = (INPUT?.value || '').trim();
+                loadProducts(1);
+                });
+            }
+
+            // carga inicial
+            loadProducts(1);
+            });
+
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const FEATURED_WRAP = document.querySelector('.featured-container');
+
+    // Carga destacados. Si tu API soporta ?destacados=1, úsalo.
+    async function loadFeatured() {
+        // Intenta con tu endpoint actual de productos
+        const url = new URL('/productos', window.location.origin);
+        // Si tienes flag de destacados en DB, descomenta:
+        // url.searchParams.set('destacados', '1');
+        url.searchParams.set('limit', 6);
+
+        const res = await fetch(url);
+        if (!res.ok) {
+        FEATURED_WRAP.innerHTML = '<p>Error cargando destacados.</p>';
+        return;
+        }
+        const data = await res.json();
+
+        // Soportar ambos formatos (lista directa o {productos, ...})
+        const productos = Array.isArray(data) ? data : (data.productos || []);
+
+        // Fallback: si no hay flag de destacados, toma los primeros 8
+        const destacados = productos.slice(0, 8);
+
+        renderFeatured(destacados);
+    }
+
+    function renderFeatured(items) {
+        if (!items?.length) {
+        FEATURED_WRAP.innerHTML = '<p>No hay productos destacados.</p>';
+        return;
+        }
+        FEATURED_WRAP.innerHTML = items.map(p => {
+        const img = p.imagen_url || 'assets/placeholder.jpg'; // ajusta si tienes campo real
+        return `
+            <article class="featured-card">
+            <div class="thumb">
+                <img src="${img}" alt="${p.nombre_prod}">
+            </div>
+            <div class="info">
+                <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
+                <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
+                <div class="meta">
+                <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
+                <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
+                <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
+                <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
+                </div>
+                <div class="actions">
+                <button class="add-btn" data-id="${p.id_producto}">Agregar al carrito</button>
+                </div>
+            </div>
+            </article>
+        `;
+        }).join('');
+
+        // (opcional) engancha "Agregar al carrito" a tu lógica
+        FEATURED_WRAP.querySelectorAll('.add-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = Number(btn.dataset.id);
+            console.log('Agregar destacado', id);
+            // TODO: integra con tu carrito real
+        });
+        });
+    }
+
+    // Llama después de cargar el catálogo
+    loadFeatured();
+    });
+    </script>
 </body>
 </html>
 

@@ -104,25 +104,52 @@ app.get('/aboutus', (req, res) => {
   res.sendFile(__dirname + '/src/sobrenosotros.html');
 });
 
+// GET /productos?q=texto&page=1&limit=12
 app.get('/productos', async (req, res) => {
-  const searchQuery = req.query.q; 
+  const q = (req.query.q || '').trim();
+  const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+  const limit = Math.max(parseInt(req.query.limit || '12', 10), 1);
+  const offset = (page - 1) * limit;
 
   try {
-    let query = 'SELECT * FROM productos';
+    // armamos WHERE si hay búsqueda
+    const whereParts = [];
     const params = [];
-
-    if (searchQuery) {
-      query += ` WHERE nombre_prod LIKE ? OR tipo LIKE ? OR medidas LIKE ? OR dimensiones LIKE ? OR precio_unidad LIKE ?`;
-      const likeQuery = `%${searchQuery}%`;
-      params.push(likeQuery, likeQuery, likeQuery, likeQuery, likeQuery);
+    if (q) {
+      whereParts.push(`(nombre_prod LIKE ? OR tipo LIKE ? OR medidas LIKE ? OR dimensiones LIKE ? OR precio_unidad LIKE ?)`);
+      const like = `%${q}%`;
+      params.push(like, like, like, like, like);
     }
+    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
-    const [rows] = await pool.query(query, params);
-    res.json(rows);
+    // total
+    const [countRows] = await pool.query(
+      `SELECT COUNT(*) AS total FROM productos ${whereSql}`,
+      params
+    );
+    const total = countRows[0]?.total || 0;
+
+    // page data
+    const [rows] = await pool.query(
+      `SELECT * FROM productos ${whereSql}
+       ORDER BY fecha_add DESC, id_producto DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({
+      productos: rows,
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error /productos paginado:', err);
+    res.status(500).json({ error: 'Error al obtener productos' });
   }
 });
+
 app.get('/logout', (req, res) => {
   res.clearCookie('jwt'); // Elimina la cookie JWT
   res.redirect('/'); // Redirige al usuario a la página de inicio de sesión
