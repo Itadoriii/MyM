@@ -8,7 +8,15 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://kit.fontawesome.com/43804ad595.js" crossorigin="anonymous"></script>
 </head>
+<div id="order-wait" aria-hidden="true">
+    <div class="order-wait__box" role="dialog" aria-live="polite">
+        <div class="order-wait__spinner"></div>
+        <p class="order-wait__title">Generando tu pedido…</p>
+        <p class="order-wait__text">Por favor, espera un momento.</p>
+    </div>
+    </div>
 <body>
+    
     <nav class="menu">
         <section class="menu__container">
             <img src="assets/logo act.png" class="menu__container image">
@@ -238,211 +246,317 @@
     </footer>
     <script src="main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const GRID = document.getElementById('catalog-grid');
-            const PAGER = document.getElementById('pager');
-            const FORM = document.getElementById('search-form');
-            const INPUT = document.getElementById('search-input');
+    /* =========================
+    UTILIDADES CARRITO (LS)
+    ========================= */
+    function getCart(){ try{ return JSON.parse(localStorage.getItem('cart')) || []; }catch{ return []; } }
+    function saveCart(cart){ localStorage.setItem('cart', JSON.stringify(cart)); }
+    function clearCart(){ saveCart([]); updateCartDisplay(); }
+    function addToCart(product){
+    const cart = getCart();
+    const i = cart.findIndex(p => p.id_producto === product.id_producto);
+    if (i !== -1) cart[i].quantity += product.quantity || 1;
+    else { product.quantity = product.quantity || 1; cart.push(product); }
+    saveCart(cart); updateCartDisplay();
+    try{ window.showPopup && showPopup('Producto añadido al carrito'); }catch{}
+    }
+    function updateCartDisplay(){
+    const cart = getCart();
+    const cartContainer   = document.querySelector('.cart-container');
+    const cartTotalEl     = document.getElementById('cart-total');
+    const cartCountEl     = document.querySelector('.cart-count');
+    if (!cartContainer) return;
 
-            const PAGE_SIZE = 6;
-            let currentPage = 1;
-            let currentQuery = '';
+    cartContainer.innerHTML = '';
+    const totalItems = cart.reduce((a,b)=>a + (b.quantity||0), 0);
+    if (cartCountEl) cartCountEl.textContent = totalItems;
 
-            async function loadProducts(page = 1) {
-                currentPage = page;
-                const url = new URL('/productos', window.location.origin);
-                url.searchParams.set('page', page);
-                url.searchParams.set('limit', PAGE_SIZE);
-                if (currentQuery) url.searchParams.set('q', currentQuery);
-
-                const res = await fetch(url);
-                if (!res.ok) {
-                GRID.innerHTML = '<p>Error cargando productos.</p>';
-                PAGER.innerHTML = '';
-                return;
-                }
-                const data = await res.json();
-                renderGrid(data.productos);
-                renderPager(data.page, data.totalPages);
-            }
-
-            function renderGrid(items) {
-                if (!items?.length) {
-                    GRID.innerHTML = '<p>No hay productos para mostrar.</p>';
-                    return;
-                }
-
-                GRID.innerHTML = items.map(p => {
-                    const img = p.imagen_url || 'assets/placeholder.jpg'; // ajusta si tu campo real es otro
-                    return `
-                    <article class="product-card">
-                        <div class="thumb">
-                        <img src="${img}" alt="${p.nombre_prod}">
-                        </div>
-                        <div class="info">
-                        <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
-                        <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
-                        <div class="meta">
-                            <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
-                            <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
-                            <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
-                            <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
-                        </div>
-                        <div class="actions">
-                            <button class="add-btn" data-id="${p.id_producto}">Agregar al carrito</button>
-                        </div>
-                        </div>
-                    </article>
-                    `;
-                }).join('');
-
-                // (Opcional) engancha "Agregar al carrito" a tu lógica
-                GRID.querySelectorAll('.add-btn').forEach((btn, i) => {
-                btn.addEventListener('click', () => {
-                const p = items[i];
-                addToCart({
-                    id_producto: p.id_producto,
-                    name: p.nombre_prod,                      // mapeo a la clave que usa tu carrito
-                    precio: Number(p.precio_unidad) || 0,
-                    Linkimg: p.imagen_url || p.id_producto,   // fallback a id.jpg como ya usas
-                    quantity: 1
-                });
-                });
-            });
-            }
-            function renderPager(page, totalPages) {
-                if (totalPages <= 1) {
-                PAGER.innerHTML = '';
-                return;
-                }
-
-                const btn = (label, gotoPage, disabled = false, active = false) => `
-                <button
-                    ${disabled ? 'disabled' : ''}
-                    class="${active ? 'active' : ''}"
-                    data-goto="${gotoPage}"
-                    type="button">${label}</button>
-                `;
-
-                const parts = [];
-                parts.push(btn('« Anterior', Math.max(1, page - 1), page === 1));
-
-                const windowSize = 2; // cuántos números alrededor
-                const start = Math.max(1, page - windowSize);
-                const end = Math.min(totalPages, page + windowSize);
-
-                if (start > 1) {
-                parts.push(btn('1', 1, false, page === 1));
-                if (start > 2) parts.push('<span>…</span>');
-                }
-
-                for (let p = start; p <= end; p++) {
-                parts.push(btn(String(p), p, false, p === page));
-                }
-
-                if (end < totalPages) {
-                if (end < totalPages - 1) parts.push('<span>…</span>');
-                parts.push(btn(String(totalPages), totalPages, false, page === totalPages));
-                }
-
-                parts.push(btn('Siguiente »', Math.min(totalPages, page + 1), page === totalPages));
-
-                PAGER.innerHTML = parts.join('');
-
-                // eventos
-                PAGER.querySelectorAll('button[data-goto]').forEach(b => {
-                b.addEventListener('click', () => {
-                    const goto = Number(b.dataset.goto);
-                    if (!Number.isNaN(goto)) loadProducts(goto);
-                });
-                });
-            }
-
-            // búsqueda
-            if (FORM) {
-                FORM.addEventListener('submit', (e) => {
-                e.preventDefault();
-                currentQuery = (INPUT?.value || '').trim();
-                loadProducts(1);
-                });
-            }
-
-            // carga inicial
-            loadProducts(1);
-            });
-
-    </script>
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-    const FEATURED_WRAP = document.querySelector('.featured-container');
-
-    // Carga destacados. Si tu API soporta ?destacados=1, úsalo.
-    async function loadFeatured() {
-        // Intenta con tu endpoint actual de productos
-        const url = new URL('/productos', window.location.origin);
-        // Si tienes flag de destacados en DB, descomenta:
-        // url.searchParams.set('destacados', '1');
-        url.searchParams.set('limit', 6);
-
-        const res = await fetch(url);
-        if (!res.ok) {
-        FEATURED_WRAP.innerHTML = '<p>Error cargando destacados.</p>';
+    if (!cart.length){
+        cartContainer.innerHTML = '<p>El carrito está vacío.</p>';
+        if (cartTotalEl) cartTotalEl.textContent = '0.00';
         return;
-        }
-        const data = await res.json();
-
-        // Soportar ambos formatos (lista directa o {productos, ...})
-        const productos = Array.isArray(data) ? data : (data.productos || []);
-
-        // Fallback: si no hay flag de destacados, toma los primeros 8
-        const destacados = productos.slice(0, 8);
-
-        renderFeatured(destacados);
     }
 
-    function renderFeatured(items) {
-        if (!items?.length) {
-        FEATURED_WRAP.innerHTML = '<p>No hay productos destacados.</p>';
-        return;
-        }
-        FEATURED_WRAP.innerHTML = items.map(p => {
-        const img = p.imagen_url || 'assets/placeholder.jpg'; // ajusta si tienes campo real
+    let totalPrice = 0;
+    cart.forEach((product, idx) => {
+        const sub = (Number(product.precio)||0) * (Number(product.quantity)||0);
+        totalPrice += sub;
+        const div = document.createElement('div');
+        div.className = 'cart-item';
+        div.innerHTML = `
+        <img src="assets/productos/${product.Linkimg || product.id_producto}.jpg" alt="${product.name}">
+        <div class="cart-item-info">
+            <h4>${product.name}</h4>
+            <p>Precio: $${Number(product.precio).toLocaleString('es-CL')}</p>
+            <p>Subtotal: $${sub.toLocaleString('es-CL')}</p>
+        </div>
+        <div class="cart-quantity">
+            <button data-act="minus" data-idx="${idx}">-</button>
+            <span>${product.quantity}</span>
+            <button data-act="plus" data-idx="${idx}">+</button>
+        </div>
+        <button class="remove-btn" data-act="rm" data-idx="${idx}">Eliminar</button>
+        `;
+        cartContainer.appendChild(div);
+    });
+    cartContainer.onclick = (e)=>{
+        const btn = e.target.closest('button[data-act]');
+        if (!btn) return;
+        const cart = getCart();
+        const idx = Number(btn.dataset.idx);
+        const act = btn.dataset.act;
+        if (act === 'minus' && cart[idx]) cart[idx].quantity = Math.max(1, (cart[idx].quantity||1)-1);
+        if (act === 'plus'  && cart[idx]) cart[idx].quantity = (cart[idx].quantity||1)+1;
+        if (act === 'rm') cart.splice(idx,1);
+        saveCart(cart); updateCartDisplay();
+    };
+    if (cartTotalEl) cartTotalEl.textContent = totalPrice.toFixed(2);
+    }
+
+    /* =========================
+    MODAL CARRITO + OVERLAY
+    ========================= */
+    const UI = {
+    modal:    null,
+    wait:     null,
+    genBtn:   null,
+    placing:  false,
+    openModal(e){ if(e) e.preventDefault(); this.modal?.classList.add('is-open'); document.body.style.overflow='hidden'; updateCartDisplay(); },
+    closeModal(){ this.modal?.classList.remove('is-open'); document.body.style.overflow=''; },
+    openWait(){ this.wait?.classList.add('is-open'); },
+    closeWait(){ this.wait?.classList.remove('is-open'); }
+    };
+
+    /* =========================
+    CATALOGO + DESTACADOS
+    ========================= */
+    async function loadProductsPage(page=1, q=''){
+    const GRID = document.getElementById('catalog-grid');
+    const PAGER = document.getElementById('pager');
+    const PAGE_SIZE = 6;
+    const url = new URL('/productos', window.location.origin);
+    url.searchParams.set('page', page);
+    url.searchParams.set('limit', PAGE_SIZE);
+    if (q) url.searchParams.set('q', q);
+
+    const res = await fetch(url);
+    if (!res.ok){ GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
+    const data = await res.json();
+    renderGrid(data.productos);
+    renderPager(data.page, data.totalPages, q);
+    }
+    function renderGrid(items){
+    const GRID = document.getElementById('catalog-grid');
+    if (!items?.length){ GRID.innerHTML = '<p>No hay productos para mostrar.</p>'; return; }
+    GRID.innerHTML = items.map(p=>{
+        const img = p.imagen_url || 'assets/placeholder.jpg';
         return `
-            <article class="featured-card">
-            <div class="thumb">
-                <img src="${img}" alt="${p.nombre_prod}">
-            </div>
+        <article class="product-card">
+            <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
             <div class="info">
-                <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
-                <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
-                <div class="meta">
+            <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
+            <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
+            <div class="meta">
                 <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
                 <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
                 <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
                 <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
-                </div>
-                <div class="actions">
-                <button class="add-btn" data-id="${p.id_producto}">Agregar al carrito</button>
-                </div>
             </div>
-            </article>
+            <div class="actions">
+                <button class="add-btn" data-id="${p.id_producto}" data-name="${p.nombre_prod}" data-price="${Number(p.precio_unidad)||0}" data-img="${p.imagen_url || p.id_producto}">Agregar al carrito</button>
+            </div>
+            </div>
+        </article>
         `;
-        }).join('');
-
-        // (opcional) engancha "Agregar al carrito" a tu lógica
-        FEATURED_WRAP.querySelectorAll('.add-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = Number(btn.dataset.id);
-            console.log('Agregar destacado', id);
-            // TODO: integra con tu carrito real
+    }).join('');
+    GRID.querySelectorAll('.add-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+        addToCart({
+            id_producto: Number(btn.dataset.id),
+            name: btn.dataset.name,
+            precio: Number(btn.dataset.price)||0,
+            Linkimg: btn.dataset.img,
+            quantity: 1
         });
+        });
+    });
+    }
+    function renderPager(page, totalPages, q){
+    const PAGER = document.getElementById('pager');
+    if (totalPages <= 1){ PAGER.innerHTML=''; return; }
+    const btn = (label, goto, disabled=false, active=false)=>`
+        <button ${disabled?'disabled':''} class="${active?'active':''}" data-goto="${goto}" type="button">${label}</button>
+    `;
+    const parts = [];
+    parts.push(btn('« Anterior', Math.max(1, page-1), page===1));
+    const W = 2, start = Math.max(1, page-W), end = Math.min(totalPages, page+W);
+    if (start>1){ parts.push(btn('1',1,false,page===1)); if(start>2) parts.push('<span>…</span>'); }
+    for(let p=start;p<=end;p++) parts.push(btn(String(p), p, false, p===page));
+    if (end<totalPages){ if(end<totalPages-1) parts.push('<span>…</span>'); parts.push(btn(String(totalPages), totalPages, false, page===totalPages)); }
+    parts.push(btn('Siguiente »', Math.min(totalPages, page+1), page===totalPages));
+    PAGER.innerHTML = parts.join('');
+    PAGER.querySelectorAll('button[data-goto]').forEach(b=>{
+        b.addEventListener('click', ()=> loadProductsPage(Number(b.dataset.goto), q));
+    });
+    }
+    async function loadFeatured(){
+    const WRAP = document.querySelector('.featured-container');
+    const url = new URL('/productos', window.location.origin);
+    url.searchParams.set('limit', 6);
+    const res = await fetch(url);
+    if (!res.ok){ WRAP.innerHTML = '<p>Error cargando destacados.</p>'; return; }
+    const data = await res.json();
+    const productos = Array.isArray(data) ? data : (data.productos || []);
+    const items = productos.slice(0,8);
+    WRAP.innerHTML = items.map(p=>{
+        const img = p.imagen_url || 'assets/placeholder.jpg';
+        return `
+        <article class="featured-card">
+            <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
+            <div class="info">
+            <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
+            <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
+            <div class="meta">
+                <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
+                <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
+                <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
+                <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
+            </div>
+            <div class="actions">
+                <button class="add-btn" data-id="${p.id_producto}" data-name="${p.nombre_prod}" data-price="${Number(p.precio_unidad)||0}" data-img="${p.imagen_url || p.id_producto}">Agregar al carrito</button>
+            </div>
+            </div>
+        </article>
+        `;
+    }).join('');
+    WRAP.querySelectorAll('.add-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+        addToCart({
+            id_producto: Number(btn.dataset.id),
+            name: btn.dataset.name,
+            precio: Number(btn.dataset.price)||0,
+            Linkimg: btn.dataset.img,
+            quantity: 1
+        });
+        });
+    });
+    }
+
+    /* =========================
+    GENERAR PEDIDO (con retry si deadlock)
+    ========================= */
+    async function generateOrder(){
+    const cart = getCart();
+    if (!cart.length){ alert('Tu carrito está vacío.'); return; }
+
+    const delivery    = document.querySelector('input[name="delivery"]:checked')?.value || 'envio';
+    const comentarios = document.getElementById('order-comments')?.value?.trim() || '';
+
+    // payload que espera el backend
+    const payload = cart.map(p => ({
+        id_producto: p.id_producto,
+        precio: Number(p.precio ?? p.precio_unidad ?? 0),
+        quantity: Number(p.quantity ?? 1)
+    }));
+
+    const attempts = 3;
+    for (let i=1; i<=attempts; i++){
+        try{
+        const res = await fetch('/api/generar-pedido', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ cart: payload, delivery, comentarios })
+        });
+
+        const ct = (res.headers.get('content-type')||'').toLowerCase();
+        const raw = await res.text();
+        let data = null; if (ct.includes('application/json')){ try{ data = JSON.parse(raw); }catch{} }
+
+        if (!res.ok){
+            const msg = (data && (data.error || data.message)) || raw || res.statusText;
+            // si fue deadlock, reintentar
+            if (/deadlock/i.test(msg) && i < attempts){
+            await new Promise(r=>setTimeout(r, 200 + Math.random()*400));
+            continue;
+            }
+            throw new Error(msg);
+        }
+
+        // éxito
+        clearCart(); updateCartDisplay();
+        UI.closeModal();
+        alert('Pedido generado exitosamente. Hemos enviado toda la información a tu correo. Nos contactaremos contigo a la brevedad. ¡Gracias por su preferencia!');
+        return;
+        }catch(err){
+        if (i === attempts){
+            console.error('Error generando pedido:', err);
+            alert('No se pudo generar el pedido: ' + (err?.message || 'Inténtalo nuevamente.'));
+        }
+        }
+    }
+    }
+
+    /* =========================
+    ARRANQUE
+    ========================= */
+    document.addEventListener('DOMContentLoaded', ()=>{
+    // Referencias UI
+    UI.modal  = document.getElementById('cartModal');
+    UI.wait   = document.getElementById('order-wait');
+    UI.genBtn = document.getElementById('generateOrder');
+
+    // Abrir/Cerrar modal
+    const cartLink   = document.getElementById('cart-link');
+    const closeBtn   = UI.modal?.querySelector('.close');
+    cartLink?.addEventListener('click', (e)=> UI.openModal(e));
+    closeBtn?.addEventListener('click', ()=> UI.closeModal());
+    UI.modal?.addEventListener('click', (e)=>{ if (e.target === UI.modal) UI.closeModal(); });
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && UI.modal?.classList.contains('is-open')) UI.closeModal(); });
+
+    // Botones del carrito
+    const clearBtn = document.getElementById('clear-cart-btn');
+    clearBtn?.addEventListener('click', (e)=>{ e.preventDefault(); clearCart(); });
+
+    // ÚNICO listener del botón “Generar pedido”
+    if (UI.genBtn && !UI.genBtn.dataset.bound){
+        UI.genBtn.dataset.bound = '1';
+        UI.genBtn.addEventListener('click', async (e)=>{
+        e.preventDefault();
+        if (UI.placing) return;
+        UI.placing = true;
+
+        const original = UI.genBtn.textContent;
+        UI.genBtn.disabled = true;
+        UI.genBtn.textContent = 'Generando…';
+        UI.openWait();
+
+        try{ await generateOrder(); }
+        finally{
+            UI.closeWait();
+            UI.genBtn.disabled = false;
+            UI.genBtn.textContent = original;
+            UI.placing = false;
+        }
         });
     }
 
-    // Llama después de cargar el catálogo
+    // Búsqueda
+    const FORM  = document.getElementById('search-form');
+    const INPUT = document.getElementById('search-input');
+    FORM?.addEventListener('submit', (e)=>{
+        e.preventDefault(); loadProductsPage(1, (INPUT?.value||'').trim());
+    });
+
+    // Cargas iniciales
+    loadProductsPage(1);
     loadFeatured();
+    updateCartDisplay();
     });
     </script>
+
+    
+
 </body>
 </html>
 

@@ -231,6 +231,7 @@ body {
     z-index: 1; 
     padding-left: 50px;
     padding-right: 50px;
+    
 }
 
 .itemcarrusel {
@@ -638,27 +639,64 @@ i {
 .cart-action-btn:hover {
     background-color: #d63031;
 }
+ /*style nuevo para carro*/
 
+ #cartModal.modal{
+  position: fixed !important;
+  inset: 0 !important;
+  display: none;
+  place-items: center;            /* centra con grid */
+  background: rgba(0,0,0,.55) !important;
+  padding: 24px;
+  z-index: 9999 !important;
+}
+#cartModal.modal.is-open{ display: grid; }
+
+/* Caja del carrito */
+#cartModal .modal-content{
+  position: relative !important;
+  background: #fff !important;   /* evita transparencia */
+  color: #111;
+  width: min(680px, 92vw);
+  max-height: 100vh;
+  overflow: auto;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  padding: 16px;
+}
+
+/* Botón cerrar */
+#cartModal .close{
+  position: absolute;
+  top: 10px; right: 12px;
+  background: none; border: 0;
+  font-size: 22px; cursor: pointer;
+}
+
+/* Evita que un click dentro cierre el modal */
+#cartModal .modal-content{ pointer-events: auto; }
+#cartModal{ pointer-events: auto; }
 
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    padding-top: 60px;
+  position: fixed;
+  inset: 0;                 /* top:0; right:0; bottom:0; left:0 */
+  display: none;            /* se activa con .is-open */
+  place-items: center;      /* centra con CSS Grid (o usa flex si prefieres) */
+  background: rgba(0,0,0,.5);
+  padding: 24px;            /* margen interno para que no toque los bordes */
+  z-index: 1000;
 }
-.modal-content {
-    background-color: #ffffff; /* Fondo blanco */
-    color: #333; /* Texto más oscuro para mejor contraste */
-    border-radius: 10px;
-    padding: 20px;
-    width: 90%;
-    max-width: 700px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+.modal.is-open {
+  display: grid;            /* o display:flex; align-items:center; justify-content:center; */
+}
+
+modal .modal-content {
+  width: min(560px, 92vw);  /* ancho responsivo */
+  max-height: 100vh;         /* para que no se salga en pantallas chicas */
+  overflow: auto;           /* scroll interno si hay mucho contenido */
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
 }
 .close {
     color: #aaa;
@@ -674,6 +712,52 @@ i {
   .resultado_oculto{
     display: none;
 }
+
+
+/*pantallas de carga*/
+/* Overlay de espera para generar pedido */
+#order-wait {
+  position: fixed;
+  inset: 0;
+  display: none;            /* se muestra con la clase .show */
+  place-items: center;
+  background: rgba(0,0,0,.45);
+  z-index: 9999;
+}
+
+#order-wait.show { display: grid; }
+
+.order-wait__box {
+  width: min(92vw, 360px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+  padding: 22px 20px;
+  text-align: center;
+}
+
+.order-wait__spinner {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 4px solid #e9e9e9;
+  border-top-color: #2b7de9;
+  margin: 0 auto 12px;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.order-wait__title {
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+  color: #222;
+}
+.order-wait__text {
+  margin: 0;
+  color: #555;
+  font-size: .95rem;
+}
+
 .about-us {
     background-color: #f9f9f9;
     padding: 20px;
@@ -1175,4 +1259,208 @@ i {
   border: 1px solid #1f2937;
   background: #1f2937;
   color: #fff;
+}
+
+/* Bloque scrollable para los pedidos */
+#pedidos-container{
+  max-width: 700px;
+  margin: 24px auto;
+  padding: 10px 20px;
+
+  /* hace el panel scrolleable */
+  max-height: 62vh;        /* ajusta a gusto: 55–70vh */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* scroll suave en móviles */
+
+  /* opcional (si quieres que parezca una tarjeta grande) */
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+/* pequeños retoques */
+#pedidos-container .pedido:last-child{ margin-bottom: 8px; }
+
+/* Haz que el botón de cerrar sesión se mantenga visible al hacer scroll de la página */
+.button{
+  position: sticky;   /* se “pega” al borde inferior del viewport */
+  bottom: 16px;
+  z-index: 2;
+}
+
+/* En pantallas pequeñas, un poco más alto el panel para aprovechar el espacio */
+@media (max-width: 768px){
+  #pedidos-container{ max-height: 68vh; }
+}
+
+/* ===============================
+   Responsive overrides
+   (pégalo al final de tu style.css)
+   =============================== */
+
+:root{
+  --container-max: 1200px;
+  --space: clamp(12px, 1.4vw, 24px);
+  --nav-h: clamp(64px, 10vw, 150px);
+}
+
+/* Tipografía base fluida */
+html { font-size: 100%; }
+body { font-size: clamp(14px, 1.05vw, 16px); }
+
+/* Nav fluido */
+.menu{ height: var(--nav-h); }
+.menu__container{ width: min(92%, var(--container-max)); }
+.menu__container.image{ width: clamp(160px, 18vw, 250px); }
+
+/* Barra de búsqueda fluida */
+.search-bar{
+  width: min(92%, var(--container-max));
+  margin-inline: auto;
+  padding: clamp(14px, 2.2vw, 25px);
+}
+.search-bar input[type="search"]{ font-size: clamp(14px, 1vw, 16px); }
+.search-btn img{ width: clamp(26px, 3vw, 38px); }
+
+/* Carrusel: alto y paddings fluidos */
+#conteitemcarrusel{
+  height: clamp(240px, 45vw, 650px);
+  padding-inline: clamp(12px, 4vw, 50px);
+}
+.itemcarrusel{ padding: clamp(8px, 1.6vw, 20px); }
+.flechascarrusel{ padding-inline: clamp(6px, 2.8vw, 45px); }
+
+/* Layout principal: sidebar + contenido */
+.conteiner{
+  grid-template-columns: 280px 1fr;
+  gap: clamp(12px, 1.6vw, 24px);
+  padding: clamp(10px, 2vw, 16px);
+  max-width: 1600px;
+  width: min(96%, 1600px);
+}
+.sidebar{ top: calc(var(--nav-h) + 8px); }
+
+/* Catálogo / tarjetas: gaps fluidos */
+.catalog-grid{
+  grid-template-columns: repeat(auto-fill, minmax(clamp(220px, 26vw, 320px), 1fr));
+  gap: clamp(12px, 1.8vw, 28px);
+}
+
+/* Featured: ya usas auto-fit, ajusto gap */
+.featured-container{ gap: clamp(12px, 1.8vw, 20px); }
+
+/* Footer responsive */
+.footer .footer-conteiner{
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-gap: clamp(16px, 3vw, 50px);
+  width: min(92%, var(--container-max));
+}
+.footer .footer-conteiner .fbox iframe{
+  width: 100%;
+  height: clamp(220px, 28vw, 300px);
+}
+
+/* Modal carrito: ancho/alto fluidos (ya estabas cerca) */
+#cartModal .modal-content{
+  width: min(680px, 92vw);
+  max-height: min(86vh, 900px);
+  padding: clamp(14px, 2vw, 16px);
+}
+
+/* Contenedor de items del carrito: altura en función del viewport */
+.cart-container{
+  max-height: clamp(140px, 30vh, 360px);
+}
+
+/* Bloque de pedidos (perfil) – ya lo dejaste scrollable */
+#pedidos-container{
+  max-height: clamp(52vh, 62vh, 70vh);
+}
+
+/* Ficha de producto (página detalle): quitar anchos fijos */
+.product-details{
+  width: 100%;
+  max-width: 1200px;
+  height: auto;
+  grid-template-columns: minmax(220px, 1fr) 1fr 1fr;
+  grid-template-rows: auto;
+  gap: clamp(10px, 1.2vw, 16px);
+  padding: clamp(12px, 1.6vw, 15px);
+}
+.pproduct-img{ height: auto; }
+
+/* ===============================
+   Breakpoints
+   =============================== */
+
+/* Tablets ≤ 1024px */
+@media (max-width: 1024px){
+  .conteiner{
+    grid-template-columns: 1fr;   /* sidebar arriba, contenido abajo */
+  }
+  .sidebar{ position: static; }    /* deja de ser sticky en tablets/móvil */
+  .menu__links{
+    top: var(--nav-h);             /* menú móvil bajo el header fluido */
+  }
+  .product-details{
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "img img"
+      "nombre nombre"
+      "tipo medida"
+      "descrip dispo"
+      "precio carro";
+  }
+}
+
+/* Móviles ≤ 768px */
+@media (max-width: 768px){
+  .menu__links{ max-width: 92vw; }
+  .search-bar{
+    padding: clamp(10px, 3vw, 16px);
+    border-radius: 14px;
+  }
+  .featured-products{
+    width: min(96%, var(--container-max));
+    padding: clamp(12px, 3vw, 20px);
+  }
+  .product-details{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "img"
+      "nombre"
+      "tipo"
+      "medida"
+      "descrip"
+      "dispo"
+      "precio"
+      "carro";
+  }
+  .pproduct-img{ height: clamp(220px, 48vw, 320px); }
+  .product-card .title,
+  .featured-card .title{ min-height: auto; -webkit-line-clamp: 3; }
+}
+
+/* Teléfonos pequeños ≤ 480px */
+@media (max-width: 480px){
+  .menu__img{ width: 40px; }
+  .menu__container.image{ width: clamp(140px, 45vw, 180px); }
+  .cart-item img{ width: 48px; margin-right: 12px; }
+  .pager{ gap: 6px; }
+  .pager button{ padding: 8px 10px; }
+}
+@media (max-width: 1024px){
+  .conteiner{
+    grid-template-columns: 1fr;   /* el contenido ocupa todo el ancho */
+  }
+  .sidebar{
+    display: none !important;     /* oculta la barra lateral */
+  }
+}
+
+/* Si quieres ocultarla todavía antes, sube el breakpoint: 1200px, por ejemplo */
+@media (max-width: 768px){
+  .conteiner{ grid-template-columns: 1fr; }
+  .sidebar{ display: none !important; }
 }
