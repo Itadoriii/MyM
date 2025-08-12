@@ -119,108 +119,82 @@ document.addEventListener("DOMContentLoaded", function() {
       }
       // Obtener lista de pedidos
       async function fetchPedidos() {
-        try {
-            const response = await fetch('/api/pedidos');
-            const pedidos = await response.json();
+  try {
+    const response = await fetch('/api/pedidos');
+    const pedidos = await response.json();
 
-            let html = '<h1>Pedidos</h1>';
-            if (pedidos.length === 0) {
-                html += '<p>No hay pedidos registrados.</p>';
-            } else {
-                html += '<table border="1">';
-                html += `
-                    <tr>
-                        <th>ID Pedido</th>
-                        <th>Usuario</th>
-                        <th>Email</th>
-                        <th>Número</th>
-                        <th>Precio Total</th>
-                        <th>Fecha Pedido</th>
-                        <th>Estado</th>
-                        <th>Delivery</th>
-                        <th>Descripcion</th>
-                        <th>Detalles</th>
-                        <th>Acciones</th>
-                    </tr>`;
+    let html = `
+      <h1 class="adm-title">Pedidos</h1>
+      <div class="table-wrap">
+        <table class="adm-table">
+          <thead>
+            <tr>
+              <th>ID Pedido</th>
+              <th>Usuario</th>
+              <th>Email</th>
+              <th>Número</th>
+              <th>Precio Total</th>
+              <th>Fecha Pedido</th>
+              <th>Estado</th>
+              <th>Delivery</th>
+              <th>Descripción</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
 
-                pedidos.forEach(pedido => {
-                    html += `
-                        <tr>
-                            <td>${pedido.id_pedido}</td>
-                            <td>${pedido.user}</td>
-                            <td>${pedido.email}</td>
-                            <td>${pedido.number || 'No disponible'}</td>
-                            <td>$${pedido.precio_total.toFixed(2)}</td>
-                            <td>${pedido.fecha_pedido}</td>
-                            <td>${pedido.estado}</td>
-                            <td>${pedido.delivery}</td>
-                            <td>${pedido.descripcion || 'N/A'}</td>
-                            <td>
-                                <ul>
-                    `;
-
-                    // Mostrar cada detalle del pedido
-                    pedido.detalles.forEach(detalle => {
-                        html += `
-                            <li>
-                                Producto: ${detalle.nombre_prod} - 
-                                Cantidad: ${detalle.cantidad} - 
-                                Precio Detalle: $${detalle.precio_detalle.toFixed(2)}
-                            </li>`;
-                    });
-
-                    html += `
-                                </ul>
-                            </td>
-                            <td>
-                            <button 
-                                type="button" 
-                                class="btn-aceptar" 
-                                data-id="${pedido.id_pedido}"
-                            >
-                                Aceptar
-                            </button>
-                            <button 
-                                type="button" 
-                                class="btn-rechazar" 
-                                data-id="${pedido.id_pedido}"
-                            >
-                                Rechazar
-                            </button>
-                            </td>
-
-
-
-                        </tr>`;
-                });
-
-                html += '</table>';
-            }
-
-            mainContent.innerHTML = html;
-
-            // prevenimos el submit y lanzamos tu función
-            document.querySelectorAll('.btn-aceptar').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.preventDefault();                        // <-- aquí detienes el POST/PUT a /profile
-                const id = btn.dataset.id;
-                aceptarPedido(id);                         // llama a tu fetch al API correcto
-            });
-            });
-
-            document.querySelectorAll('.btn-rechazar').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.preventDefault();
-                const id = btn.dataset.id;
-                rechazarPedido(id);
-            });
-            });
-
-        } catch (error) {
-            console.error('Error al cargar los pedidos:', error);
-            mainContent.innerHTML = '<p>Error al cargar los pedidos.</p>';
-        }
+    if (!Array.isArray(pedidos) || pedidos.length === 0) {
+      html += `<tr><td colspan="10">No hay pedidos registrados.</td></tr>`;
+    } else {
+      html += pedidos.map(p => `
+        <tr>
+          <td>${p.id_pedido}</td>
+          <td>${p.user}</td>
+          <td>${p.email}</td>
+          <td>${p.number || 'No disponible'}</td>
+          <td>$${Number(p.precio_total || 0).toLocaleString('es-CL')}</td>
+          <td>${p.fecha_pedido}</td>
+          <td>${p.estado}</td>
+          <td>${p.delivery ?? '—'}</td>
+          <td>${p.descripcion || 'N/A'}</td>
+          <td>
+            <div class="table-actions">
+              <button type="button" class="btn btn--primary btn-aceptar" data-id="${p.id_pedido}">Aceptar</button>
+              <button type="button" class="btn btn--danger btn-rechazar" data-id="${p.id_pedido}">Rechazar</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
     }
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    mainContent.innerHTML = html;
+
+    // acciones
+    document.querySelectorAll('.btn-aceptar').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        aceptarPedido(btn.dataset.id);
+      });
+    });
+    document.querySelectorAll('.btn-rechazar').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        rechazarPedido(btn.dataset.id);
+      });
+    });
+
+  } catch (error) {
+    console.error('Error al cargar los pedidos:', error);
+    mainContent.innerHTML = '<p>Error al cargar los pedidos.</p>';
+  }
+}
     
     // Asegúrate de que estas funciones estén definidas al nivel superior
     /*async function aceptarPedido(idPedido) {
@@ -289,241 +263,213 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 
-      async function fetchProductos() {
+      // Helpers reutilizables
+    async function tryJson(url, opts) {
     try {
-        const response = await fetch('/productos');
-        const productos = await response.json();
-        console.log(productos);
-        if (Array.isArray(productos)) {
-            mainContent.innerHTML = `
-                <input type="text" id="search-input" placeholder="Buscar producto..." style="width: 100%; padding: 10px; margin-bottom: 20px;">
-                <button class="buttonenlace" id="crearProductoBtn">Crear nuevo producto</button>
-
-                <h1 class="titulotable">Productos Actuales:</h1>
-                <div class="table-container" style="max-height: 400px; overflow-y: scroll;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID Producto</th>
-                                <th>Nombre</th>
-                                <th>Precio Unidad</th>
-                                <th>Disponibilidad</th>
-                                <th>Tipo</th>
-                                <th>Medidas</th>
-                                <th>Dimensiones</th>
-                                <th>Fecha Añadido</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productos-tbody">
-                            ${productos.map(producto => `
-                                <tr>
-                                    <td>${producto.id_producto}</td>
-                                    <td>${producto.nombre_prod}</td>
-                                    <td>${producto.precio_unidad}</td>
-                                    <td>${producto.disponibilidad}</td>
-                                    <td>${producto.tipo}</td>
-                                    <td>${producto.medidas}</td>
-                                    <td>${producto.dimensiones}</td>
-                                    <td>${producto.fecha_add}</td>
-                                    <td>
-                                        <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
-                                        <button class="deleteBtn" data-id="${producto.id_producto}">Eliminar</button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            // Agregar event listeners a los botones de editar
-            document.querySelectorAll('.editBtn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const productId = e.target.getAttribute('data-id');
-                    await editProduct(productId);
-                });
-            });
-
-            // Agregar event listeners a los botones de eliminar
-            document.querySelectorAll('.deleteBtn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const productId = e.target.getAttribute('data-id');
-                    await deleteProduct(productId);
-                });
-            });
-
-            // Resto del código de búsqueda...
-            const searchInput = document.getElementById('search-input');
-            searchInput.addEventListener('input', function() {
-                const searchValue = searchInput.value.toLowerCase();
-                const filteredProducts = productos.filter(producto =>
-                    producto.nombre_prod.toLowerCase().includes(searchValue)
-                );
-                renderProductos(filteredProducts);
-            });
-
-            document.getElementById('crearProductoBtn').addEventListener('click', () => {
-                showProductForm();
-            });
-
-            function renderProductos(productos) {
-                const tbody = document.getElementById('productos-tbody');
-                tbody.innerHTML = productos.map(producto => `
-                    <tr>
-                        <td>${producto.id_producto}</td>
-                        <td>${producto.nombre_prod}</td>
-                        <td>${producto.precio_unidad}</td>
-                        <td>${producto.disponibilidad}</td>
-                        <td>${producto.tipo}</td>
-                        <td>${producto.medidas}</td>
-                        <td>${producto.dimensiones}</td>
-                        <td>${producto.fecha_add}</td>
-                        <td>
-                            <button class="editBtn" data-id="${producto.id_producto}">Editar</button>
-                            <button class="deleteBtn" data-id="${producto.id_producto}">Eliminar</button>
-                        </td>
-                    </tr>
-                `).join('');
-
-                // Volver a agregar los event listeners después de renderizar
-                document.querySelectorAll('.editBtn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        const productId = e.target.getAttribute('data-id');
-                        await editProduct(productId);
-                    });
-                });
-
-                document.querySelectorAll('.deleteBtn').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        const productId = e.target.getAttribute('data-id');
-                        await deleteProduct(productId);
-                    });
-                });
-            }
-
-            renderProductos(productos);
-        } else {
-            mainContent.innerHTML = '<p>No se encontraron productos.</p>';
+        const res = await fetch(url, opts);
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!res.ok) {
+        const body = ct.includes('json') ? await res.json().catch(()=>null) : await res.text();
+        return { ok: false, status: res.status, body };
         }
-    } catch (error) {
-        console.error('Error fetching productos:', error);
-        mainContent.innerHTML = '<p>Error loading productos.</p>';
+        const data = ct.includes('json') ? await res.json() : null;
+        return { ok: true, data };
+    } catch (e) {
+        return { ok: false, error: e };
     }
-}
-    async function editProduct(productId) {
-    try {
-        // Obtener los datos del producto
-        const response = await fetch(`/productos/${productId}`);
-        if (!response.ok) {
-            throw new Error('Error al obtener el producto');
-        }
-        const product = await response.json();
-        
-        // Mostrar el formulario de edición
-        showProductForm(product);
-    } catch (error) {
-        console.error('Error al editar producto:', error);
-        showPopup('Error al cargar el producto para editar: ' + error.message);
     }
-}
-async function deleteProduct(productId) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+
+    // === LISTAR ===
+    async function fetchProductos() {
+    // 1) intenta /api/productos
+    let r = await tryJson('/api/productos');
+    // 2) si falla, usa /productos (público)
+    if (!r.ok) {
+        const url = new URL('/productos', location.origin);
+        url.searchParams.set('limit', 9999); // por si tu API pagina
+        r = await tryJson(url);
+    }
+
+    if (!r.ok) {
+        console.error('No pude obtener productos:', r);
+        mainContent.innerHTML = '<p>Error cargando productos.</p>';
         return;
     }
 
-    try {
-        const response = await fetch(`/api/productos/${productId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            showPopup('Producto eliminado con éxito');
-            fetchProductos(); // Recargar la lista de productos
-        } else {
-            const errorData = await response.json();
-            console.error('Error al eliminar producto:', errorData);
-            showPopup('Error al eliminar el producto');
-        }
-    } catch (error) {
-        console.error('Error al eliminar producto:', error);
-        showPopup('Error al eliminar el producto');
+    const raw = r.data;
+    const productos = Array.isArray(raw) ? raw : (raw.productos || raw.items || []);
+    if (!Array.isArray(productos)) {
+        console.error('Formato inesperado al listar productos:', raw);
+        mainContent.innerHTML = '<p>Error: formato de respuesta inesperado.</p>';
+        return;
     }
-}
 
-function showProductForm(product = null) {
-    const isEditing = !!product;
+    // UI base
     mainContent.innerHTML = `
-        <h1>${isEditing ? 'Editar' : 'Crear Nuevo'} Producto</h1>
-        <form id="productoForm">
-            ${isEditing ? `<input type="hidden" id="id_producto" name="id_producto" value="${product.id_producto}">` : ''}
-            <div class="form-group">
-                <label for="nombre_prod">Nombre:</label>
-                <input type="text" id="nombre_prod" name="nombre_prod" value="${isEditing ? product.nombre_prod : ''}" required>
-            </div>
-            <div class="form-group">
-                <label for="precio_unidad">Precio Unidad:</label>
-                <input type="number" id="precio_unidad" name="precio_unidad" step="0.01" value="${isEditing ? product.precio_unidad : ''}" required>
-            </div>
-            <div class="form-group">
-                <label for="disponibilidad">Disponibilidad:</label>
-                <input type="number" id="disponibilidad" name="disponibilidad" value="${isEditing ? product.disponibilidad : ''}" required>
-            </div>
-            <div class="form-group">
-                <label for="tipo">Tipo:</label>
-                <input type="text" id="tipo" name="tipo" value="${isEditing ? product.tipo : ''}" required>
-            </div>
-            <div class="form-group">
-                <label for="medidas">Medidas:</label>
-                <input type="text" id="medidas" name="medidas" value="${isEditing ? product.medidas : ''}" required>
-            </div>
-            <div class="form-group">
-                <label for="dimensiones">Dimensiones:</label>
-                <input type="text" id="dimensiones" name="dimensiones" value="${isEditing ? product.dimensiones : ''}" required>
-            </div>
-            <div class="form-group">
-                <label for="fecha_add">Fecha Añadido:</label>
-                <input type="date" id="fecha_add" name="fecha_add" value="${isEditing ? product.fecha_add.split('T')[0] : ''}" required>
-            </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
-                <button type="button" class="btn btn-secondary" onclick="fetchProductos()">Cancelar</button>
-            </div>
-        </form>
+        <input type="text" id="search-input" placeholder="Buscar producto..." style="width:100%;padding:10px;margin-bottom:20px;">
+        <button class="buttonenlace" id="crearProductoBtn">Crear nuevo producto</button>
+
+        <h1 class="titulotable">Productos Actuales:</h1>
+        <div class="table-container" style="max-height:400px;overflow-y:auto;">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th>
+                <th>Tipo</th><th>Medidas</th><th>Dimensiones</th><th>Fecha</th><th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="productos-tbody"></tbody>
+        </table>
+        </div>
     `;
 
-    document.getElementById('productoForm').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const productoData = Object.fromEntries(formData.entries());
+    function render(list) {
+        const tbody = document.getElementById('productos-tbody');
+        tbody.innerHTML = list.map(p => `
+        <tr>
+            <td>${p.id_producto}</td>
+            <td>${p.nombre_prod ?? ''}</td>
+            <td>${p.precio_unidad ?? ''}</td>
+            <td>${p.disponibilidad ?? ''}</td>
+            <td>${p.tipo ?? ''}</td>
+            <td>${p.medidas ?? ''}</td>
+            <td>${p.dimensiones ?? ''}</td>
+            <td>${p.fecha_add ?? ''}</td>
+            <td>
+            <button class="editBtn" data-id="${p.id_producto}">Editar</button>
+            <button class="deleteBtn" data-id="${p.id_producto}">Eliminar</button>
+            </td>
+        </tr>
+        `).join('');
 
-        try {
-            const url = isEditing ? `/api/productos/${productoData.id_producto}` : '/api/productos';
-            const method = isEditing ? 'PUT' : 'POST';
-            
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(productoData)
-            });
+        // listeners de acciones
+        document.querySelectorAll('.editBtn').forEach(b=>{
+        b.addEventListener('click', e => editProduct(e.currentTarget.dataset.id));
+        });
+        document.querySelectorAll('.deleteBtn').forEach(b=>{
+        b.addEventListener('click', e => deleteProduct(e.currentTarget.dataset.id));
+        });
+    }
 
-            const result = await response.json();
-            console.log('Server response:', result);
-
-            if (response.ok) {
-                showPopup(isEditing ? 'Producto actualizado con éxito' : 'Producto creado con éxito');
-                fetchProductos(); // Recargar la lista de productos
-            } else {
-                console.error('Error saving producto:', result);
-                showPopup(`Error: ${result.message || 'Error al guardar el producto'}`);
-            }
-        } catch (error) {
-            console.error('Error saving producto:', error);
-            showPopup('Error al guardar el producto');
-        }
+    // Buscar
+    const search = document.getElementById('search-input');
+    search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase();
+        const filtered = !q ? productos : productos.filter(p =>
+        (p.nombre_prod || '').toLowerCase().includes(q)
+        );
+        render(filtered);
     });
+
+    document.getElementById('crearProductoBtn').addEventListener('click', () => {
+        showProductForm(); // usa el mismo form de creación/edición
+    });
+
+    render(productos);
+    }
+
+    // === OBTENER UNO (para Editar) ===
+    async function editProduct(productId) {
+    // intenta API admin
+    let r = await tryJson(`/api/productos/${productId}`);
+    // si no existe, intenta público
+    if (!r.ok) r = await tryJson(`/productos/${productId}`);
+
+    if (!r.ok) {
+        console.error('Error al obtener producto:', r);
+        showPopup('No se pudo cargar el producto.');
+        return;
+    }
+    showProductForm(r.data);
+    }
+
+    // === ELIMINAR ===
+    async function deleteProduct(productId) {
+    if (!confirm('¿Eliminar este producto?')) return;
+
+    // intenta API admin
+    let res = await fetch(`/api/productos/${productId}`, { method: 'DELETE' });
+    if (!res.ok) {
+        // intenta ruta pública (si tu backend la implementa)
+        res = await fetch(`/productos/${productId}`, { method: 'DELETE' });
+    }
+
+    if (res.ok) {
+        showPopup('Producto eliminado con éxito');
+        fetchProductos();
+    } else {
+        const txt = await res.text().catch(()=> '');
+        console.error('Error al eliminar:', res.status, txt);
+        showPopup('No se pudo eliminar el producto (ver consola).');
+    }
+    }
+
+    // === FORM CREAR/EDITAR ===
+function showProductForm(product = null) {
+  const isEditing = !!product;
+  mainContent.innerHTML = `
+    <h1>${isEditing ? 'Editar' : 'Crear Nuevo'} Producto</h1>
+    <form id="productoForm">
+      ${isEditing ? `<input type="hidden" id="id_producto" name="id_producto" value="${product.id_producto}">` : ''}
+      <div class="form-group">
+        <label>Nombre:</label>
+        <input type="text" id="nombre_prod" name="nombre_prod" value="${isEditing ? (product.nombre_prod||'') : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Precio Unidad:</label>
+        <input type="number" id="precio_unidad" name="precio_unidad" step="0.01" value="${isEditing ? (product.precio_unidad||'') : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Disponibilidad:</label>
+        <input type="number" id="disponibilidad" name="disponibilidad" value="${isEditing ? (product.disponibilidad||'') : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Tipo:</label>
+        <input type="text" id="tipo" name="tipo" value="${isEditing ? (product.tipo||'') : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Medidas:</label>
+        <input type="text" id="medidas" name="medidas" value="${isEditing ? (product.medidas||'') : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Dimensiones:</label>
+        <input type="text" id="dimensiones" name="dimensiones" value="${isEditing ? (product.dimensiones||'') : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Fecha Añadido:</label>
+        <input type="date" id="fecha_add" name="fecha_add" value="${isEditing && product.fecha_add ? String(product.fecha_add).slice(0,10) : ''}" required>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
+        <button type="button" class="btn btn-secondary" onclick="fetchProductos()">Cancelar</button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById('productoForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const payload = Object.fromEntries(new FormData(ev.target).entries());
+    const body = JSON.stringify(payload);
+
+    // intentamos primero en /api/productos
+    const urlA = isEditing ? `/api/productos/${payload.id_producto}` : '/api/productos';
+    const urlB = isEditing ? `/productos/${payload.id_producto}`     : '/productos';
+
+    let res = await fetch(urlA, { method: isEditing ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body });
+    if (!res.ok) {
+      res = await fetch(urlB, { method: isEditing ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body });
+    }
+
+    const ok = res.ok;
+    const dataOrText = (await res.text()) || '';
+    if (ok) {
+      showPopup(isEditing ? 'Producto actualizado con éxito' : 'Producto creado con éxito');
+      fetchProductos();
+    } else {
+      console.error('Error guardando producto:', res.status, dataOrText);
+      showPopup('No se pudo guardar el producto (ver consola).');
+    }
+  });
 }
 
 

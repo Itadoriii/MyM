@@ -280,51 +280,7 @@ async function isUserLoggedIn() {
         return false;
     }
 }
-async function generateOrder() {
-    const cart = getCart();
-    if (cart.length === 0) {
-        alert('El carrito está vacío.');
-        return;
-    }
 
-    const loggedIn = await isUserLoggedIn();
-    if (!loggedIn) {
-        alert('Debes iniciar sesión para generar el pedido.');
-        window.location.href = '/login';
-        return;
-    }
-
-    // Capturar valores de delivery y comentarios
-    const delivery = document.querySelector('input[name="delivery"]:checked').value;
-    const descripcion = document.getElementById('order-comments').value.trim();
-
-    const payload = {
-        cart,
-        delivery,
-        descripcion
-    };
-
-    try {
-        const response = await fetch('/api/generar-pedido', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            credentials: 'include'
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error al generar el pedido: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-        alert(`Pedido generado con éxito. Número de pedido: ${result.id_pedido}`);
-        clearCart();
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Hubo un error al generar el pedido. Intenta de nuevo.');
-    }
-}
 
 
 // Funciones auxiliares
@@ -380,59 +336,61 @@ window.onload = async () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Manejo del modal del carrito
-    const cartLink = document.getElementById('cart-link');
     const modal = document.getElementById('cartModal');
-    const closeButton = document.querySelector('.close');
+    const openBtn = document.getElementById('cart-link');
+    const closeBtn = modal?.querySelector('.close');
     const clearCartButton = document.getElementById('clear-cart-btn');
     const generateOrderButton = document.getElementById('generateOrder');
 
-    if (cartLink && modal) {
-        cartLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            modal.style.display = 'block';
-            updateCartDisplay();
-        });
+    function openModal(e) {
+        if (e) e.preventDefault();
+        modal?.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        updateCartDisplay();
+    }
+    function closeModal() {
+        modal?.classList.remove('is-open');
+        document.body.style.overflow = '';
     }
 
-    if (closeButton && modal) {
-        closeButton.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-    }
+    openBtn?.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-    if (clearCartButton) {
-        clearCartButton.addEventListener('click', clearCart);
-    }
-
-    if (generateOrderButton) {
-        generateOrderButton.addEventListener('click', generateOrder);
-    }
-
-    // Búsqueda
-    const searchForm = document.getElementById('search-form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) await performSearch(searchInput.value);
-        });
-    }
-
-    // Categorías
-    document.querySelectorAll('.category-link').forEach(link => {
-        link.addEventListener('click', async (event) => {
-            event.preventDefault();
-            await performSearch(event.target.textContent.trim());
-        });
+    clearCartButton?.addEventListener('click', (e) => {
+        e.preventDefault();
+        clearCart();
     });
 
-    // Logout
-    const logoutButton = document.querySelector(".button");
-    if (logoutButton) {
-        logoutButton.addEventListener("click", () => {
-            document.cookie = 'jwt=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            document.location.href = "/";
-        });
-    }
+    generateOrderButton?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await generateOrder(closeModal);
+    });
+    
+
+  // ---- Búsqueda ----
+  const searchForm  = document.getElementById('search-form');
+  const searchInput = document.getElementById('search-input');
+  searchForm?.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const q = searchInput?.value || '';
+    if (typeof performSearch === 'function') await performSearch(q);
+  });
+
+  // ---- Categorías ----
+  document.querySelectorAll('.category-link').forEach(link => {
+    link.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const q = ev.target.textContent.trim();
+      if (typeof performSearch === 'function') await performSearch(q);
+    });
+  });
+
+  // ---- Logout (si existe ese botón) ----
+  const logoutButton = document.getElementById('logout-btn');
+  logoutButton?.addEventListener('click', () => {
+    document.cookie = 'jwt=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.location.href = '/';
+  });
 });
