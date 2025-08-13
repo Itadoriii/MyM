@@ -1,50 +1,135 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Maderas M&M</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
     <script src="https://kit.fontawesome.com/43804ad595.js" crossorigin="anonymous"></script>
+    <style>
+        /* Contenedor general del perfil */
+        #user-profile {
+            max-width: 700px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+        /* Estilo para los datos del usuario */
+        #user-profile p {
+            margin: 8px 0;
+            font-size: 1rem;
+        }
+        #user-profile p strong {
+            color: #007BFF;
+        }
+
+        /* Contenedor para pedidos */
+        #pedidos-container {
+            max-width: 700px;
+            margin: 30px auto 50px;
+            padding: 10px 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+
+        /* Cada caja de pedido */
+        .pedido {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 5px rgb(0 0 0 / 0.05);
+        }
+
+        /* Títulos de cada pedido */
+        .pedido h3 {
+            margin-top: 0;
+            color: #0056b3;
+            font-weight: 600;
+        }
+
+        /* Detalles del pedido */
+        .pedido p {
+            margin: 6px 0;
+            font-size: 0.9rem;
+        }
+
+        /* Lista de productos en el pedido */
+        .pedido ul {
+            list-style-type: disc;
+            margin-left: 20px;
+            padding-left: 0;
+        }
+
+        .pedido ul li {
+            margin: 4px 0;
+            font-size: 0.9rem;
+        }
+
+        /* Separador entre pedidos */
+        .pedido hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 15px 0 0;
+        }
+
+        /* Botón cerrar sesión */
+        .button {
+            display: block;
+            margin: 20px auto;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
     <nav class="menu">
         <section class="menu__container">
-            <img src="assets/logo act.png" class="menu__container image">
+            <img src="assets/logo act.png" class="menu__container image" />
             <ul class="menu__links">
                 <li class="menu__item">
                     <a href="/" class="menu__link">Inicio</a>
                 </li>
                 <li class="menu__item menu__item--show">
-                    <a href="#" class="menu__link ">Productos<img src="assets/arrow.svg" class="menu__arrow"></a>
-    
+                    <a href="#" class="menu__link">Productos<img src="assets/arrow.svg" class="menu__arrow" /></a>
                     <ul class="menu__nesting">
-                        <li class="menu__inside" >
-                            <a href="#" class="menu__link menu__link--inside category-link" >Pino oregon</a>
+                        <li class="menu__inside">
+                            <a href="#" class="menu__link menu__link--inside category-link">Pino oregon</a>
                         </li>
                         <li class="menu__inside">
-                            <a href="#" class="menu__link menu__link--inside category-link ">Terciados</a>
+                            <a href="#" class="menu__link menu__link--inside category-link">Terciados</a>
                         </li>
                         <li class="menu__inside">
-                            <a href="#" class="menu__link menu__link--inside category-link ">Placas metalicas</a>
+                            <a href="#" class="menu__link menu__link--inside category-link">Placas metalicas</a>
                         </li>
                         <li class="menu__inside">
                             <a href="#" class="menu__link menu__link--inside category-link">Bases metalicas</a>
                         </li>
                     </ul>
                 </li>
-                
                 <li class="menu__item">
                     <a href="#" class="menu__link">Sobre Nosotros</a>
                 </li>
                 <li class="menu__item">
                     <a href="/login" class="menu__link" id="login-button">
-                        <img src="assets/Cuenta.png" alt="Cuenta" class="menu__img">
+                        <img src="assets/Cuenta.png" alt="Cuenta" class="menu__img" />
                     </a>
                 </li>
-                <!-- Contenedor del carrito -->
-               
                 <li class="menu__item" id="cart-container">
                     <a href="#" class="menu__link" id="cart-link">Carros (<span class="cart-count">0</span>)</a>
                 </li>
@@ -56,39 +141,51 @@
                     </div>
                 </div>
             </ul>
-
             <div class="menu__hamburguer">
-                <img src="assets/menu.svg" class="menu__img">
+                <img src="assets/menu.svg" class="menu__img" />
             </div>
         </section>
-
-      
     </nav>
-    <h1>Bienvenido a tu perfil</h1>
-    <div>
-        <p>Nombre de usuario: <span id="user-name"></span></p>
-        <p>Email: <span id="user-email"></span></p>
-        <p>Role: <span id="user-role"></span></p>
-        <p>Google ID: <span id="user-google-id"></span></p>
+
+    <h1 style="text-align: center;">Bienvenido a tu perfil</h1>
+
+    <div id="user-profile">
+        <p><strong>Nombre de usuario:</strong> <span id="user-name"></span></p>
+        <p><strong>Email:</strong> <span id="user-email"></span></p>
+        <p><strong>Rol:</strong> <span id="user-role"></span></p>
+        <p><strong>Número:</strong> <span id="user-number"></span></p>
+        <p><strong>Google ID:</strong> <span id="user-google-id"></span></p>
     </div>
+
+    <div id="pedidos-container"></div>
+
     <button class="button">Cerrar sesión</button>
+
     <footer class="footer">
         <div class="footer-conteiner">
             <div class="fbox">
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.6852179575494!2d-70.7193986234621!3d-33.43145019654093!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c3f58843e8e9%3A0xa27e1e1dada98bc8!2sMaderas%20MyM!5e0!3m2!1ses-419!2scl!4v1718148865655!5m2!1ses-419!2scl" width="400" height="300" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.6852179575494!2d-70.7193986234621!3d-33.43145019654093!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c3f58843e8e9%3A0xa27e1e1dada98bc8!2sMaderas%20MyM!5e0!3m2!1ses-419!2scl!4v1718148865655!5m2!1ses-419!2scl"
+                    width="400"
+                    height="300"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                ></iframe>
                 <ul>
                     <li>
-                        <img src="assets/Pinmap.png" alt="Dirección" class="info-icon">
-                         Av. José Joaquín Pérez 5877
+                        <img src="assets/Pinmap.png" alt="Dirección" class="info-icon" />
+                        Av. José Joaquín Pérez 5877
                     </li>
                     <li>
-                        <img src="assets/tel.png" alt="Teléfono" class="info-icon">
+                        <img src="assets/tel.png" alt="Teléfono" class="info-icon" />
                         Teléfono: (123) 456-7890
                     </li>
                     <li>
-                        <img src="assets/mail.png" alt="mail" class="info-icon">
-                        Email: contacto@example.com</li>
- 
+                        <img src="assets/mail.png" alt="mail" class="info-icon" />
+                        Email: contacto@example.com
+                    </li>
                 </ul>
             </div>
             <div class="fbox">
@@ -103,24 +200,23 @@
                 <h2>Sigamos en contacto!</h2>
                 <div class="red-social">
                     <li>
-                        <img src="assets/FBiconn.png" alt="facebook" class="rrss-icon">
+                        <img src="assets/FBiconn.png" alt="facebook" class="rrss-icon" />
                         <a href="/#">Facebook</a>
                     </li>
                     <li>
-                        <img src="assets/IGicon.png" alt="Instagram" class="rrss-icon">
+                        <img src="assets/IGicon.png" alt="Instagram" class="rrss-icon" />
                         <a href="/#">Instagram</a>
                     </li>
                     <li>
-                        <img src="assets/WSPicon.png" alt="Whatsapp" class="rrss-icon">
+                        <img src="assets/WSPicon.png" alt="Whatsapp" class="rrss-icon" />
                         <a href="/#">Whatsapp</a>
                     </li>
                 </div>
             </div>
         </div>
     </footer>
+
     <script src="main.js"></script>
     <script src="profile.js"></script>
-
 </body>
 </html>
-

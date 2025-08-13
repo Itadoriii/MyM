@@ -13,16 +13,19 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
-    "cookie-parser": "^1.4.6",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-session": "^1.18.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.10.2",
-    "nodemailer": "^6.9.14",
+    "nodemailer": "^6.10.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "password": "^0.1.1"
+    "password": "^0.1.1",
+    "pdf-lib": "^1.17.1",
+    "pdfkit": "^0.17.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.3"
