@@ -26,6 +26,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // SERVIDOR 
 const app = express();
 const port = process.env.PORT || 3000;
+app.use(express.static(path.join(__dirname, 'src')));
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
@@ -34,7 +35,7 @@ app.listen(port, () => {
 // CONFIGURACION
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'src')));
+
 app.use(cookieParser());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your_secret_key',
@@ -65,11 +66,9 @@ const verifyToken = async (req, res, next) => {
 };
 // RUTAS 
 
-// RUTAS CORREGIDAS
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'src/index.html')); // Cambiado para servir index.html
+  res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
-
 app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
   res.sendFile(__dirname + '/src/login.html');
 });
