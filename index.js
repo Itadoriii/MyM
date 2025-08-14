@@ -26,7 +26,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // SERVIDOR 
 const app = express();
 const port = process.env.PORT || 3000;
-app.use(express.static(path.join(__dirname, 'src')));
+app.use(express.static(path.resolve('./src')));
+
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
@@ -66,9 +67,12 @@ const verifyToken = async (req, res, next) => {
 };
 // RUTAS 
 
-app.get('/', (req, res) => {
+
+app.get('*', (req, res) => {
+  console.log('__dirname en producción:', __dirname);
   res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
+
 app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
   res.sendFile(__dirname + '/src/login.html');
 });
