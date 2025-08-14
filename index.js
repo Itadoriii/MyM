@@ -67,7 +67,7 @@ const verifyToken = async (req, res, next) => {
 
 // RUTAS CORREGIDAS
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'index.html')); // Cambiado para servir index.html
+  res.sendFile(path.join(__dirname, 'src', 'src/index.html')); // Cambiado para servir index.html
 });
 
 app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
