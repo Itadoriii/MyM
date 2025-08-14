@@ -19,9 +19,6 @@ import nodemailer from 'nodemailer';
 
 
 
-
-
-
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -60,7 +57,7 @@ const verifyToken = async (req, res, next) => {
     if (rows.length === 0) {
       return res.redirect('/login');
     }
-    req.user = rows[0]; // Asignamos los datos completos del usuario a `req.user`
+    req.user = rows[0]; // Asignamos los datos completos del usuario aa `req.user`
     next();
   } catch (err) {
     return res.redirect('/login');
@@ -68,8 +65,9 @@ const verifyToken = async (req, res, next) => {
 };
 // RUTAS 
 
-app.get('/', authorization.soloPublico, (req, res) => {
-  res.send('Hello World!');
+// RUTAS CORREGIDAS
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'index.html')); // Cambiado para servir index.html
 });
 
 app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
