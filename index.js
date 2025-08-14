@@ -72,6 +72,8 @@ app.get('*', (req, res) => {
   console.log('__dirname en producción:', __dirname);
   res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
+console.log('Ruta de __dirname:', __dirname);
+console.log('Sirviendo estáticos desde:', path.join(__dirname, 'src'));
 
 app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
   res.sendFile(__dirname + '/src/login.html');
