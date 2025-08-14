@@ -69,9 +69,8 @@ const verifyToken = async (req, res, next) => {
 // RUTAS 
 
 app.get('/', authorization.soloPublico, (req, res) => {
-  res.send('Hello World!');
+  res.sendFile(__dirname + '/src/index.html');
 });
-
 app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
   res.sendFile(__dirname + '/src/login.html');
 });
