@@ -343,8 +343,13 @@
     if (!res.ok){ GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
     const data = await res.json();
     const productos = Array.isArray(data) ? data : (data.productos || []);
-    renderGrid(data.productos);
-    renderPager(data.page, data.totalPages, q);
+    renderGrid(productos);
+     // Calcula inicio y fin para paginar en cliente
+    const totalPages = Math.ceil(productos.length / PAGE_SIZE);
+    const startIndex = (page - 1) * PAGE_SIZE;
+    const pageItems = productos.slice(startIndex, startIndex + PAGE_SIZE);
+    renderGrid(pageItems);
+    renderPager(page, totalPages, q);
     }
     function renderGrid(items){
     const GRID = document.getElementById('catalog-grid');
