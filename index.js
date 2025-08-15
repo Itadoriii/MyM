@@ -59,11 +59,13 @@ app.post('/api/register', metodos.register);
 app.post('/api/login', metodos.login);
 
 // Ejemplo Trabajadores
-app.get('/api/trabajadores', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM trabajadores');
-  res.json(rows);
+// Ruta de prueba
+app.get('/api/trabajadores', (req, res) => {
+  res.json([
+    { id: 1, nombre: 'Juan Pérez' },
+    { id: 2, nombre: 'María González' }
+  ]);
 });
-
 // Ejemplo Productos
 app.get('/api/productos', async (req, res) => {
   const q = (req.query.q || '').trim();
