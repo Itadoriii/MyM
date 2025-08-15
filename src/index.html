@@ -334,7 +334,7 @@
     const GRID = document.getElementById('catalog-grid');
     const PAGER = document.getElementById('pager');
     const PAGE_SIZE = 6;
-    const url = new URL('https://maderasmym..cl/productos', window.location.origin);
+    const url = new URL('https://maderasmym.cl/productos', window.location.origin);
     url.searchParams.set('page', page);
     url.searchParams.set('limit', PAGE_SIZE);
     if (q) url.searchParams.set('q', q);
@@ -407,7 +407,7 @@
     }
     async function loadFeatured(){
     const WRAP = document.querySelector('.featured-container');
-    const url = new URL('https://maderasmym..cl/productos', window.location.origin);
+    const url = new URL('https://maderasmym.cl/productos', window.location.origin);
     url.searchParams.set('limit', 6);
     const res = await fetch(url);
     if (!res.ok){ WRAP.innerHTML = '<p>Error cargando destacados.</p>'; return; }
