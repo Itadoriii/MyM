@@ -282,7 +282,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // === LISTAR ===
     async function fetchProductos() {
     // 1) intenta /api/productos
-    let r = await tryJson('/api/productos');
+    let r = await tryJson('/productos');
     // 2) si falla, usa /productos (público)
     if (!r.ok) {
         const url = new URL('/productos', location.origin);
