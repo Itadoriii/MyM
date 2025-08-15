@@ -1159,24 +1159,8 @@ async function generarPDF(adelantoId) {
   showPopup('Generando comprobante PDF, por favor espere...');
 
   try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      showPopup('No se encontró token de autenticación');
-      return;
-    }
-
-    let response;
-    try {
-      response = await fetch(`/api/adelantos/${adelantoId}`, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-    } catch (networkError) {
-      console.error('Error de red:', networkError);
-      showPopup('No se pudo conectar con el servidor');
-      return;
-    }
-
+    // Llamamos a tu PHP directamente
+    const response = await fetch(`/adelantos.php?id=${adelantoId}`);
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Error al obtener adelanto:', errorData);
@@ -1185,6 +1169,7 @@ async function generarPDF(adelantoId) {
     }
 
     const data = await response.json();
+    console.log('Datos del adelanto:', data); // <-- útil para depuración
 
     const formatCLP = valor =>
       '$' + (Number(valor) || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
@@ -1212,41 +1197,25 @@ async function generarPDF(adelantoId) {
     }
 
     // Cargar logo
-    const logoUrl = '/assets/logo act.png'; // Ajusta ruta según sea necesario
+    const logoUrl = '/assets/logo act.png'; // Ajusta según tu carpeta real
     const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
     const logoImage = await pdfDoc.embedPng(logoImageBytes);
     const logoScale = 0.3;
     const logoDims = logoImage.scale(logoScale);
 
-    // Dibujar logo a la izquierda arriba
     const logoX = marginX;
     const logoY = height - logoDims.height - 30;
-    page.drawImage(logoImage, {
-      x: logoX,
-      y: logoY,
-      width: logoDims.width,
-      height: logoDims.height,
-    });
+    page.drawImage(logoImage, { x: logoX, y: logoY, width: logoDims.width, height: logoDims.height });
 
-    // Definir zonas de texto
     const textStartX = logoX + logoDims.width + 20;
     const textMaxWidth = width - textStartX - marginX;
     const fullWidthStartX = marginX;
     const fullWidthMaxWidth = width - marginX * 2;
 
-    // Función para dibujar texto con salto de línea y ajuste de ancho
-    let y; // Declaramos y aquí para manejar posición vertical global
+    let y;
     function drawWrappedText(text, options = {}) {
       text = cleanText(text);
-      const {
-        font = fontRegular,
-        size = fontSize,
-        lineHeight = fontSize * 1.4,
-        color = rgb(0, 0, 0),
-        x = marginX,
-        maxWidth = fullWidthMaxWidth
-      } = options;
-
+      const { font = fontRegular, size = fontSize, lineHeight = fontSize * 1.4, color = rgb(0,0,0), x = marginX, maxWidth = fullWidthMaxWidth } = options;
       const words = text.split(' ');
       let line = '';
       for (let i = 0; i < words.length; i++) {
@@ -1266,79 +1235,38 @@ async function generarPDF(adelantoId) {
       }
     }
 
-    // Empezamos dibujando fecha arriba a la derecha del logo (alineado vertical medio)
-    y = logoY + logoDims.height / 2 + 10; // un poco arriba de la mitad del logo
-    drawWrappedText(`Santiago, ${fechaFormateada}`, {
-      x: textStartX,
-      size: 14,
-      lineHeight: 18,
-      font: fontRegular,
-      maxWidth: textMaxWidth,
-    });
+    // Fecha arriba a la derecha
+    y = logoY + logoDims.height / 2 + 10;
+    drawWrappedText(`Santiago, ${fechaFormateada}`, { x: textStartX, size: 14, lineHeight: 18, font: fontRegular, maxWidth: textMaxWidth });
 
-    // Ahora texto formal que empieza justo debajo del logo para evitar solapamiento
-    y = logoY - 20; // debajo del logo con margen
-
+    // Texto formal debajo del logo
+    y = logoY - 20;
     const nombreCompleto = `${data.nombres} ${data.apellidos}`.toUpperCase();
     const montoTotal = formatCLP(data.monto + (data.bono || 0));
 
-    drawWrappedText(
-      `Por medio del presente, Maderas MyM certifica haber entregado a don(a) ${nombreCompleto} la suma de ${montoTotal}.`,
-      { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
-    );
-
-    drawWrappedText(
-      `Motivo: ${cleanText(data.motivos) || 'No especificado'}.`,
-      { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
-    );
+    drawWrappedText(`Por medio del presente, Maderas MyM certifica haber entregado a don(a) ${nombreCompleto} la suma de ${montoTotal}.`, { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    drawWrappedText(`Motivo: ${cleanText(data.motivos) || 'No especificado'}.`, { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
 
     y -= 10;
-
-    const authText =
-      'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
+    const authText = 'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
     drawWrappedText(authText, { x: fullWidthStartX, size: 12, lineHeight: 18, maxWidth: fullWidthMaxWidth });
 
     y -= 40;
-
-    // Línea firma centrada
     const firmaLineStartX = marginX + 150;
     const firmaLineEndX = width - marginX - 150;
 
-    page.drawLine({
-      start: { x: firmaLineStartX, y },
-      end: { x: firmaLineEndX, y },
-      thickness: 1,
-      color: rgb(0, 0, 0),
-    });
-
+    page.drawLine({ start: { x: firmaLineStartX, y }, end: { x: firmaLineEndX, y }, thickness: 1, color: rgb(0,0,0) });
     y -= 20;
 
-    // Texto firma trabajador centrado
     const firmaTexto = 'Firma Trabajador';
     const textWidth = fontBold.widthOfTextAtSize(firmaTexto, 12);
     const firmaTextX = (firmaLineStartX + firmaLineEndX) / 2 - textWidth / 2;
-
-    page.drawText(firmaTexto, {
-      x: firmaTextX,
-      y,
-      size: 12,
-      font: fontBold,
-      color: rgb(0, 0, 0),
-    });
+    page.drawText(firmaTexto, { x: firmaTextX, y, size: 12, font: fontBold, color: rgb(0,0,0) });
 
     y -= 50;
-
-    // Nota al pie pequeña y gris
     const nota = 'Nota: Se imprime este boucher para control interno de Maderas MyM el cual para ser válido debe ser firmado por el trabajador.';
-    page.drawText(nota, {
-      x: marginX,
-      y,
-      size: 10,
-      font: fontRegular,
-      color: rgb(0.4, 0.4, 0.4),
-    });
+    page.drawText(nota, { x: marginX, y, size: 10, font: fontRegular, color: rgb(0.4,0.4,0.4) });
 
-    // Guardar y descargar PDF
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
@@ -1353,7 +1281,6 @@ async function generarPDF(adelantoId) {
     a.href = url;
     a.download = `comprobante_adelanto_${adelantoId}.pdf`;
     a.click();
-
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     showPopup('Comprobante PDF generado correctamente');
