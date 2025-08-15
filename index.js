@@ -29,9 +29,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // SERVIDOR 
 const app = express();
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Servidor corriendo en puerto ${port}`);
-});
+
  
 
 // CONFIGURACION
@@ -980,3 +978,6 @@ app.get('/api/mis-pedidos', async (req, res) => {
   }
 });
 app.use('/static', express.static(path.join(__dirname, 'src')));
+app.listen(port, () => {
+  console.log(`Servidor corriendo en puerto ${port}`);
+});
