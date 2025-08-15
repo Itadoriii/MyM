@@ -596,7 +596,13 @@ app.put(
   enviarConfirmacion
 );
 
-// Obtener todos los trabajadores
+// Middleware para CORS (agregar si es necesario)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  next();
+});
+
+// Ruta corregida (asegurar prefijo /api)
 app.get('/api/trabajadores', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
@@ -606,7 +612,6 @@ app.get('/api/trabajadores', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 // Obtener un trabajador específico
 app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
   const { id } = req.params;
