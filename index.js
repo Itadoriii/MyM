@@ -66,96 +66,8 @@ const verifyToken = async (req, res, next) => {
 
 // ==================== RUTAS API ====================
 // Coloca aquí TODAS tus rutas API
-app.post('/api/register', metodos.register);
-app.post('/api/login', metodos.login);
 
-// Ejemplo Productos
-app.get('/api/productos', async (req, res) => {
-  const q = (req.query.q || '').trim();
-  const page = Math.max(parseInt(req.query.page || '1', 10), 1);
-  const limit = Math.max(parseInt(req.query.limit || '12', 10), 1);
-  const offset = (page - 1) * limit;
-
-  try {
-    const whereParts = [];
-    const params = [];
-    if (q) {
-      whereParts.push(`(nombre_prod LIKE ? OR tipo LIKE ? OR medidas LIKE ? OR dimensiones LIKE ? OR precio_unidad LIKE ?)`);
-      const like = `%${q}%`;
-      params.push(like, like, like, like, like);
-    }
-    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
-
-    const [countRows] = await pool.query(
-      `SELECT COUNT(*) AS total FROM productos ${whereSql}`,
-      params
-    );
-    const total = countRows[0]?.total || 0;
-
-    const [rows] = await pool.query(
-      `SELECT * FROM productos ${whereSql}
-       ORDER BY fecha_add DESC, id_producto DESC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
-
-    res.json({
-      productos: rows,
-      page,
-      limit,
-      total,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Error al obtener productos' });
-  }
-});
-
-//funciona
-app.get('/api/user', verifyToken, (req, res) => {
-  res.json({
-    user: req.user.user,
-    email: req.user.email,
-    role: req.user.role,
-    google_id: req.user.google_id,
-    number: req.user.number
-  });
-});
-//funciona
-app.get('/api/usuarios', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM usuarios');
-    console.log('Número de usuarios encontrados:', rows.length);
-    console.log('Usuarios:', rows);
-    res.json(rows);
-  } catch (err) {
-    console.error('Error al obtener usuarios:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// no funciona
-app.post('/api/productos', async (req, res) => {
-    const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
-
-    console.log('Creando nuevo producto:', req.body);
-
-    if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add) {
-      return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
-    }
-
-    try {
-      const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add) VALUES (?, ?, ?, ?, ?, ?, ?)';
-      const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add];
-      const [result] = await pool.query(query, params);
-      res.status(201).json({ message: 'Producto creado exitosamente', id: result.insertId });
-    } catch (err) {
-      console.error('Error al crear producto:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-app.post('/api/generar-pedido', async (req, res) => {
+app.post('/generar-pedido', async (req, res) => {
     const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
     const cart = Array.isArray(bodyCart) ? bodyCart : [];
     if (!cart.length) return res.status(400).json({ success:false, error:'Carrito vacío' });
@@ -380,6 +292,101 @@ app.post('/api/generar-pedido', async (req, res) => {
     }
   }
 });
+
+
+
+
+
+app.post('/api/register', metodos.register);
+app.post('/api/login', metodos.login);
+
+// Ejemplo Productos
+app.get('/api/productos', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+  const limit = Math.max(parseInt(req.query.limit || '12', 10), 1);
+  const offset = (page - 1) * limit;
+
+  try {
+    const whereParts = [];
+    const params = [];
+    if (q) {
+      whereParts.push(`(nombre_prod LIKE ? OR tipo LIKE ? OR medidas LIKE ? OR dimensiones LIKE ? OR precio_unidad LIKE ?)`);
+      const like = `%${q}%`;
+      params.push(like, like, like, like, like);
+    }
+    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+
+    const [countRows] = await pool.query(
+      `SELECT COUNT(*) AS total FROM productos ${whereSql}`,
+      params
+    );
+    const total = countRows[0]?.total || 0;
+
+    const [rows] = await pool.query(
+      `SELECT * FROM productos ${whereSql}
+       ORDER BY fecha_add DESC, id_producto DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({
+      productos: rows,
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener productos' });
+  }
+});
+
+//funciona
+app.get('/api/user', verifyToken, (req, res) => {
+  res.json({
+    user: req.user.user,
+    email: req.user.email,
+    role: req.user.role,
+    google_id: req.user.google_id,
+    number: req.user.number
+  });
+});
+//funciona
+app.get('/api/usuarios', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM usuarios');
+    console.log('Número de usuarios encontrados:', rows.length);
+    console.log('Usuarios:', rows);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al obtener usuarios:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// no funciona
+app.post('/api/productos', async (req, res) => {
+    const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
+
+    console.log('Creando nuevo producto:', req.body);
+
+    if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
+    }
+
+    try {
+      const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add) VALUES (?, ?, ?, ?, ?, ?, ?)';
+      const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add];
+      const [result] = await pool.query(query, params);
+      res.status(201).json({ message: 'Producto creado exitosamente', id: result.insertId });
+    } catch (err) {
+      console.error('Error al crear producto:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+
 
 app.get('/api/verificar-usuario', async (req, res) => {
   try {
