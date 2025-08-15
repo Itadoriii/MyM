@@ -338,7 +338,6 @@
     url.searchParams.set('page', page);
     url.searchParams.set('limit', PAGE_SIZE);
     if (q) url.searchParams.set('q', q);
-
     const res = await fetch(url);
     if (!res.ok){ GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
     const data = await res.json();
@@ -549,7 +548,7 @@
     });
 
     // Cargas iniciales
-    loadProductsPage(1);
+    loadProductsPage(2);
     loadFeatured();
     updateCartDisplay();
     });
