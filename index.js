@@ -27,7 +27,7 @@ const port = process.env.PORT || 3000;
 
 // ==================== CONFIG GLOBAL ====================
 app.use(cors({
-  origin: [/^https?:\/\/(www\.)?sebastiancastro\.cl$/], // Acepta con y sin www
+  origin: [/^https?:\/\/(www\.)?maderasmym.\.cl$/], // Acepta con y sin www
   credentials: true
 }));
 app.use(express.json());
