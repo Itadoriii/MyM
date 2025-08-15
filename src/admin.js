@@ -371,7 +371,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // === OBTENER UNO (para Editar) ===
     async function editProduct(productId) {
     // intenta API admin
-    let r = await tryJson(`/api/productos/${productId}`);
+    let r = await tryJson(`/productos/${productId}`);
     // si no existe, intenta público
     if (!r.ok) r = await tryJson(`/productos/${productId}`);
 
