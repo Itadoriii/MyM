@@ -476,7 +476,7 @@ function showProductForm(product = null) {
 
 async function fetchTrabajadores() {
     try {
-        const response = await fetch('/api/trabajadores');
+        const response = await fetch('/trabajadores');
         const trabajadores = await response.json();
         
         if (!Array.isArray(trabajadores)) {
