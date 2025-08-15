@@ -68,9 +68,6 @@ const verifyToken = async (req, res, next) => {
 };
 // RUTAS 
 
-app.get('/', authorization.soloPublico, (req, res) => {
-  res.send('Hello World!');
-});
 
 app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
   res.sendFile(__dirname + '/src/login.html');
