@@ -61,15 +61,16 @@ app.post('/api/register', metodos.register);
 app.post('/api/login', metodos.login);
 
 // Ejemplo Trabajadores
+
 app.get('/api/trabajadores', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
+    const [rows] = await pool.query("SELECT * FROM trabajadores ORDER BY id_trabajador DESC");
     res.json({
       total: rows.length,
       trabajadores: rows
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error al consultar trabajadores:', err);
     res.status(500).json({ error: err.message });
   }
 });
