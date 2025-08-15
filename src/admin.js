@@ -1367,25 +1367,27 @@ async function generarPDF(adelantoId) {
 
 
 async function loadTrabajadoresForForm(selectedId = null) {
+    const select = document.getElementById('id_trabajador');
+    select.innerHTML = '<option value="">Seleccione un trabajador</option>';
+
     try {
         const response = await fetch('/trabajadores.php');
-        const trabajadores = await response.json();
-        
-        const select = document.getElementById('id_trabajador');
+        const data = await response.json();
+        const trabajadores = data.trabajadores; // Extraemos el array
         trabajadores.forEach(t => {
             const option = document.createElement('option');
             option.value = t.id_trabajador;
             option.textContent = `${t.id_trabajador}.- ${t.nombres} ${t.apellidos}`;
             if (selectedId && t.id_trabajador == selectedId) {
-                option.selected = true;
+                option.selected = true; // Seleccionamos al trabajador del adelanto
             }
             select.appendChild(option);
         });
     } catch (error) {
-        console.error('Error al cargar trabajadores:', error);
-        showPopup('Error al cargar la lista de trabajadores');
+        console.error('Error al cargar trabajadores para el formulario:', error);
     }
 }
+
 
 async function saveAdelanto(action) {
     const formData = {
