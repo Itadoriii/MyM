@@ -334,7 +334,7 @@
     const GRID = document.getElementById('catalog-grid');
     const PAGER = document.getElementById('pager');
     const PAGE_SIZE = 6;
-    const url = new URL('/productos', window.location.origin);
+    const url = new URL('https://sebastiancastro.cl/productos', window.location.origin);
     url.searchParams.set('page', page);
     url.searchParams.set('limit', PAGE_SIZE);
     if (q) url.searchParams.set('q', q);
