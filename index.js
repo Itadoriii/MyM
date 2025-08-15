@@ -24,12 +24,21 @@ dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = process.env.PORT || 3000;
-
-// ==================== CONFIG GLOBAL ====================
 app.use(cors({
-  origin: [/^https?:\/\/(www\.)?maderasmym.\.cl$/], // Acepta con y sin www
+  origin: [
+    'https://www.maderasmym.cl',
+    'https://maderasmym.cl'
+  ],
   credentials: true
 }));
+app.options('*', cors({
+  origin: [
+    'https://www.maderasmym.cl',
+    'https://maderasmym.cl'
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(session({
