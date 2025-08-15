@@ -603,7 +603,7 @@ app.use((req, res, next) => {
 });
 
 // Ruta corregida (asegurar prefijo /api)
-app.get('/api/trabajadores', async (req, res) => {
+app.get('/res/trabajadores', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
     res.json(rows);
