@@ -478,7 +478,7 @@ async function fetchTrabajadores() {
     try {
         const response = await fetch('/trabajadores.php');
         const data = await response.json();
-        const trabajadores = data.trabajadores; 
+        const trabajadores = data.trabajadores;
 
         if (!Array.isArray(trabajadores)) {
             console.error('La respuesta no es un array:', trabajadores);
@@ -516,7 +516,7 @@ async function fetchTrabajadores() {
                                 <td>${trabajador.fechaIngreso}</td>
                                 <td>$${trabajador.sueldo.toLocaleString()}</td>
                                 <td>${trabajador.fono}</td>
-                                <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
+                                <td class="${trabajador.estado}">${trabajador.estado === 'Y' ? 'Activo' : 'Inactivo'}</td>
                                 <td>
                                     <button class="editBtn" data-id="${trabajador.id_trabajador}">Editar</button>
                                     <button class="deleteBtn" data-id="${trabajador.id_trabajador}">Eliminar</button>
@@ -528,7 +528,7 @@ async function fetchTrabajadores() {
             </div>
         `;
 
-        // Agregar event listeners a los botones de editar
+        // Event listeners
         document.querySelectorAll('.editBtn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const trabajadorId = e.target.getAttribute('data-id');
@@ -536,7 +536,6 @@ async function fetchTrabajadores() {
             });
         });
 
-        // Agregar event listeners a los botones de eliminar
         document.querySelectorAll('.deleteBtn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const trabajadorId = e.target.getAttribute('data-id');
@@ -544,7 +543,6 @@ async function fetchTrabajadores() {
             });
         });
 
-        // Búsqueda en tiempo real
         const searchInput = document.getElementById('search-input');
         searchInput.addEventListener('input', function() {
             const searchValue = searchInput.value.toLowerCase();
@@ -571,7 +569,7 @@ async function fetchTrabajadores() {
                     <td>${trabajador.fechaIngreso}</td>
                     <td>$${trabajador.sueldo.toLocaleString()}</td>
                     <td>${trabajador.fono}</td>
-                    <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
+                    <td class="${trabajador.estado}">${trabajador.estado === 'Y' ? 'Activo' : 'Inactivo'}</td>
                     <td>
                         <button class="editBtn" data-id="${trabajador.id_trabajador}">Editar</button>
                         <button class="deleteBtn" data-id="${trabajador.id_trabajador}">Eliminar</button>
@@ -579,7 +577,6 @@ async function fetchTrabajadores() {
                 </tr>
             `).join('');
 
-            // Volver a agregar los event listeners después de renderizar 
             document.querySelectorAll('.editBtn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const trabajadorId = e.target.getAttribute('data-id');
@@ -596,6 +593,7 @@ async function fetchTrabajadores() {
         }
 
         renderTrabajadores(trabajadores);
+
     } catch (error) {
         console.error('Error fetching trabajadores:', error);
         mainContent.innerHTML = '<p>Error al cargar los trabajadores.</p>';
@@ -604,10 +602,8 @@ async function fetchTrabajadores() {
 
 async function editTrabajador(trabajadorId) {
     try {
-        const response = await fetch(`/api/trabajadores/${trabajadorId}`);
-        if (!response.ok) {
-            throw new Error('Error al obtener el trabajador');
-        }
+        const response = await fetch(`/trabajadores.php?id=${trabajadorId}`);
+        if (!response.ok) throw new Error('Error al obtener el trabajador');
         const trabajador = await response.json();
         showTrabajadorForm(trabajador);
     } catch (error) {
@@ -617,21 +613,16 @@ async function editTrabajador(trabajadorId) {
 }
 
 async function deleteTrabajador(trabajadorId) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este trabajador?')) {
-        return;
-    }
+    if (!confirm('¿Estás seguro de que deseas eliminar este trabajador?')) return;
 
     try {
-        const response = await fetch(`/api/trabajadores/${trabajadorId}`, {
-            method: 'DELETE'
-        });
-        
+        const response = await fetch(`/trabajadores.php?id=${trabajadorId}`, { method: 'DELETE' });
+        const result = await response.json();
         if (response.ok) {
             showPopup('Trabajador eliminado con éxito');
             fetchTrabajadores();
         } else {
-            const errorData = await response.json();
-            console.error('Error al eliminar trabajador:', errorData);
+            console.error('Error al eliminar trabajador:', result);
             showPopup('Error al eliminar el trabajador');
         }
     } catch (error) {
@@ -679,7 +670,6 @@ function showTrabajadorForm(trabajador = null) {
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Agregar Trabajador'}</button>
-                
             </div>
         </form>
     `;
@@ -690,14 +680,12 @@ function showTrabajadorForm(trabajador = null) {
         const trabajadorData = Object.fromEntries(formData.entries());
 
         try {
-            const url = isEditing ? `/api/trabajadores/${trabajadorData.id_trabajador}` : '/api/trabajadores';
+            const url = isEditing ? `/trabajadores.php?id=${trabajadorData.id_trabajador}` : '/trabajadores.php';
             const method = isEditing ? 'PUT' : 'POST';
             
             const response = await fetch(url, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(trabajadorData)
             });
 
@@ -716,7 +704,6 @@ function showTrabajadorForm(trabajador = null) {
         }
     });
 }
-
 
 let currentPage = 1;
 const pageSize = 50;
