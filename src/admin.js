@@ -477,8 +477,9 @@ function showProductForm(product = null) {
 async function fetchTrabajadores() {
     try {
         const response = await fetch('/trabajadores.php');
-        const trabajadores = await response.json();
-        
+        const data = await response.json();
+        const trabajadores = data.trabajadores; 
+
         if (!Array.isArray(trabajadores)) {
             console.error('La respuesta no es un array:', trabajadores);
             mainContent.innerHTML = '<p>Error: La respuesta no tiene el formato esperado.</p>';
