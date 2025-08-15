@@ -343,7 +343,7 @@
     if (!res.ok){ GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
     const data = await res.json();
     const productos = Array.isArray(data) ? data : (data.productos || []);
-    renderGrid(productos);
+    renderGrid(data.productos);
     renderPager(data.page, data.totalPages, q);
     }
     function renderGrid(items){
