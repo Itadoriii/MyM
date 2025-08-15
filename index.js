@@ -51,6 +51,16 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
+// Ruta corregida (asegurar prefijo /api)
+app.get('/res/trabajadores', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al obtener trabajadores:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // MIDDLEWARE PARA PROTEGER RUTAS
 const verifyToken = async (req, res, next) => {
   const token = req.cookies.jwt;
@@ -602,16 +612,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Ruta corregida (asegurar prefijo /api)
-app.get('/res/trabajadores', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
-    res.json(rows);
-  } catch (err) {
-    console.error('Error al obtener trabajadores:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
 // Obtener un trabajador específico
 app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
   const { id } = req.params;
