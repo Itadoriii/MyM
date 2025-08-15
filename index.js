@@ -50,7 +50,7 @@ app.use(passport.session());
 
 
 // Ruta corregida (asegurar prefijo /api)
-app.get('/res/trabajadores', async (req, res) => {
+app.get('/api/trabajadores', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
     res.json(rows);
@@ -77,44 +77,7 @@ const verifyToken = async (req, res, next) => {
     return res.redirect('/login');
   }
 };
-// RUTAS 
 
-app.get('/', authorization.soloPublico, (req, res) => {
-  res.sendFile(__dirname + '/src/index.html');
-});
-app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
-  res.sendFile(__dirname + '/src/login.html');
-});
-
-app.get('/register', authorization.soloPublico, (req, res) => {
-  res.sendFile(__dirname + '/src/register.html');
-});
-
-app.post('/api/register', metodos.register);
-app.post('/api/login', metodos.login);
-
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    const token = jsonwebtoken.sign({ user: req.user.user, role: req.user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('jwt', token, { httpOnly: true, secure: false }); // Asegúrate de que `secure` esté en false para pruebas locales
-    res.redirect('/profile');
-  });
-
-app.get('/admin', verifyToken, authorization.soloAdmin, (req, res) => {
-  res.sendFile(__dirname + '/src/admin.html');
-});
-
-app.get('/profile', verifyToken, (req, res) => {
-  res.sendFile(__dirname + '/src/profile.html');
-});
-
-app.get('/aboutus', (req, res) => {
-  res.sendFile(__dirname + '/src/sobrenosotros.html');
-});
 
 // GET /productos?q=texto&page=1&limit=12
 app.get('/productos', async (req, res) => {
@@ -200,9 +163,6 @@ app.get('/api/usuarios', async (req, res) => {
     console.error('Error al obtener usuarios:', err);
     res.status(500).json({ error: err.message });
   }
-});
-app.get('/checkout', (req, res) => {
-  res.sendFile(__dirname + '/src/checkout.html'); // Asegúrate de ajustar la ruta correctamente
 });
 
 
@@ -977,6 +937,46 @@ app.get('/api/mis-pedidos', async (req, res) => {
     res.status(500).json({ error: 'Error interno' });
   }
 });
+// RUTAS 
+
+app.get('/', authorization.soloPublico, (req, res) => {
+  res.sendFile(__dirname + '/src/index.html');
+});
+app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
+  res.sendFile(__dirname + '/src/login.html');
+});
+
+app.get('/register', authorization.soloPublico, (req, res) => {
+  res.sendFile(__dirname + '/src/register.html');
+});
+
+app.post('/api/register', metodos.register);
+app.post('/api/login', metodos.login);
+
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    const token = jsonwebtoken.sign({ user: req.user.user, role: req.user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.cookie('jwt', token, { httpOnly: true, secure: false }); // Asegúrate de que `secure` esté en false para pruebas locales
+    res.redirect('/profile');
+  });
+
+app.get('/admin', verifyToken, authorization.soloAdmin, (req, res) => {
+  res.sendFile(__dirname + '/src/admin.html');
+});
+
+app.get('/profile', verifyToken, (req, res) => {
+  res.sendFile(__dirname + '/src/profile.html');
+});
+
+app.get('/aboutus', (req, res) => {
+  res.sendFile(__dirname + '/src/sobrenosotros.html');
+});
+
+
 app.use('/static', express.static(path.join(__dirname, 'src')));
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
