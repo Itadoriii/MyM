@@ -35,7 +35,10 @@ app.listen(port, () => {
  
 
 // CONFIGURACION
-app.use(cors());
+app.use(cors({
+  origin: 'https://sebastiancastro.cl', // 👈 Tu dominio real
+  credentials: true // 👈 Permitir cookies
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(cookieParser());
