@@ -59,7 +59,7 @@ app.post('/api/register', metodos.register);
 app.post('/api/login', metodos.login);
 
 // Ejemplo Trabajadores
-app.get('/api/trabajadores', (req, res) => {
+app.get('conchetumare', (req, res) => {
   res.json({ msg: "Funciona sin middleware" });
 });
 
