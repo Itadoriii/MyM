@@ -72,7 +72,6 @@ app.get('/api/trabajadores', async (req, res) => {
 });
 
 
-
 // Ejemplo Productos
 app.get('/api/productos', async (req, res) => {
   const q = (req.query.q || '').trim();
