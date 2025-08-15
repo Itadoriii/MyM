@@ -714,7 +714,7 @@ async function fetchAdelantos(page = 1) {
         mainContent.innerHTML = `<p>Cargando adelantos...</p>`;
 
         // Obtener trabajadores para el filtro
-        const trabajadoresResponse = await fetch('/api/trabajadores');
+        const trabajadoresResponse = await fetch('/trabajadores.php');
         const trabajadores = await trabajadoresResponse.json();
 
         // Obtener adelantos con paginación
