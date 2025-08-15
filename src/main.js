@@ -175,94 +175,6 @@ function updateCartDisplay() {
     }
 }
 
-// Funciones de productos
-async function fetchProducts(url = 'https://maderasmym.cl/productos') {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Error al cargar productos');
-        return await response.json();
-    } catch (error) {
-        console.error('Error:', error);
-        return [];
-    }
-}
-
-function displayProducts(products) {
-    const containers = ['itemcont1', 'itemcont2', 'itemcont3', 'itemcont4', 'itemcont5', 'itemcont6'];
-    products.forEach((product, index) => {
-        if (containers[index]) {
-            const container = document.querySelector(`.${containers[index]}`);
-            if (container) {
-                container.innerHTML = `
-                    <div class="product" onclick="displayCard('${product.id_producto}')">
-                        <img src="assets/productos/${product.id_producto}.jpg" alt="${product.nombre_prod}" class="product-img">
-                        <h2 class="product-name">${product.nombre_prod}</h2>
-                        <p class="product-tipo">${product.tipo}</p>
-                        <p class="product-medida">${product.medidas}</p>
-                        <p class="product-description">${product.dimensiones}</p>
-                        <p class="product-price">$${product.precio_unidad}</p>
-                        <button class="addtocart" onclick="event.stopPropagation(); addToCart({
-                            id_producto: '${product.id_producto}',
-                            name: '${product.nombre_prod}',
-                            tipo: '${product.tipo}',
-                            medida: '${product.medidas}',
-                            descripcion: '${product.dimensiones}',
-                            precio: ${product.precio_unidad},
-                            Linkimg: '${product.id_producto}.jpg'
-                        })">
-                            Añadir al carro
-                            <i class="fa-solid fa-cart-shopping" style="color: #ffffff;"></i>
-                        </button>  
-                    </div>
-                `;
-            }
-        }
-    });
-}
-
-function displayCard(productId) {
-    fetch(`/productos/${productId}`)
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(product => {
-            const contentContainer = document.getElementById('conteiner');
-            if (!contentContainer) {
-                console.error('Content container not found');
-                return;
-            }
-
-            contentContainer.innerHTML = '';
-
-            const productContainer = document.createElement('div');
-            productContainer.className = 'product-details';
-            productContainer.innerHTML = `
-                <img src="assets/productos/${product.id_producto}.jpg" alt="${product.nombre_prod}" class="pproduct-img">
-                <h2 class="product-name">${product.nombre_prod}</h2>
-                <p class="product-tipo"><strong>Tipo:</strong> ${product.tipo}</p>
-                <p class="product-medida"><strong>Medidas:</strong> ${product.medidas}</p>
-                <p class="product-description"><strong>Dimensiones:</strong> ${product.dimensiones}</p>
-                <p class="product-disponibilidad"><strong>Disponibilidad:</strong> ${product.disponibilidad}</p>
-                <p class="product-price"><strong>Precio:</strong> $${product.precio_unidad}</p>
-                <button class="paddtocart" onclick="addToCart({
-                    id_producto: '${product.id_producto}',
-                    name: '${product.nombre_prod}',
-                    tipo: '${product.tipo}',
-                    medida: '${product.medidas}',
-                    descripcion: '${product.dimensiones}',
-                    disponibilidad: '${product.disponibilidad}',
-                    precio: ${product.precio_unidad},
-                    Linkimg: '${product.id_producto}.jpg'
-                })">
-                    Añadir al carro
-                    <i class="fa-solid fa-cart-shopping" style="color: #ffffff;"></i>
-                </button>  
-            `;
-            contentContainer.appendChild(productContainer);
-        })
-        .catch(error => console.error('Error fetching product:', error));
-}
 
 // Funciones de pedido
 async function isUserLoggedIn() {
@@ -329,8 +241,6 @@ async function performSearch(query) {
 
 // Inicialización
 window.onload = async () => {
-    const productos = await fetchProducts();
-    displayProducts(productos);
     updateCartDisplay();
     updateLoginButton();
 };
