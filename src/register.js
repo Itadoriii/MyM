@@ -6,7 +6,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     const password = e.target.password.value;
     const number = e.target.number.value;
 
-    const res = await fetch("https://maderasmym.cl/api/register", {
+    const res = await fetch("https://www.maderasmym.cl/api/register", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
