@@ -401,7 +401,7 @@
     }
     async function loadFeatured(){
     const WRAP = document.querySelector('.featured-container');
-    const url = new URL('/productos', window.location.origin);
+    const url = new URL('https://sebastiancastro.cl/productos', window.location.origin);
     url.searchParams.set('limit', 6);
     const res = await fetch(url);
     if (!res.ok){ WRAP.innerHTML = '<p>Error cargando destacados.</p>'; return; }
