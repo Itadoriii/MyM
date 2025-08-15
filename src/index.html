@@ -458,50 +458,48 @@
     const delivery    = document.querySelector('input[name="delivery"]:checked')?.value || 'envio';
     const comentarios = document.getElementById('order-comments')?.value?.trim() || '';
 
-    // payload que espera el backend
     const payload = cart.map(p => ({
-        id_producto: p.id_producto,
-        precio: Number(p.precio ?? p.precio_unidad ?? 0),
+        name: p.nombre_prod || p.name || '',
+        price: Number(p.precio ?? p.precio_unidad ?? 0),
         quantity: Number(p.quantity ?? 1)
     }));
 
     const attempts = 3;
     for (let i=1; i<=attempts; i++){
         try{
-        const res = await fetch('/api/generar-pedido', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ cart: payload, delivery, comentarios })
-        });
+            const res = await fetch('/api/generar-pedido.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ cart: payload, delivery, comentarios })
+            });
 
-        const ct = (res.headers.get('content-type')||'').toLowerCase();
-        const raw = await res.text();
-        let data = null; if (ct.includes('application/json')){ try{ data = JSON.parse(raw); }catch{} }
+            const ct = (res.headers.get('content-type')||'').toLowerCase();
+            const raw = await res.text();
+            let data = null; if (ct.includes('application/json')){ try{ data = JSON.parse(raw); }catch{} }
 
-        if (!res.ok){
-            const msg = (data && (data.error || data.message)) || raw || res.statusText;
-            // si fue deadlock, reintentar
-            if (/deadlock/i.test(msg) && i < attempts){
-            await new Promise(r=>setTimeout(r, 200 + Math.random()*400));
-            continue;
+            if (!res.ok){
+                const msg = (data && (data.error || data.message)) || raw || res.statusText;
+                if (/deadlock/i.test(msg) && i < attempts){
+                    await new Promise(r=>setTimeout(r, 200 + Math.random()*400));
+                    continue;
+                }
+                throw new Error(msg);
             }
-            throw new Error(msg);
-        }
 
-        // éxito
-        clearCart(); updateCartDisplay();
-        UI.closeModal();
-        alert('Pedido generado exitosamente. Hemos enviado toda la información a tu correo. Nos contactaremos contigo a la brevedad. ¡Gracias por su preferencia!');
-        return;
+            // éxito
+            clearCart(); updateCartDisplay();
+            UI.closeModal();
+            alert('Pedido generado exitosamente. Hemos enviado toda la información a tu correo. Nos contactaremos contigo a la brevedad. ¡Gracias por su preferencia!');
+            return;
         }catch(err){
-        if (i === attempts){
-            console.error('Error generando pedido:', err);
-            alert('No se pudo generar el pedido: ' + (err?.message || 'Inténtalo nuevamente.'));
-        }
+            if (i === attempts){
+                console.error('Error generando pedido:', err);
+                alert('No se pudo generar el pedido: ' + (err?.message || 'Inténtalo nuevamente.'));
+            }
         }
     }
-    }
+}
 
     /* =========================
     ARRANQUE
