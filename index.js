@@ -17,28 +17,17 @@ import cors from 'cors';
 import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';
 
-
-
-
-
-
 dotenv.config();
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // SERVIDOR 
 const app = express();
 const port = process.env.PORT || 3000;
-
- 
-
 // CONFIGURACION
 app.use(cors({
   origin: 'https://sebastiancastro.cl', // 👈 Tu dominio real
   credentials: true // 👈 Permitir cookies
 }));
 app.use(express.json());
-
 app.use(cookieParser());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your_secret_key',
@@ -49,16 +38,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-// Ruta corregida (asegurar prefijo /api)
-app.get('/api/trabajadores', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
-    res.json(rows);
-  } catch (err) {
-    console.error('Error al obtener trabajadores:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
 // MIDDLEWARE PARA PROTEGER RUTAS
 const verifyToken = async (req, res, next) => {
   const token = req.cookies.jwt;
@@ -79,7 +58,7 @@ const verifyToken = async (req, res, next) => {
 };
 
 
-// GET /productos?q=texto&page=1&limit=12
+// funciona
 app.get('/productos', async (req, res) => {
   const q = (req.query.q || '').trim();
   const page = Math.max(parseInt(req.query.page || '1', 10), 1);
@@ -129,6 +108,7 @@ app.get('/logout', (req, res) => {
   res.clearCookie('jwt'); // Elimina la cookie JWT
   res.redirect('/'); // Redirige al usuario a la página de inicio de sesión
 });
+
 app.get('/productos/:productId', async (req, res) => {
   const productId = req.params.productId;
 
@@ -143,6 +123,7 @@ app.get('/productos/:productId', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+//funciona
 app.get('/api/user', verifyToken, (req, res) => {
   res.json({
     user: req.user.user,
@@ -152,7 +133,7 @@ app.get('/api/user', verifyToken, (req, res) => {
     number: req.user.number
   });
 });
-
+//funciona
 app.get('/api/usuarios', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM usuarios');
@@ -165,8 +146,7 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
-
-// Actualizar la ruta POST para crear productos
+// no funciona
 app.post('/api/productos', async (req, res) => {
     const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
 
@@ -187,7 +167,7 @@ app.post('/api/productos', async (req, res) => {
     }
   });
 
-  app.post('/api/generar-pedido', async (req, res) => {
+app.post('/api/generar-pedido', async (req, res) => {
     const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
     const cart = Array.isArray(bodyCart) ? bodyCart : [];
     if (!cart.length) return res.status(400).json({ success:false, error:'Carrito vacío' });
@@ -413,7 +393,6 @@ app.post('/api/productos', async (req, res) => {
   }
 });
 
-
 app.get('/api/verificar-usuario', async (req, res) => {
   try {
       const cookieJWT = req.cookies.jwt;
@@ -425,7 +404,7 @@ app.get('/api/verificar-usuario', async (req, res) => {
       return res.status(401).send({ loggedIn: false });
   }
 });
-
+//funciona
 app.get('/api/pedidos', async (req, res) => {
   try {
     // Consulta para obtener los pedidos con la información del usuario y los nuevos campos
@@ -513,25 +492,6 @@ app.put('/api/productos/:id', async (req, res) => {
   }
 });
 
-// Ruta para aceptar un pedido
-/*app.put('/api/pedidos/:id/aceptar', async (req, res) => {
-  const { id } = req.params;
-  try {
-      const [result] = await pool.query(
-          'UPDATE pedidos SET estado = "aceptado" WHERE id_pedido = ?',
-          [id]
-      );
-
-      if (result.affectedRows === 0) {
-          return res.status(404).json({ error: 'Pedido no encontrado' });
-      }
-
-      res.json({ message: 'Pedido aceptado exitosamente' });
-  } catch (error) {
-      console.error('Error al aceptar el pedido:', error);
-      res.status(500).json({ error: 'Error al aceptar el pedido' });
-  }
-});*/
 
 // Ruta para rechazar un pedido
 app.put('/api/pedidos/:id/rechazar', async (req, res) => {
@@ -553,7 +513,6 @@ app.put('/api/pedidos/:id/rechazar', async (req, res) => {
   }
 });
 
-
 app.put(
   '/api/pedidos/:id/confirmar-mail',
   enviarConfirmacion
@@ -563,11 +522,15 @@ app.put(
   '/api/pedidos/:id/aceptar',
   enviarConfirmacion
 );
-
-// Middleware para CORS (agregar si es necesario)
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  next();
+//no funciona
+app.get('/trabajadores', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al obtener trabajadores:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Obtener un trabajador específico
@@ -890,7 +853,7 @@ try {
 }
 
 });
-
+//no funciona
 app.get('/api/mis-pedidos', async (req, res) => {
   try {
     const username = req.query.user;
@@ -937,6 +900,9 @@ app.get('/api/mis-pedidos', async (req, res) => {
     res.status(500).json({ error: 'Error interno' });
   }
 });
+
+
+
 // RUTAS 
 
 app.get('/', authorization.soloPublico, (req, res) => {
