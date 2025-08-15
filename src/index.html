@@ -345,7 +345,7 @@
     renderPager(data.page, data.totalPages, q);
     }
     function renderGrid(items){
-    const GRID = document.getElementById('catalog-grid');
+    
     if (!items?.length){ GRID.innerHTML = '<p>No hay productos para mostrar.</p>'; return; }
     GRID.innerHTML = items.map(p=>{
         const img = p.imagen_url || 'assets/placeholder.jpg';
