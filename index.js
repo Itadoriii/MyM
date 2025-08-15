@@ -67,7 +67,7 @@ const verifyToken = async (req, res, next) => {
 // ==================== RUTAS API ====================
 // Coloca aquí TODAS tus rutas API
 
-app.post('/generar-pedido', async (req, res) => {
+app.post('/generarpedido', async (req, res) => {
     const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
     const cart = Array.isArray(bodyCart) ? bodyCart : [];
     if (!cart.length) return res.status(400).json({ success:false, error:'Carrito vacío' });
