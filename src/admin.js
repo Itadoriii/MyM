@@ -718,7 +718,7 @@ async function fetchAdelantos(page = 1) {
         const trabajadores = await trabajadoresResponse.json();
 
         // Obtener adelantos con paginación
-        const adelantosResponse = await fetch(`/api/adelantos?page=${page}&limit=${pageSize}`);
+        const adelantosResponse = await fetch(`/adelantos.php?page=${page}&limit=${pageSize}`);
         const { adelantos, total } = await adelantosResponse.json();
 
         renderAdelantosTable(adelantos, trabajadores, total, page);
@@ -808,8 +808,8 @@ function renderAdelantosTable(adelantos, trabajadores, total, page) {
         const anio = document.getElementById('filtroAnio').value;
         
         // Construir URL de filtro
-        let url = `/api/adelantos?page=1&limit=${pageSize}`;
-        
+        let url = `/adelantos.php?page=1&limit=${pageSize}`;
+
         if (trabajadorId) url += `&trabajador=${trabajadorId}`;
         if (mes) url += `&mes=${mes}`;
         if (anio) url += `&año=${anio}`;
@@ -965,26 +965,26 @@ function renderPaginationControls(totalItems, currentPage) {
     container.appendChild(fragment);
 }
 
-async function fetchFilteredAdelantos(page, trabajadorId, mes, anio) {
+async function fetchFilteredAdelantos(page, trabajadorId = '', mes = '', anio = '') {
     try {
-        // Construir URL de filtro
-        let url = `/api/adelantos?page=${page}&limit=${pageSize}`;
-        
+        let url = `/adelantos.php?page=${page}&limit=${pageSize}`;
         if (trabajadorId) url += `&trabajador=${trabajadorId}`;
         if (mes) url += `&mes=${mes}`;
-        if (anio) url += `&año=${anio}`;
+        if (anio) url += `&anio=${anio}`; // nota que en PHP usarás 'anio' en vez de 'año'
 
         const response = await fetch(url);
-        const { adelantos, total } = await response.json();
-        
+        const data = await response.json();
+        const adelantos = data.adelantos || [];
+        const total = data.total || 0;
+
         renderAdelantosData(adelantos);
         renderPaginationControls(total, page);
-        
     } catch (error) {
         console.error('Error al cargar adelantos filtrados:', error);
-        showPopup('Error al cargar los datos');
+        showPopup('Error al aplicar los filtros');
     }
 }
+
 
 function formatNumber(value) {
     return new Intl.NumberFormat('es-CL').format(value);
@@ -999,8 +999,7 @@ function formatDate(dateString) {
     return `${dia}/${mes}/${anio}`;
 }
 
-// Resto de las funciones (editAdelanto, deleteAdelanto) se mantienen igual
-// Resto de las funciones (renderPaginationControls, editAdelanto, deleteAdelanto) se mantienen igual
+
 function renderPaginationControls(totalItems, currentPage) {
     const totalPages = Math.ceil(totalItems / pageSize);
     const container = document.getElementById('pagination-controls');
@@ -1057,7 +1056,7 @@ function formatDate(dateString) {
 
 async function editAdelanto(adelantoId) {
     try {
-        const response = await fetch(`/api/adelantos/${adelantoId}`);
+        const response = await fetch(`/adelantos.php?id=${adelantoId}`);
         if (!response.ok) {
             throw new Error('Error al obtener el adelanto');
         }
@@ -1075,13 +1074,10 @@ async function deleteAdelanto(adelantoId) {
     }
 
     try {
-        const response = await fetch(`/api/adelantos/${adelantoId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+        const response = await fetch(`/adelantos.php?id=${adelantoId}`, {
+        method: 'DELETE'
         });
-        
+                
         if (response.ok) {
             showPopup('Adelanto eliminado con éxito');
             fetchAdelantos();
@@ -1369,7 +1365,7 @@ async function generarPDF(adelantoId) {
 
 async function loadTrabajadoresForForm(selectedId = null) {
     try {
-        const response = await fetch('/api/trabajadores');
+        const response = await fetch('/trabajadores.php');
         const trabajadores = await response.json();
         
         const select = document.getElementById('id_trabajador');
@@ -1401,7 +1397,7 @@ async function saveAdelanto(action) {
     try {
         let response;
         if (action === 'edit') {
-            response = await fetch(`/api/adelantos/${formData.id_adelanto}`, {
+            response = await fetch(`/adelantos.php?id=${formData.id_adelanto}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1410,7 +1406,7 @@ async function saveAdelanto(action) {
                 body: JSON.stringify(formData)
             });
         } else {
-            response = await fetch('/api/adelantos', {
+            response = await fetch('/adelantos.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
