@@ -40,7 +40,7 @@ app.use(cors({
   credentials: true // 👈 Permitir cookies
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'src')));
+
 app.use(cookieParser());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your_secret_key',
@@ -974,3 +974,4 @@ app.get('/api/mis-pedidos', async (req, res) => {
     res.status(500).json({ error: 'Error interno' });
   }
 });
+app.use(express.static(path.join(__dirname, 'src')));
