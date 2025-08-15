@@ -467,7 +467,7 @@
     const attempts = 3;
     for (let i=1; i<=attempts; i++){
         try{
-            const res = await fetch('/api/generar-pedido.php', {
+            const res = await fetch('/api/correos.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
