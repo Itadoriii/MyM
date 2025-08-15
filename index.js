@@ -1,3 +1,4 @@
+
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -5,27 +6,27 @@ import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import session from 'express-session';
 import { methods as metodos } from './controllers/authentication.controller.js';
-import { methods as authorization } from './middlewares/authorization.js';
-import isAuthenticated from './middlewares/isAuthenticated.js'; // Importa el nuevo middleware
-import './middlewares/passport-setup.js'; // Importa la configuración de passport
+import { methods as authorization, revisarCookie } from './middlewares/authorization.js';
+import isAuthenticated from './middlewares/isAuthenticated.js';
+import './middlewares/passport-setup.js';
 import pool from './db.js';
 import jsonwebtoken from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { revisarCookie } from './middlewares/authorization.js';
 import { enviarConfirmacion } from './controllers/pedidos.controller.js';
 import cors from 'cors';
-import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';
+import mailRouter from './routes/pedidosMail.js';
 
 dotenv.config();
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// SERVIDOR 
 const app = express();
 const port = process.env.PORT || 3000;
-// CONFIGURACION
+
+// ==================== CONFIG GLOBAL ====================
 app.use(cors({
-  origin: 'https://sebastiancastro.cl', // 👈 Tu dominio real
-  credentials: true // 👈 Permitir cookies
+  origin: [/^https?:\/\/(www\.)?sebastiancastro\.cl$/], // Acepta con y sin www
+  credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -37,36 +38,44 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-
-// MIDDLEWARE PARA PROTEGER RUTAS
+// ==================== MIDDLEWARES ====================
 const verifyToken = async (req, res, next) => {
   const token = req.cookies.jwt;
-  if (!token) {
-    return res.redirect('/login');
-  }
+  if (!token) return res.redirect('/login');
   try {
     const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
     const [rows] = await pool.query('SELECT * FROM usuarios WHERE user = ?', [decoded.user]);
-    if (rows.length === 0) {
-      return res.redirect('/login');
-    }
-    req.user = rows[0]; // Asignamos los datos completos del usuario a `req.user`
+    if (rows.length === 0) return res.redirect('/login');
+    req.user = rows[0];
     next();
-  } catch (err) {
+  } catch {
     return res.redirect('/login');
   }
 };
 
+// ==================== RUTAS API ====================
+// Coloca aquí TODAS tus rutas API
+app.post('/api/register', metodos.register);
+app.post('/api/login', metodos.login);
 
-// funciona
-app.get('/productos', async (req, res) => {
+// Ejemplo Trabajadores
+app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Ejemplo Productos
+app.get('/api/productos', async (req, res) => {
   const q = (req.query.q || '').trim();
   const page = Math.max(parseInt(req.query.page || '1', 10), 1);
   const limit = Math.max(parseInt(req.query.limit || '12', 10), 1);
   const offset = (page - 1) * limit;
 
   try {
-    // armamos WHERE si hay búsqueda
     const whereParts = [];
     const params = [];
     if (q) {
@@ -76,14 +85,12 @@ app.get('/productos', async (req, res) => {
     }
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
-    // total
     const [countRows] = await pool.query(
       `SELECT COUNT(*) AS total FROM productos ${whereSql}`,
       params
     );
     const total = countRows[0]?.total || 0;
 
-    // page data
     const [rows] = await pool.query(
       `SELECT * FROM productos ${whereSql}
        ORDER BY fecha_add DESC, id_producto DESC
@@ -99,30 +106,10 @@ app.get('/productos', async (req, res) => {
       totalPages: Math.max(Math.ceil(total / limit), 1),
     });
   } catch (err) {
-    console.error('Error /productos paginado:', err);
     res.status(500).json({ error: 'Error al obtener productos' });
   }
 });
 
-app.get('/logout', (req, res) => {
-  res.clearCookie('jwt'); // Elimina la cookie JWT
-  res.redirect('/'); // Redirige al usuario a la página de inicio de sesión
-});
-
-app.get('/productos/:productId', async (req, res) => {
-  const productId = req.params.productId;
-
-  try {
-    const [rows] = await pool.query('SELECT * FROM productos WHERE id_producto = ?', [productId]);
-    if (rows.length > 0) {
-      res.json(rows[0]);
-    } else {
-      res.status(404).json({ error: 'Producto no encontrado' });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 //funciona
 app.get('/api/user', verifyToken, (req, res) => {
   res.json({
@@ -452,123 +439,6 @@ app.get('/api/pedidos', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 });
-
-
-app.get('/api/trabajadores', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM trabajadores');
-    res.json(rows);
-  } catch (err) {
-    console.error('Error al obtener trabajadores:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Obtener un trabajador específico
-app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
-  const { id } = req.params;
-  
-  try {
-    const [rows] = await pool.query('SELECT * FROM trabajadores WHERE id_trabajador = ?', [id]);
-    
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Trabajador no encontrado' });
-    }
-    
-    res.json(rows[0]);
-  } catch (err) {
-    console.error('Error al obtener trabajador:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Crear nuevo trabajador
-app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
-  const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
-
-  console.log('Creando nuevo trabajador:', req.body);
-
-  if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
-  }
-
-  try {
-    const query = `
-      INSERT INTO trabajadores 
-      (rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-    const params = [rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado];
-    const [result] = await pool.query(query, params);
-    res.status(201).json({ 
-      message: 'Trabajador creado exitosamente', 
-      id_trabajador: result.insertId 
-    });
-  } catch (err) {
-    console.error('Error al crear trabajador:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Actualizar trabajador
-app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
-
-  console.log('Actualizando trabajador:', req.body);
-
-  if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
-  }
-
-  try {
-    const query = `
-      UPDATE trabajadores 
-      SET rut = ?, 
-          nombres = ?, 
-          apellidos = ?, 
-          fechaIngreso = ?, 
-          sueldo = ?, 
-          fono = ?, 
-          estado = ?
-      WHERE id_trabajador = ?
-    `;
-    const params = [rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado, id];
-    
-    const [result] = await pool.query(query, params);
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Trabajador no encontrado' });
-    }
-    
-    res.json({ message: 'Trabajador actualizado exitosamente' });
-  } catch (err) {
-    console.error('Error al actualizar trabajador:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Eliminar trabajador
-app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const [result] = await pool.query('DELETE FROM trabajadores WHERE id_trabajador = ?', [id]);
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Trabajador no encontrado' });
-    }
-    
-    res.json({ message: 'Trabajador eliminado exitosamente' });
-  } catch (err) {
-    console.error('Error al eliminar trabajador:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-// ==============================================
-// ENDPOINTS PARA ADELANTOS
-// ==============================================
-
 // Obtener todos los adelantos
 
 app.get('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res) => {
@@ -834,43 +704,106 @@ app.get('/api/mis-pedidos', async (req, res) => {
 
 
 
-// RUTAS 
-
-app.get('/', authorization.soloPublico, (req, res) => {
-  res.sendFile(__dirname + '/src/index.html');
-});
-app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
-  res.sendFile(__dirname + '/src/login.html');
-});
-
-app.get('/register', authorization.soloPublico, (req, res) => {
-  res.sendFile(__dirname + '/src/register.html');
-});
-
-app.post('/api/register', metodos.register);
-app.post('/api/login', metodos.login);
-
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    const token = jsonwebtoken.sign({ user: req.user.user, role: req.user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('jwt', token, { httpOnly: true, secure: false }); // Asegúrate de que `secure` esté en false para pruebas locales
-    res.redirect('/profile');
-  });
-
-app.get('/admin', verifyToken, authorization.soloAdmin, (req, res) => {
-  res.sendFile(__dirname + '/src/admin.html');
+// Obtener un trabajador específico
+app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const [rows] = await pool.query('SELECT * FROM trabajadores WHERE id_trabajador = ?', [id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Trabajador no encontrado' });
+    }
+    
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error al obtener trabajador:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/profile', verifyToken, (req, res) => {
-  res.sendFile(__dirname + '/src/profile.html');
+// Crear nuevo trabajador
+app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
+  const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
+
+  console.log('Creando nuevo trabajador:', req.body);
+
+  if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    const query = `
+      INSERT INTO trabajadores 
+      (rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado];
+    const [result] = await pool.query(query, params);
+    res.status(201).json({ 
+      message: 'Trabajador creado exitosamente', 
+      id_trabajador: result.insertId 
+    });
+  } catch (err) {
+    console.error('Error al crear trabajador:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/aboutus', (req, res) => {
-  res.sendFile(__dirname + '/src/sobrenosotros.html');
+// Actualizar trabajador
+app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
+
+  console.log('Actualizando trabajador:', req.body);
+
+  if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    const query = `
+      UPDATE trabajadores 
+      SET rut = ?, 
+          nombres = ?, 
+          apellidos = ?, 
+          fechaIngreso = ?, 
+          sueldo = ?, 
+          fono = ?, 
+          estado = ?
+      WHERE id_trabajador = ?
+    `;
+    const params = [rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado, id];
+    
+    const [result] = await pool.query(query, params);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Trabajador no encontrado' });
+    }
+    
+    res.json({ message: 'Trabajador actualizado exitosamente' });
+  } catch (err) {
+    console.error('Error al actualizar trabajador:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar trabajador
+app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [result] = await pool.query('DELETE FROM trabajadores WHERE id_trabajador = ?', [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Trabajador no encontrado' });
+    }
+    
+    res.json({ message: 'Trabajador eliminado exitosamente' });
+  } catch (err) {
+    console.error('Error al eliminar trabajador:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Ruta PUT para actualizar productos
@@ -942,7 +875,111 @@ app.put(
   enviarConfirmacion
 );
 
+
+// funciona
+app.get('/productos', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+  const limit = Math.max(parseInt(req.query.limit || '12', 10), 1);
+  const offset = (page - 1) * limit;
+
+  try {
+    // armamos WHERE si hay búsqueda
+    const whereParts = [];
+    const params = [];
+    if (q) {
+      whereParts.push(`(nombre_prod LIKE ? OR tipo LIKE ? OR medidas LIKE ? OR dimensiones LIKE ? OR precio_unidad LIKE ?)`);
+      const like = `%${q}%`;
+      params.push(like, like, like, like, like);
+    }
+    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
+
+    // total
+    const [countRows] = await pool.query(
+      `SELECT COUNT(*) AS total FROM productos ${whereSql}`,
+      params
+    );
+    const total = countRows[0]?.total || 0;
+
+    // page data
+    const [rows] = await pool.query(
+      `SELECT * FROM productos ${whereSql}
+       ORDER BY fecha_add DESC, id_producto DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({
+      productos: rows,
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    });
+  } catch (err) {
+    console.error('Error /productos paginado:', err);
+    res.status(500).json({ error: 'Error al obtener productos' });
+  }
+});
+
+app.get('/logout', (req, res) => {
+  res.clearCookie('jwt'); // Elimina la cookie JWT
+  res.redirect('/'); // Redirige al usuario a la página de inicio de sesión
+});
+
+app.get('/productos/:productId', async (req, res) => {
+  const productId = req.params.productId;
+
+  try {
+    const [rows] = await pool.query('SELECT * FROM productos WHERE id_producto = ?', [productId]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).json({ error: 'Producto no encontrado' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
+// 🔹 AQUÍ PEGAS TODAS LAS DEMÁS RUTAS API QUE YA TENÍAS
+// (pedidos, usuarios, adelantos, etc.)
+// Asegúrate de que TODAS las rutas que empiecen con /api estén antes del bloque de páginas HTML
+
+// ==================== RUTAS HTML ====================
+app.get('/', authorization.soloPublico, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'index.html'));
+});
+app.get('/login', isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'login.html'));
+});
+app.get('/register', authorization.soloPublico, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'register.html'));
+});
+app.get('/admin', verifyToken, authorization.soloAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'admin.html'));
+});
+app.get('/profile', verifyToken, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'profile.html'));
+});
+app.get('/aboutus', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'sobrenosotros.html'));
+});
+app.get('/checkout', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'checkout.html'));
+});
+
+// ==================== ESTÁTICOS ====================
+// Montamos en /static para evitar conflictos con /api
 app.use('/static', express.static(path.join(__dirname, 'src')));
+
+// ==================== START ====================
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
+
+
+
