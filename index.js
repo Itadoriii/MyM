@@ -456,7 +456,7 @@ app.get('/api/pedidos', async (req, res) => {
 
 app.get('/api/trabajadores', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
+    const [rows] = await pool.query('SELECT * FROM trabajadores');
     res.json(rows);
   } catch (err) {
     console.error('Error al obtener trabajadores:', err);
@@ -873,6 +873,74 @@ app.get('/aboutus', (req, res) => {
   res.sendFile(__dirname + '/src/sobrenosotros.html');
 });
 
+// Ruta PUT para actualizar productos
+app.put('/api/productos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
+
+  console.log('Actualizando producto:', req.body);
+
+  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
+  }
+
+  try {
+    const query = `
+      UPDATE productos 
+      SET nombre_prod = ?, 
+          precio_unidad = ?, 
+          disponibilidad = ?, 
+          tipo = ?, 
+          medidas = ?, 
+          dimensiones = ?, 
+          fecha_add = ?
+      WHERE id_producto = ?
+    `;
+    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, id];
+    
+    const [result] = await pool.query(query, params);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+    
+    res.json({ message: 'Producto actualizado exitosamente' });
+  } catch (err) {
+    console.error('Error al actualizar producto:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Ruta para rechazar un pedido
+app.put('/api/pedidos/:id/rechazar', async (req, res) => {
+  const { id } = req.params;
+  try {
+      const [result] = await pool.query(
+          'UPDATE pedidos SET estado = "rechazado" WHERE id_pedido = ?',
+          [id]
+      );
+
+      if (result.affectedRows === 0) {
+          return res.status(404).json({ error: 'Pedido no encontrado' });
+      }
+
+      res.json({ message: 'Pedido rechazado exitosamente' });
+  } catch (error) {
+      console.error('Error al rechazar el pedido:', error);
+      res.status(500).json({ error: 'Error al rechazar el pedido' });
+  }
+});
+
+app.put(
+  '/api/pedidos/:id/confirmar-mail',
+  enviarConfirmacion
+);
+
+app.put(
+  '/api/pedidos/:id/aceptar',
+  enviarConfirmacion
+);
 
 app.use('/static', express.static(path.join(__dirname, 'src')));
 app.listen(port, () => {
