@@ -597,7 +597,7 @@ app.put(
 );
 
 // Obtener todos los trabajadores
-app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/trabajadores', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
     res.json(rows);
