@@ -59,17 +59,17 @@ app.post('/api/register', metodos.register);
 app.post('/api/login', metodos.login);
 
 // Ejemplo Trabajadores
-app.get('/api/trabajadores', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
+app.get('/api/trabajadores', (req, res) => {
+  pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC', (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: err.message });
+    }
     res.json({
       total: rows.length,
       trabajadores: rows
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
+  });
 });
 
 // Ejemplo Productos
