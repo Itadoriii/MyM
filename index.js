@@ -16,7 +16,7 @@ import { enviarConfirmacion } from './controllers/pedidos.controller.js';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
 import mailRouter from './routes/pedidosMail.js';
-import trabajadoresRouter from './routes/trabajadoresRouter.js';
+
 
 
 dotenv.config();
