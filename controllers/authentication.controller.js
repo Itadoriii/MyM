@@ -33,8 +33,9 @@ async function login(req, res) {
         res.cookie("jwt", token, {
             httpOnly: true,
             secure: true,  // Para desarrollo local, cambiar a true si estás en producción con HTTPS
-            sameSite: 'Lax', // Asegura que la cookie sea enviada con peticiones "same-site"
+            sameSite: 'None', // Asegura que la cookie sea enviada con peticiones "same-site"
             maxAge: process.env.JWT_COOKIE_EXPIRES * 24 * 60 * 60 * 1000,
+            domain: ".maderasmym.cl"
         });
         res.send({ status: "ok", message: "Usuario loggeado", redirect: "/admin" });
     } catch (err) {
