@@ -1464,3 +1464,13 @@ body { font-size: clamp(14px, 1.05vw, 16px); }
   .conteiner{ grid-template-columns: 1fr; }
   .sidebar{ display: none !important; }
 }
+
+
+.submenu {
+  display: none;
+  margin-left: 15px;
+}
+
+.submenu li {
+  list-style: none;
+}

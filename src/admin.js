@@ -1446,8 +1446,136 @@ async function saveAdelanto(action) {
     }
 }
 
-
 });
+
+
+async function fetchInformeGeneral(mes = new Date().getMonth() + 1, anio = new Date().getFullYear()) {
+    try {
+        // 1. Obtener trabajadores
+        const respTrab = await fetch('/api/trabajadores', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        let trabajadores = await respTrab.json();
+        if (!Array.isArray(trabajadores)) {
+            trabajadores = trabajadores.trabajadores || trabajadores.data || [];
+        }
+
+        // 2. Obtener adelantos
+        const respAdelantos = await fetch('/api/adelantos', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        let adelantos = await respAdelantos.json();
+        if (!Array.isArray(adelantos)) {
+            adelantos = adelantos.adelantos || adelantos.data || [];
+        }
+
+        // 3. Procesar información
+        const informe = trabajadores.map(t => {
+            const adelantosTrab = adelantos.filter(a => 
+                a.id_trabajador == t.id_trabajador &&
+                new Date(a.fecha).getMonth() + 1 === mes &&
+                new Date(a.fecha).getFullYear() === anio
+            );
+
+            if (adelantosTrab.length === 0) return null; // 👈 excluir si no tiene adelantos
+
+            const totalAdelantos = adelantosTrab.reduce((sum, a) => sum + (parseFloat(a.monto) || 0), 0);
+            const totalBonos = adelantosTrab.reduce((sum, a) => sum + (parseFloat(a.bono) || 0), 0);
+
+            const saldo = (parseFloat(t.sueldo) || 0) - (totalAdelantos + totalBonos);
+
+            return {
+                id_trabajador: t.id_trabajador,
+                nombre: `${t.nombres} ${t.apellidos}`,
+                sueldo: parseFloat(t.sueldo) || 0,
+                totalAdelantos,
+                totalBonos,
+                saldo
+            };
+        }).filter(Boolean); // 👈 quitar los null
+
+        renderInformeGeneral(informe, mes, anio);
+
+    } catch (error) {
+        console.error("Error al generar informe general:", error);
+        showPopup("Error al generar informe general");
+    }
+}
+
+function renderInformeGeneral(data, mes, anio) {
+    const main = document.getElementById('main-content');
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+    // Calcular totales generales
+    const totalGeneral = data.reduce((acc, row) => {
+        acc.sueldo += row.sueldo;
+        acc.adelantos += row.totalAdelantos;
+        acc.bonos += row.totalBonos;
+        acc.saldo += row.saldo;
+        return acc;
+    }, { sueldo:0, adelantos:0, bonos:0, saldo:0 });
+
+    main.innerHTML = `
+        <h2>Informe General - ${meses[mes-1]} ${anio}</h2>
+        <div style="margin-bottom:15px;">
+            <label for="mes">Mes: </label>
+            <select id="mes">
+                ${meses.map((m,i) => `
+                    <option value="${i+1}" ${i+1===mes ? 'selected':''}>${m}</option>
+                `).join('')}
+            </select>
+            <label for="anio">Año: </label>
+            <input type="number" id="anio" value="${anio}" style="width:80px;">
+            <button id="filtrarBtn">Filtrar</button>
+        </div>
+        <table border="1" cellspacing="0" cellpadding="8" style="width:100%; border-collapse: collapse; margin-bottom:10px;">
+            <thead style="background:#f0f0f0;">
+                <tr>
+                    <th>ID</th>
+                    <th>Trabajador</th>
+                    <th>Sueldo</th>
+                    <th>Total Adelantos</th>
+                    <th>Total Bonos</th>
+                    <th>Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(row => `
+                    <tr>
+                        <td>${row.id_trabajador}</td>
+                        <td>${row.nombre}</td>
+                        <td>${row.sueldo.toFixed(2)}</td>
+                        <td>${row.totalAdelantos.toFixed(2)}</td>
+                        <td>${row.totalBonos.toFixed(2)}</td>
+                        <td><b>${row.saldo.toFixed(2)}</b></td>
+                    </tr>
+                `).join('')}
+            </tbody>
+            <tfoot style="background:#e0e0e0; font-weight:bold;">
+                <tr>
+                    <td colspan="2">Totales</td>
+                    <td>${totalGeneral.sueldo.toFixed(2)}</td>
+                    <td>${totalGeneral.adelantos.toFixed(2)}</td>
+                    <td>${totalGeneral.bonos.toFixed(2)}</td>
+                    <td>${totalGeneral.saldo.toFixed(2)}</td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+
+    // Evento para botón de filtro
+    document.getElementById('filtrarBtn').addEventListener('click', () => {
+        const nuevoMes = parseInt(document.getElementById('mes').value, 10);
+        const nuevoAnio = parseInt(document.getElementById('anio').value, 10);
+        fetchInformeGeneral(nuevoMes, nuevoAnio);
+    });
+}
+
+
 
 document.querySelector('.button').addEventListener('click', async () => {
     const res = await fetch('/logout', {
