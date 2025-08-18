@@ -156,14 +156,41 @@
                 <h2>Categorias</h2>   
             </div>
             <p><a class="category-link">Madera</a></p>
-            <li><a href="#" class="category-link">Pino oregón de 2,50m</a></li>
-            <li><a href="#" class="category-link">Pino oregón de 3,20m</a></li>
-            <li><a href="#" class="category-link">Pino oregón de 4m</a></li>
-            <li><a href="#" class="category-link">Pino oregon de 5m</a></li>
-            <li><a href="#" class="category-link">Pino oregón de 6m</a></li>
-            <li><a href="#" class="category-link">Pino oregón de 7m</a></li>
-            <li><a href="#" class="category-link">Pino oregón de 8m</a></li>
-            <li><a href="#" class="category-link">Pino oregón de 9m</a></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 2,50m</a>
+                <ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul>
+            </li>
+            
+            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 3,20m</a> <ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 4m</a><ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino oregon de 5m</a><ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 6m</a><ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 7m</a><ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 8m</a><ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 9m</a><ul class="submenu">
+                <li><a href="#" class="category-link">Cepillado</a></li>
+                <li><a href="#" class="category-link">Bruto</a></li>
+                </ul></li>
             <li><a href="#" class="category-link">Roble</a></li>
             <li><a href="#" class="category-link">Cubiertas</a></li>
             <p><a href="#" class="category-link">Bases</a></p>
@@ -179,7 +206,7 @@
             <p><a href="#" class="category-link">Treillage</a></p>
             <p><a href="#">Vitrificante de pisos</a></p>
             <div class="sidebarinfo">
-                <h3>Listado productos</h3>
+                <a href="/assets/precios.pdf" target="_blank">Listado productos pdf</a>
             </div>
 
 
@@ -546,6 +573,20 @@
     const INPUT = document.getElementById('search-input');
     FORM?.addEventListener('submit', (e)=>{
         e.preventDefault(); loadProductsPage(1, (INPUT?.value||'').trim());
+    });
+
+    //Desplegables side-bar 
+    const toggles = document.querySelectorAll('.toggle-submenu');
+    toggles.forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+        e.preventDefault(); // evita que el enlace haga scroll
+        const submenu = toggle.nextElementSibling;
+        if (submenu.style.display === 'block') {
+        submenu.style.display = 'none';
+        } else {
+        submenu.style.display = 'block';
+        }
+    });
     });
 
     // Cargas iniciales
