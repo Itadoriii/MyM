@@ -195,17 +195,17 @@ app.get('/checkout', (req, res) => {
 
 // Actualizar la ruta POST para crear productos
 app.post('/api/productos', async (req, res) => {
-    const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
+    const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible } = req.body;
 
     console.log('Creando nuevo producto:', req.body);
 
-    if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add) {
+    if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || visible === undefined) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
     }
 
     try {
-      const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add) VALUES (?, ?, ?, ?, ?, ?, ?)';
-      const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add];
+      const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+      const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible];
       const [result] = await pool.query(query, params);
       res.status(201).json({ message: 'Producto creado exitosamente', id: result.insertId });
     } catch (err) {
@@ -214,7 +214,7 @@ app.post('/api/productos', async (req, res) => {
     }
   });
 
-  app.post('/api/generar-pedido', async (req, res) => {
+app.post('/api/generar-pedido', async (req, res) => {
     const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
     const cart = Array.isArray(bodyCart) ? bodyCart : [];
     if (!cart.length) return res.status(400).json({ success:false, error:'Carrito vacío' });
@@ -505,7 +505,7 @@ app.get('/api/pedidos', async (req, res) => {
 // Ruta PUT para actualizar productos
 app.put('/api/productos/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add } = req.body;
+  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible } = req.body;
 
   console.log('Actualizando producto:', req.body);
 
@@ -522,11 +522,12 @@ app.put('/api/productos/:id', async (req, res) => {
           tipo = ?, 
           medidas = ?, 
           dimensiones = ?, 
-          fecha_add = ?
+          fecha_add = ?,
+          visible = ?
       WHERE id_producto = ?
     `;
-    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, id];
-    
+    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, id];
+
     const [result] = await pool.query(query, params);
     
     if (result.affectedRows === 0) {
@@ -540,25 +541,6 @@ app.put('/api/productos/:id', async (req, res) => {
   }
 });
 
-// Ruta para aceptar un pedido
-/*app.put('/api/pedidos/:id/aceptar', async (req, res) => {
-  const { id } = req.params;
-  try {
-      const [result] = await pool.query(
-          'UPDATE pedidos SET estado = "aceptado" WHERE id_pedido = ?',
-          [id]
-      );
-
-      if (result.affectedRows === 0) {
-          return res.status(404).json({ error: 'Pedido no encontrado' });
-      }
-
-      res.json({ message: 'Pedido aceptado exitosamente' });
-  } catch (error) {
-      console.error('Error al aceptar el pedido:', error);
-      res.status(500).json({ error: 'Error al aceptar el pedido' });
-  }
-});*/
 
 // Ruta para rechazar un pedido
 app.put('/api/pedidos/:id/rechazar', async (req, res) => {

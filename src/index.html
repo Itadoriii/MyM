@@ -368,7 +368,11 @@
     const res = await fetch(url);
     if (!res.ok){ GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
     const data = await res.json();
+
+    // filtrar solo visibles
+    const visibles = (data.productos || []).filter(p => p.visible == 1);
     renderGrid(data.productos);
+    renderGrid(visibles);
     renderPager(data.page, data.totalPages, q);
     }
     function renderGrid(items){
@@ -433,7 +437,8 @@
     if (!res.ok){ WRAP.innerHTML = '<p>Error cargando destacados.</p>'; return; }
     const data = await res.json();
     const productos = Array.isArray(data) ? data : (data.productos || []);
-    const items = productos.slice(0,8);
+    const visibles = productos.filter(p => p.visible == 1);
+    const items = visibles.slice(0,8);
     WRAP.innerHTML = items.map(p=>{
         const img = p.imagen_url || 'assets/placeholder.jpg';
         return `
