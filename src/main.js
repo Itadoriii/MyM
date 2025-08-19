@@ -99,7 +99,6 @@ async function isUserLoggedIn() {
 }
 
 
-
 // Funciones auxiliares
 function showPopup(message) {
     const popup = document.createElement('div');

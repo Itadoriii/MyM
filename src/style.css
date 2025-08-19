@@ -1102,6 +1102,7 @@ modal .modal-content {
   min-height: 2.4em;            /* 2 líneas */
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
   } catch (error) {
-    console.error('Error al cargar los pedidos:', error);
+    console.error('Error al cargar los pedidos:', error );
     mainContent.innerHTML = '<p>Error al cargar los pedidos.</p>';
   }
 }
@@ -315,7 +315,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <thead>
             <tr>
                 <th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th>
-                <th>Tipo</th><th>Medidas</th><th>Dimensiones</th><th>Fecha</th><th>Acciones</th>
+                <th>Tipo</th><th>Medidas</th><th>Dimensiones</th><th>Fecha</th><th>Visibilidad</th><th>Acciones</th>
             </tr>
             </thead>
             <tbody id="productos-tbody"></tbody>
@@ -335,6 +335,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <td>${p.medidas ?? ''}</td>
             <td>${p.dimensiones ?? ''}</td>
             <td>${p.fecha_add ?? ''}</td>
+            <td>${p.visible == 1 ? 'Visible' : 'Oculto'}</td>
             <td>
             <button class="editBtn" data-id="${p.id_producto}">Editar</button>
             <button class="deleteBtn" data-id="${p.id_producto}">Eliminar</button>
@@ -404,6 +405,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     }
 
+
     // === FORM CREAR/EDITAR ===
 function showProductForm(product = null) {
   const isEditing = !!product;
@@ -439,6 +441,14 @@ function showProductForm(product = null) {
         <label>Fecha Añadido:</label>
         <input type="date" id="fecha_add" name="fecha_add" value="${isEditing && product.fecha_add ? String(product.fecha_add).slice(0,10) : ''}" required>
       </div>
+      <div class="form-group">
+        <label>Visibilidad:</label>
+        <select id="visible" name="visible">
+          <option value="1" ${product?.visible == 1 || product === null ? 'selected' : ''}>Visible</option>
+          <option value="0" ${product?.visible == 0 ? 'selected' : ''}>Oculto</option>
+        </select>
+      </div>
+      
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
         <button type="button" class="btn btn-secondary" onclick="fetchProductos()">Cancelar</button>
