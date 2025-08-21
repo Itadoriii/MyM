@@ -117,111 +117,208 @@ document.addEventListener("DOMContentLoaded", function() {
           mainContent.innerHTML = '<p>Error loading usuarios.</p>';
         }
       }
-      // Obtener lista de pedidos
-      async function fetchPedidos() {
-  try {
-    const response = await fetch('/api/pedidos');
-    const pedidos = await response.json();
+        // ----- PEDIDOS con pestañas y scroll -----
+        async function fetchPedidos(scope = 'generados') {
+        // Render header + contenedor
+        const tabs = [
+            ['generados',       'Generados'],
+            ['espera_pago',     'Aceptados (espera de pago)'],
+            ['espera_despacho', 'Pagados (espera retiro/envío)'],
+            ['despacho',        'Enviados / Retirados'],
+            ['finalizados',     'Finalizados'],
+            ['rechazados',      'Rechazados']
+        ];
 
-    let html = `
-      <h1 class="adm-title">Pedidos</h1>
-      <div class="table-wrap">
-        <table class="adm-table">
-          <thead>
-            <tr>
-              <th>ID Pedido</th>
-              <th>Usuario</th>
-              <th>Email</th>
-              <th>Número</th>
-              <th>Precio Total</th>
-              <th>Fecha Pedido</th>
-              <th>Estado</th>
-              <th>Delivery</th>
-              <th>Descripción</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    if (!Array.isArray(pedidos) || pedidos.length === 0) {
-      html += `<tr><td colspan="10">No hay pedidos registrados.</td></tr>`;
-    } else {
-      html += pedidos.map(p => `
-        <tr>
-          <td>${p.id_pedido}</td>
-          <td>${p.user}</td>
-          <td>${p.email}</td>
-          <td>${p.number || 'No disponible'}</td>
-          <td>$${Number(p.precio_total || 0).toLocaleString('es-CL')}</td>
-          <td>${p.fecha_pedido}</td>
-          <td>${p.estado}</td>
-          <td>${p.delivery ?? '—'}</td>
-          <td>${p.descripcion || 'N/A'}</td>
-          <td>
-            <div class="table-actions">
-              <button type="button" class="btn btn--primary btn-aceptar" data-id="${p.id_pedido}">Aceptar</button>
-              <button type="button" class="btn btn--danger btn-rechazar" data-id="${p.id_pedido}">Rechazar</button>
+        mainContent.innerHTML = `
+            <div class="pedidos-header">
+            <h1>Pedidos</h1>
+            <nav class="pill-tabs" id="orders-tabs">
+                ${tabs.map(([key,label]) =>
+                `<button class="orders-tab ${key===scope?'active':''}" data-scope="${key}">${label}</button>`
+                ).join('')}
+            </nav>
             </div>
-          </td>
-        </tr>
-      `).join('');
-    }
+            <div class="table-wrap" id="orders-wrap">
+            <p>Cargando…</p>
+            </div>
+        `;
 
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
+        // Delegación para cambiar de pestaña
+        document.getElementById('orders-tabs').onclick = (e) => {
+            const btn = e.target.closest('.orders-tab');
+            if (!btn) return;
+            fetchPedidos(btn.dataset.scope);
+        };
 
-    mainContent.innerHTML = html;
+        // Carga datos
+        const wrap = document.getElementById('orders-wrap');
+        try {
+            const res = await fetch(`/api/pedidos?scope=${encodeURIComponent(scope)}`);
+            const pedidos = await res.json();
 
-    // acciones
-    document.querySelectorAll('.btn-aceptar').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        aceptarPedido(btn.dataset.id);
-      });
-    });
-    document.querySelectorAll('.btn-rechazar').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        rechazarPedido(btn.dataset.id);
-      });
-    });
+            if (!Array.isArray(pedidos) || pedidos.length === 0) {
+            wrap.innerHTML = `<p>No hay pedidos en esta vista.</p>`;
+            return;
+            }
 
-  } catch (error) {
-    console.error('Error al cargar los pedidos:', error );
-    mainContent.innerHTML = '<p>Error al cargar los pedidos.</p>';
-  }
-}
-    
-    // Asegúrate de que estas funciones estén definidas al nivel superior
-    /*async function aceptarPedido(idPedido) {
-    try {
-        const res = await fetch(
-        `/api/pedidos/${idPedido}/confirmar-mail`, // endpoint exacto
-        {
-            method: 'PUT',
-            credentials: 'same-origin'
+            wrap.innerHTML = buildPedidosTable(pedidos);
+            // Atacha acciones
+            wirePedidoActions(wrap);
+        } catch (err) {
+            console.error(err);
+            wrap.innerHTML = `<p>Error al cargar pedidos.</p>`;
         }
-        );
-        if (res.ok) {
-        const data = await res.json();
-        alert(data.message);
-        fetchPedidos();
-        } else {
-        const txt = await res.text();
-        console.error('Error en respuesta:', txt);
-        alert('Error al aceptar el pedido: ' + res.statusText);
         }
-    } catch (err) {
-        console.error('Fetch error:', err);
-        alert('Error de conexión al aceptar el pedido.');
-    }
-    }*/
 
+        function buildPedidosTable(pedidos){
+        const fmt = n => Number(n||0).toLocaleString('es-CL');
 
+        const badge = (estado) => {
+            const e = String(estado||'').toLowerCase();
+            if (e === 'generado' || e === 'pendiente')
+            return `<span class="badge gen">Generado</span>`;
+            if (e === 'aceptado_espera_pago')
+            return `<span class="badge esp">Aceptado (espera pago)</span>`;
+            if (e === 'pagado_espera_envio') // <-- corregido (antes decía ..._despacho)
+            return `<span class="badge pay">Pagado (espera retiro/envío)</span>`;
+            if (e === 'enviado' || e === 'retirado')
+            return `<span class="badge ship">${e==='enviado'?'Enviado':'Retirado'}</span>`;
+            if (e === 'finalizado')
+            return `<span class="badge fin">Finalizado</span>`;
+            if (e === 'rechazado')
+            return `<span class="badge rej">Rechazado</span>`;
+            return `<span class="badge">${estado}</span>`;
+        };
+
+        return `
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Contacto</th>
+                <th>Total</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Entrega</th>
+                <th>Comentario</th>
+                <th>Detalles</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            ${pedidos.map(p => `
+                <tr>
+                <td>${p.id_pedido}</td>
+                <td>${p.user}</td>
+                <td>${p.email}<br>${p.number || '-'}</td>
+                <td>$ ${fmt(p.precio_total)}</td>
+                <td>${new Date(p.fecha_pedido).toLocaleString('es-CL')}</td>
+                <td>${badge(p.estado)}</td>
+                <td>${p.delivery || '-'}</td>
+                <td>${p.descripcion || '-'}</td>
+                <td>
+                    <ul style="margin-left:16px">
+                    ${p.detalles.map(d => `
+                        <li>${d.nombre_prod} — ${d.cantidad} x $${fmt(d.precio_detalle)}</li>
+                    `).join('')}
+                    </ul>
+                </td>
+                <td class="actions-row">
+                    ${buildActionButtons(p.estado, p.id_pedido)}
+                </td>
+                </tr>
+            `).join('')}
+            </tbody>
+        </table>`;
+        }
+
+        function buildActionButtons(estado, id){
+        const e = String(estado||'').toLowerCase();
+        const btn = (label, to) =>
+            `<button data-action="${to}" data-id="${id}">${label}</button>`;
+
+        // Flujo: generado → aceptar/rechazar → espera pago → pagado → enviado/retirado → finalizado
+        if (e === 'generado' || e === 'pendiente') {
+            return (
+            btn('Aceptar (espera pago)', 'aceptado_espera_pago') + // <-- manda directamente el estado canónico
+            btn('Rechazar', 'rechazado')
+            );
+        }
+        if (e === 'aceptado_espera_pago') {
+            return btn('Marcar PAGADO', 'pagado_espera_envio');     // <-- corregido
+        }
+        if (e === 'pagado_espera_envio') {                        // <-- corregido
+            return (
+            btn('Marcar ENVIADO', 'enviado') +
+            btn('Marcar RETIRADO', 'retirado')
+            );
+        }
+        if (e === 'enviado' || e === 'retirado') {
+            return btn('Finalizar', 'finalizado');
+        }
+        return ''; // rechazado/finalizado: sin acciones
+        }
+
+        function wirePedidoActions(container) {
+        // Mapea cualquier "action" del botón al estado canónico que espera el backend
+        const toEstado = (action) => {
+            const map = {
+            'aceptado_espera_pago': 'aceptado_espera_pago',
+            'rechazado':            'rechazado',
+            'pagado_espera_envio':  'pagado_espera_envio',
+            'enviado':              'enviado',
+            'retirado':             'retirado',
+            'finalizado':           'finalizado'
+            };
+            return map[String(action).toLowerCase()] || null;
+        };
+
+        container.addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            const estado = toEstado(action);       // <-- convertimos a canónico
+
+            if (!estado) {
+            alert('Acción desconocida.');
+            return;
+            }
+
+            console.log('[UI] Cambio de estado ->', { id, estado });
+
+            try {
+            const res = await fetch(`/api/pedidos/${id}/estado`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                // Enviamos ambas claves por compatibilidad: {estado} y {to}
+                body: JSON.stringify({ estado, to: estado })
+            });
+
+            const text = await res.text();
+            let data = null;
+            try { data = JSON.parse(text); } catch {}
+
+            if (!res.ok || data?.success === false) {
+                const msg = data?.error || text || res.statusText;
+                console.error('[API] Error estado:', msg);
+                alert('No se pudo cambiar el estado: ' + msg);
+                return;
+            }
+
+            console.log('[API] OK:', data);
+            // refresca manteniendo la pestaña actual
+            const active = document.querySelector('.orders-tab.active')?.dataset.scope || 'generados';
+            fetchPedidos(active);
+            } catch (err) {
+            console.error('Fetch error:', err);
+            alert('Error de red al actualizar el estado.');
+            }
+        });
+        }
 
     async function rechazarPedido(idPedido) {
         try {
@@ -1596,3 +1693,15 @@ document.querySelector('.button').addEventListener('click', async () => {
     }
   });
 
+function nextEstado(action) {
+  // action viene de tu botón: 'aceptar', 'rechazar', 'marcar-pagado', 'enviar', 'retirar', 'finalizar'
+  const map = {
+    aceptar:       'aceptado_espera_pago',
+    rechazar:      'rechazado',
+    'marcar-pagado': 'pagado_espera_envio',
+    enviar:        'enviado',
+    retirar:       'retirado',
+    finalizar:     'finalizado'
+  };
+  return map[action] || null;
+}
