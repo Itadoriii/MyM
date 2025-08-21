@@ -572,3 +572,134 @@ body{
   overflow: auto;                  /* scroll en ambos ejes si hace falta */
 }
 
+.tabs{ display:flex; gap:8px; margin:12px 0 16px; flex-wrap:wrap; }
+.tab{ padding:8px 12px; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; }
+.tab.is-active{ background:#1f2937; color:#fff; border-color:#1f2937; }
+.tab.tab--muted{ opacity:.7 }
+.pedidos-table{ width:100%; border-collapse:collapse; }
+.pedidos-table th, .pedidos-table td{ border-bottom:1px solid #eee; padding:8px; vertical-align:top;}
+.pedidos-actions button{ margin:2px 4px; }
+
+/* ====== Pedidos: layout a pantalla completa ====== */
+:root{
+  --accent: #7b5539;      /* café/terracota acorde a tu tema */
+  --accent-600:#6a4b32;
+  --danger:#d22f27;
+  --success:#0f766e;
+  --muted:#6b5b4a;
+}
+
+#main-content{
+  padding: 16px 20px;
+  height: calc(100vh - 80px);        /* ajusta si tu topbar mide distinto */
+  overflow: hidden;                   /* el scroll va en la tabla */
+}
+
+.orders-shell{
+  width: 100%;
+  max-width: none;                    /* que no se limite el ancho */
+  margin: 0;
+}
+
+/* Header con pestañas fijo */
+.pedidos-header{
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f4efe9;
+  padding: 8px 0 12px;
+}
+
+/* Pestañas “pills” bonitas */
+.pill-tabs{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #fff;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid #e6e1dc;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  width: fit-content;
+}
+.pill-tabs .orders-tab{
+  appearance: none;
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.pill-tabs .orders-tab:hover{ background: #f7f3f0; }
+.pill-tabs .orders-tab.active{
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.12) inset, 0 1px 3px rgba(0,0,0,.12);
+}
+
+/* Contenedor scrolleable de la tabla (ocupa casi todo el viewport) */
+.table-wrap{
+  margin-top: 10px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  overflow: auto;
+  max-height: calc(100vh - 140px);   /* header + paddings */
+}
+
+/* Tabla full width */
+.table-wrap table{
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px; /* evita que las celdas se aplasten */
+}
+
+/* Título de columnas pegajoso y del color del tema */
+.table-wrap thead th{
+  position: sticky;
+  top: 0;                              /* justo debajo del header de pestañas */
+  z-index: 5;
+  background: var(--accent);
+  color: #fff;
+  text-align: left;
+  padding: 12px 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+/* Filas */
+.table-wrap tbody td{
+  padding: 10px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+}
+.table-wrap tbody tr:nth-child(even){ background: #faf9f7; }
+.table-wrap tbody tr:hover{ background: #f6f3ef; }
+
+/* Badges de estado (de tu CSS previo) */
+.badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:.8rem; border:1px solid #e7e7e7; }
+.badge.gen{ background:#eef2ff; color:#1e40af; }
+.badge.esp{ background:#fff7ed; color:#9a3412; }
+.badge.pay{ background:#ecfdf5; color:#065f46; }
+.badge.ship{ background:#eff6ff; color:#1d4ed8; }
+.badge.fin{ background:#f0fdf4; color:#166534; }
+.badge.rej{ background:#fef2f2; color:#991b1b; }
+
+/* Botones de acción con variantes */
+.btn{
+  appearance:none; border:1px solid #e4e0dc; background:#f8f6f3; color:#3b2f25;
+  padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:600; font-size:.9rem;
+}
+.btn:hover{ filter: brightness(.97); }
+.btn--sm{ padding:6px 8px; font-size:.85rem; }
+.btn--accent{ background:var(--accent); border-color:var(--accent-600); color:#fff; }
+.btn--danger{ background:#fee2e2; color:#991b1b; border-color:#f3c2c2; }
+.btn--success{ background:#e7f7f5; color:#0f766e; border-color:#bfe7e2; }
+.btn--ghost{ background:transparent; }
+
+/* Que la columna de acciones no se encoja */
+.actions-row{ white-space: nowrap; min-width: 240px; }
+.actions-row .btn{ margin:2px 4px 0 0; }
+

@@ -16,7 +16,7 @@ import { enviarConfirmacion } from './controllers/pedidos.controller.js';
 import cors from 'cors';
 import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';
-
+import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 
 
 
@@ -65,6 +65,17 @@ const verifyToken = async (req, res, next) => {
   } catch (err) {
     return res.redirect('/login');
   }
+};
+
+// Reglas de transición de estado (PEGAR ARRIBA DEL ARCHIVO DE RUTAS)
+const NEXTS = {
+  generado: ['aceptado_espera_pago', 'rechazado'],
+  aceptado_espera_pago: ['pagado_espera_despacho'],
+  pagado_espera_despacho: ['enviado', 'retirado'],
+  enviado: ['finalizado'],
+  retirado: ['finalizado'],
+  rechazado: [],
+  finalizado: []
 };
 // RUTAS 
 
@@ -260,7 +271,7 @@ app.post('/api/generar-pedido', async (req, res) => {
         // Inserta pedido (ajusta columnas si tienes más)
         const [pedidoResult] = await connection.query(
           'INSERT INTO pedidos (id_usuario, precio_total, fecha_pedido, estado) VALUES (?, ?, NOW(), ?)',
-          [u.id_usuarios, precioTotal, 'pendiente']
+          [u.id_usuarios, precioTotal, 'generado']
         );
         const idPedido = pedidoResult.insertId;
 
@@ -453,48 +464,96 @@ app.get('/api/verificar-usuario', async (req, res) => {
   }
 });
 
+// GET /api/pedidos?scope=generados|espera_pago|espera_despacho|despacho|finalizados|rechazados
+// (Opcional: también acepta ?estado=... o múltiples ?estado=a&estado=b)
 app.get('/api/pedidos', async (req, res) => {
   try {
-    // Consulta para obtener los pedidos con la información del usuario y los nuevos campos
-    const [pedidos] = await pool.query(`
+    const scope = String(req.query.scope || '');
+
+    // Mapeo de pestañas → estados
+    const SCOPE = {
+      generados:        ['generado'],
+      espera_pago:      ['aceptado_espera_pago'],
+      espera_despacho:  ['pagado_espera_despacho'],
+      despacho:         ['enviado', 'retirado'],
+      finalizados:      ['finalizado'],
+      rechazados:       ['rechazado']
+    };
+
+    // Prioridad: scope → estado(s) explícitos
+    let estados = SCOPE[scope] || null;
+    const estadoQuery = req.query.estado;
+    if (estadoQuery) {
+      // permite ?estado=x o ?estado=x&estado=y
+      estados = Array.isArray(estadoQuery) ? estadoQuery : [estadoQuery];
+    }
+
+    // Base query
+    let sql = `
       SELECT 
-        p.id_pedido, 
-        p.id_usuario, 
-        p.precio_total, 
-        p.fecha_pedido, 
+        p.id_pedido,
+        p.id_usuario,
+        p.precio_total,
+        p.fecha_pedido,
         p.estado,
         p.delivery,
         p.descripcion,
-        u.user AS user, 
-        u.email, 
-        u.number
+        u.user    AS user,
+        u.email   AS email,
+        u.number  AS number
       FROM pedidos p
       JOIN usuarios u ON p.id_usuario = u.id_usuarios
-      ORDER BY p.fecha_pedido DESC
-    `);
+    `;
+    const params = [];
 
-    // Para cada pedido, obtener sus detalles (productos, cantidades, etc.)
-    const pedidosConDetalles = await Promise.all(
-      pedidos.map(async (pedido) => {
-        const [detalles] = await pool.query(`
-          SELECT 
-            dp.id_producto, 
-            dp.cantidad, 
-            dp.precio_detalle, 
-            pr.nombre_prod
-          FROM detalle_pedido dp
-          JOIN productos pr ON dp.id_producto = pr.id_producto
-          WHERE dp.id_pedido = ?
-        `, [pedido.id_pedido]);
+    // Filtro por estado(s) si corresponde
+    if (estados && estados.length) {
+      const ph = estados.map(() => '?').join(',');
+      sql += ` WHERE p.estado IN (${ph}) `;
+      params.push(...estados);
+    }
 
-        return {
-          ...pedido,
-          detalles
-        };
-      })
-    );
+    sql += ` ORDER BY p.fecha_pedido DESC `;
 
-    res.json(pedidosConDetalles); // Enviar los pedidos con todos los datos
+    const [pedidos] = await pool.query(sql, params);
+
+    if (pedidos.length === 0) {
+      return res.json([]); // sin pedidos, respondemos rápido
+    }
+
+    // Traer TODOS los detalles en un solo SELECT (evitamos N+1)
+    const ids = pedidos.map(p => p.id_pedido);
+    const phIds = ids.map(() => '?').join(',');
+    const [detalles] = await pool.query(`
+      SELECT 
+        dp.id_pedido,
+        dp.id_producto,
+        dp.cantidad,
+        dp.precio_detalle,
+        pr.nombre_prod
+      FROM detalle_pedido dp
+      JOIN productos pr ON dp.id_producto = pr.id_producto
+      WHERE dp.id_pedido IN (${phIds})
+    `, ids);
+
+    // Indexar detalles por id_pedido
+    const detallesByPedido = detalles.reduce((acc, d) => {
+      (acc[d.id_pedido] ||= []).push({
+        id_producto: d.id_producto,
+        cantidad: d.cantidad,
+        precio_detalle: d.precio_detalle,
+        nombre_prod: d.nombre_prod
+      });
+      return acc;
+    }, {});
+
+    // Unir
+    const pedidosConDetalles = pedidos.map(p => ({
+      ...p,
+      detalles: detallesByPedido[p.id_pedido] || []
+    }));
+
+    res.json(pedidosConDetalles);
   } catch (error) {
     console.error('Error al obtener pedidos:', error);
     res.status(500).json({ error: 'Error al obtener pedidos' });
@@ -538,6 +597,98 @@ app.put('/api/productos/:id', async (req, res) => {
   } catch (err) {
     console.error('Error al actualizar producto:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+// ----- helpers: normalizar y mapear estados -----
+function slugifyEstado(s = '') {
+  return String(s)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')                      // espacios/símbolos → _
+    .replace(/^_+|_+$/g, '');
+}
+
+function canonEstado(s) {
+  const slug = slugifyEstado(s);
+  const map = {
+    // Generado / pendiente
+    generado: 'generado',
+    pendiente: 'generado',
+
+    // Aceptado en espera de pago
+    aceptado: 'aceptado_espera_pago',
+    aceptado_espera_pago: 'aceptado_espera_pago',
+    aceptado_en_espera_de_pago: 'aceptado_espera_pago',
+    en_espera_de_pago: 'aceptado_espera_pago',
+    espera_de_pago: 'aceptado_espera_pago',
+
+    // Pagado en espera de envío/retiro
+    pagado: 'pagado_espera_envio',
+    pagado_espera_envio: 'pagado_espera_envio',
+    pagado_en_espera_de_envio: 'pagado_espera_envio',
+    pagado_en_espera_de_retiro: 'pagado_espera_envio',
+
+    // Enviado / Despachado / Retirado
+    enviado: 'enviado',
+    despachado: 'enviado',
+    envio: 'enviado',
+    retirado: 'retirado',
+
+    // Finalizado / Cerrado
+    finalizado: 'finalizado',
+    cerrado: 'finalizado',
+
+    // Rechazado
+    rechazado: 'rechazado',
+    rechazado_por_tienda: 'rechazado'
+  };
+  return map[slug] || null;
+}
+
+const ALLOWED_ESTADOS = new Set([
+  'generado',
+  'aceptado_espera_pago',
+  'pagado_espera_envio',
+  'enviado',
+  'retirado',
+  'finalizado',
+  'rechazado'
+]);
+
+// ----- RUTA: PUT /api/pedidos/:id/estado -----
+app.put('/api/pedidos/:id/estado', async (req, res) => {
+  const { id } = req.params;
+
+  // Soporta body { estado: '...' } o { to: '...' }
+  const raw = (req.body && (req.body.estado ?? req.body.to)) || '';
+  const estadoCanon = canonEstado(raw);
+
+  if (!estadoCanon || !ALLOWED_ESTADOS.has(estadoCanon)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Estado inválido',
+      got: raw || null,
+      allowed: [...ALLOWED_ESTADOS]
+    });
+  }
+
+  try {
+    await pool.query(
+      'UPDATE pedidos SET estado = ? WHERE id_pedido = ?',
+      [estadoCanon, id]
+    );
+
+    // Dispara mail sin bloquear la respuesta
+    if (typeof enviarMailCambioEstado === 'function') {
+      enviarMailCambioEstado(id, estadoCanon).catch(err =>
+        console.error('[MAIL estado]', err)
+      );
+    }
+
+    res.json({ success: true, id, estado: estadoCanon });
+  } catch (e) {
+    console.error('PUT /api/pedidos/:id/estado', e);
+    res.status(500).json({ success: false, error: 'DB error' });
   }
 });
 
