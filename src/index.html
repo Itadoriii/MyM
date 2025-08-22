@@ -364,122 +364,167 @@
     /* =========================
     CATALOGO + DESTACADOS
     ========================= */
-    async function loadProductsPage(page=1, q=''){
-    const GRID = document.getElementById('catalog-grid');
-    const PAGER = document.getElementById('pager');
-    const PAGE_SIZE = 6;
-    const url = new URL('/productos', window.location.origin);
-    url.searchParams.set('page', page);
-    url.searchParams.set('limit', PAGE_SIZE);
-    if (q) url.searchParams.set('q', q);
+   async function loadProductsPage(page = 1, q = '') {
+  const GRID  = document.getElementById('catalog-grid');
+  const PAGER = document.getElementById('pager');
+  const PAGE_SIZE = 6;
 
-    const res = await fetch(url);
-    if (!res.ok){ GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
-    const data = await res.json();
+  try {
+    // 1) Traemos TODOS para paginar solo visibles en el cliente
+    const urlAll = new URL('/productos', window.location.origin);
+    urlAll.searchParams.set('limit', 10000); // suficiente para cubrir el catálogo
+    if (q) urlAll.searchParams.set('q', q);
 
-    // filtrar solo visibles
-    const visibles = (data.productos || []).filter(p => p.visible == 1);
-    renderGrid(data.productos);
-    renderGrid(visibles);
-    renderPager(data.page, data.totalPages, q);
-    }
-    function renderGrid(items){
-    const GRID = document.getElementById('catalog-grid');
-    if (!items?.length){ GRID.innerHTML = '<p>No hay productos para mostrar.</p>'; return; }
-    GRID.innerHTML = items.map(p=>{
-        const img = p.imagen_url || 'assets/placeholder.jpg';
-        return `
-        <article class="product-card">
-            <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
-            <div class="info">
-            <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
-            <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
-            <div class="meta">
-                <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
-                <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
-                <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
-                <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
-            </div>
-            <div class="actions">
-                <button class="add-btn" data-id="${p.id_producto}" data-name="${p.nombre_prod}" data-price="${Number(p.precio_unidad)||0}" data-img="${p.imagen_url || p.id_producto}">Agregar al carrito</button>
-            </div>
-            </div>
-        </article>
-        `;
-    }).join('');
-    GRID.querySelectorAll('.add-btn').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-        addToCart({
-            id_producto: Number(btn.dataset.id),
-            name: btn.dataset.name,
-            precio: Number(btn.dataset.price)||0,
-            Linkimg: btn.dataset.img,
-            quantity: 1
-        });
-        });
+    const resAll = await fetch(urlAll);
+    if (!resAll.ok) { GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
+
+    const dataAll = await resAll.json();
+    const allItems = Array.isArray(dataAll) ? dataAll : (dataAll.productos || []);
+
+    // 2) Filtramos solo visibles (1/true/'1')
+    const visibles = allItems.filter(p => p.visible === 1 || p.visible === true || p.visible === '1');
+
+    // 3) Paginación cliente solo con visibles
+    const totalPages = Math.max(1, Math.ceil(visibles.length / PAGE_SIZE));
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const start = (safePage - 1) * PAGE_SIZE;
+    const pageItems = visibles.slice(start, start + PAGE_SIZE);
+
+    // 4) Render
+    renderGrid(pageItems);
+    renderPager(safePage, totalPages, q);
+
+  } catch (err) {
+    console.error(err);
+    GRID.innerHTML = '<p>Error inesperado.</p>';
+    PAGER.innerHTML = '';
+  }
+}
+
+function renderGrid(items){
+  const GRID = document.getElementById('catalog-grid');
+  if (!items?.length){ GRID.innerHTML = '<p>No hay productos para mostrar.</p>'; return; }
+  GRID.innerHTML = items.map(p=>{
+      const img = p.imagen_url || 'assets/placeholder.jpg';
+      const precio = Number(p.precio_unidad)||0;
+      return `
+      <article class="product-card">
+        <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
+        <div class="info">
+          <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
+          <div class="price">$${precio.toLocaleString('es-CL')}</div>
+          <div class="meta">
+            <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
+            <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
+            <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
+            <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
+          </div>
+          <div class="actions">
+            <button class="add-btn"
+              data-id="${p.id_producto}"
+              data-name="${p.nombre_prod}"
+              data-price="${precio}"
+              data-img="${p.imagen_url || p.id_producto}">
+              Agregar al carrito
+            </button>
+          </div>
+        </div>
+      </article>`;
+  }).join('');
+
+  GRID.querySelectorAll('.add-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      addToCart({
+        id_producto: Number(btn.dataset.id),
+        name: btn.dataset.name,
+        precio: Number(btn.dataset.price)||0,
+        Linkimg: btn.dataset.img,
+        quantity: 1
+      });
     });
-    }
-    function renderPager(page, totalPages, q){
-    const PAGER = document.getElementById('pager');
-    if (totalPages <= 1){ PAGER.innerHTML=''; return; }
-    const btn = (label, goto, disabled=false, active=false)=>`
-        <button ${disabled?'disabled':''} class="${active?'active':''}" data-goto="${goto}" type="button">${label}</button>
-    `;
-    const parts = [];
-    parts.push(btn('« Anterior', Math.max(1, page-1), page===1));
-    const W = 2, start = Math.max(1, page-W), end = Math.min(totalPages, page+W);
-    if (start>1){ parts.push(btn('1',1,false,page===1)); if(start>2) parts.push('<span>…</span>'); }
-    for(let p=start;p<=end;p++) parts.push(btn(String(p), p, false, p===page));
-    if (end<totalPages){ if(end<totalPages-1) parts.push('<span>…</span>'); parts.push(btn(String(totalPages), totalPages, false, page===totalPages)); }
-    parts.push(btn('Siguiente »', Math.min(totalPages, page+1), page===totalPages));
-    PAGER.innerHTML = parts.join('');
-    PAGER.querySelectorAll('button[data-goto]').forEach(b=>{
-        b.addEventListener('click', ()=> loadProductsPage(Number(b.dataset.goto), q));
-    });
-    }
-    async function loadFeatured(){
-    const WRAP = document.querySelector('.featured-container');
+  });
+}
+
+function renderPager(page, totalPages, q){
+  const PAGER = document.getElementById('pager');
+  if (totalPages <= 1){ PAGER.innerHTML=''; return; }
+
+  const btn = (label, goto, disabled=false, active=false)=>`
+    <button ${disabled?'disabled':''} class="${active?'active':''}" data-goto="${goto}" type="button">${label}</button>
+  `;
+
+  const parts = [];
+  parts.push(btn('« Anterior', Math.max(1, page-1), page===1));
+  const W = 2, start = Math.max(1, page-W), end = Math.min(totalPages, page+W);
+  if (start>1){ parts.push(btn('1',1,false,page===1)); if(start>2) parts.push('<span>…</span>'); }
+  for(let p=start;p<=end;p++) parts.push(btn(String(p), p, false, p===page));
+  if (end<totalPages){ if(end<totalPages-1) parts.push('<span>…</span>'); parts.push(btn(String(totalPages), totalPages, false, page===totalPages)); }
+  parts.push(btn('Siguiente »', Math.min(totalPages, page+1), page===totalPages));
+
+  PAGER.innerHTML = parts.join('');
+  PAGER.querySelectorAll('button[data-goto]').forEach(b=>{
+    b.addEventListener('click', ()=> loadProductsPage(Number(b.dataset.goto), q));
+  });
+}
+
+async function loadFeatured(){
+  const WRAP = document.querySelector('.featured-container');
+  try{
     const url = new URL('/productos', window.location.origin);
-    url.searchParams.set('limit', 6);
+    url.searchParams.set('limit', 10000); // traemos todos para filtrar visibles
     const res = await fetch(url);
     if (!res.ok){ WRAP.innerHTML = '<p>Error cargando destacados.</p>'; return; }
+
     const data = await res.json();
     const productos = Array.isArray(data) ? data : (data.productos || []);
-    const visibles = productos.filter(p => p.visible == 1);
-    const items = visibles.slice(0,8);
+    const visibles = productos.filter(p => p.visible === 1 || p.visible === true || p.visible === '1');
+    const items = visibles.slice(0, 6); // mostramos hasta 8
+
     WRAP.innerHTML = items.map(p=>{
-        const img = p.imagen_url || 'assets/placeholder.jpg';
-        return `
-        <article class="featured-card">
-            <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
-            <div class="info">
-            <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
-            <div class="price">$${Number(p.precio_unidad).toLocaleString('es-CL')}</div>
-            <div class="meta">
-                <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
-                <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
-                <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
-                <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
-            </div>
-            <div class="actions">
-                <button class="add-btn" data-id="${p.id_producto}" data-name="${p.nombre_prod}" data-price="${Number(p.precio_unidad)||0}" data-img="${p.imagen_url || p.id_producto}">Agregar al carrito</button>
-            </div>
-            </div>
-        </article>
-        `;
+      const img = p.imagen_url || 'assets/placeholder.jpg';
+      const precio = Number(p.precio_unidad)||0;
+      return `
+      <article class="featured-card">
+        <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
+        <div class="info">
+          <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
+          <div class="price">$${precio.toLocaleString('es-CL')}</div>
+          <div class="meta">
+            <div><strong>Tipo:</strong> ${p.tipo || '—'}</div>
+            <div><strong>Medidas:</strong> ${p.medidas || '—'}</div>
+            <div><strong>Dimensiones:</strong> ${p.dimensiones || '—'}</div>
+            <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
+          </div>
+          <div class="actions">
+            <button class="add-btn"
+              data-id="${p.id_producto}"
+              data-name="${p.nombre_prod}"
+              data-price="${precio}"
+              data-img="${p.imagen_url || p.id_producto}">
+              Agregar al carrito
+            </button>
+          </div>
+        </div>
+      </article>`;
     }).join('');
+
     WRAP.querySelectorAll('.add-btn').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
+      btn.addEventListener('click', ()=>{
         addToCart({
-            id_producto: Number(btn.dataset.id),
-            name: btn.dataset.name,
-            precio: Number(btn.dataset.price)||0,
-            Linkimg: btn.dataset.img,
-            quantity: 1
+          id_producto: Number(btn.dataset.id),
+          name: btn.dataset.name,
+          precio: Number(btn.dataset.price)||0,
+          Linkimg: btn.dataset.img,
+          quantity: 1
         });
-        });
+      });
     });
-    }
+
+  } catch(e){
+    console.error(e);
+    WRAP.innerHTML = '<p>Error inesperado.</p>';
+  }
+}
 
     /* =========================
     GENERAR PEDIDO (con retry si deadlock)
