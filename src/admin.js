@@ -1279,17 +1279,11 @@ async function generarPDF(adelantoId) {
   showPopup('Generando comprobante PDF, por favor espere...');
 
   try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      showPopup('No se encontró token de autenticación');
-      return;
-    }
 
     let response;
     try {
       response = await fetch(`/api/adelantos/${adelantoId}`, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` }
+        method: 'GET'
       });
     } catch (networkError) {
       console.error('Error de red:', networkError);
