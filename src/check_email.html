@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Maderas MyM — Verifica tu correo</title>
+  <link rel="stylesheet" href="stylelr.css">
+  <style>
+    .container { max-width: 520px; margin: 40px auto; text-align:center; }
+    .hint { font-size: 14px; color:#666; }
+    form { margin-top: 16px; }
+    input[type="email"]{ width:100%; padding:10px; margin:8px 0; }
+    button{ padding:10px 16px; }
+    .ok { color: #0a7a28; }
+    .err { color: #b00020; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Revisa tu correo ✉️</h1>
+    <p>Te enviamos un enlace para activar tu cuenta.</p>
+    <p class="hint">Si no lo ves, revisa la carpeta de spam o promociones.</p>
+
+    <!-- Mostrar email que vino por query (?email=...) -->
+    <p id="targetEmail" class="ok"></p>
+
+    <hr>
+
+    <h3>¿No te llegó?</h3>
+    <form id="resend-form" method="post" action="/api/verify/resend">
+      <input type="email" name="email" id="email" placeholder="tu@correo.com" required>
+      <button type="submit">Reenviar verificación</button>
+    </form>
+
+    <p id="msg" class="hint"></p>
+
+    <p style="margin-top:20px"><a href="/login">Ir al inicio de sesión</a></p>
+  </main>
+
+  <script>
+    // precargar email del query en el input
+    const params = new URLSearchParams(location.search);
+    const email = params.get('email') || '';
+    if (email) {
+      document.getElementById('email').value = email;
+      document.getElementById('targetEmail').textContent = email;
+    }
+
+    // enviar el form como x-www-form-urlencoded y mostrar mensaje
+    const form = document.getElementById('resend-form');
+    const msg = document.getElementById('msg');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = 'Enviando…';
+      const body = new URLSearchParams(new FormData(form));
+      const res = await fetch('/api/verify/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      });
+      const data = await res.json().catch(()=> ({}));
+      if (res.ok && data.ok) {
+        msg.textContent = 'Listo, revisa tu bandeja.';
+      } else if (data.alreadyVerified) {
+        msg.textContent = 'Tu correo ya está verificado. Puedes iniciar sesión.';
+      } else {
+        msg.textContent = 'No pudimos reenviar el correo. Inténtalo más tarde.';
+      }
+    });
+  </script>
+</body>
+</html>

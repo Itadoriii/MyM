@@ -1,6 +1,7 @@
 document.getElementById("register-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    const mensajeError = document.querySelector(".error");
     const user = e.target.user.value;
     const email = e.target.email.value;
     const password = e.target.password.value;
