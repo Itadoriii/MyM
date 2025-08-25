@@ -16,9 +16,17 @@ import { enviarConfirmacion } from './controllers/pedidos.controller.js';
 import cors from 'cors';
 import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';
+<<<<<<< Updated upstream
 
 
 
+=======
+import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
+import requireVerified from './middlewares/requireVerified.js';
+// index.js (antes de tus rutas)
+import loadUser from './middlewares/loadUser.js';
+import crypto from 'crypto';
+>>>>>>> Stashed changes
 
 
 
@@ -40,9 +48,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(cookieParser());
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_secret_key',
+  secret: process.env.SESSION_SECRET || 'supersecreto',
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -66,6 +74,23 @@ const verifyToken = async (req, res, next) => {
     return res.redirect('/login');
   }
 };
+<<<<<<< Updated upstream
+=======
+import { verifyTransport } from './utils/mailer.js';
+verifyTransport();
+
+
+// Reglas de transición de estado (PEGAR ARRIBA DEL ARCHIVO DE RUTAS)
+const NEXTS = {
+  generado: ['aceptado_espera_pago', 'rechazado'],
+  aceptado_espera_pago: ['pagado_espera_despacho'],
+  pagado_espera_despacho: ['enviado', 'retirado'],
+  enviado: ['finalizado'],
+  retirado: ['finalizado'],
+  rechazado: [],
+  finalizado: []
+};
+>>>>>>> Stashed changes
 // RUTAS 
 
 
@@ -77,8 +102,18 @@ app.get('/register', authorization.soloPublico, (req, res) => {
   res.sendFile(__dirname + '/src/register.html');
 });
 
-app.post('/api/register', metodos.register);
-app.post('/api/login', metodos.login);
+// Asegura el parseo SOLO en esta ruta
+app.post(
+  '/api/register',
+  express.urlencoded({ extended: true }),
+  express.json(),
+  (req, res, next) => {
+    console.log('[REGISTER after parsers]', req.body);
+    next();
+  },
+  metodos.register
+);
+
 
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -102,7 +137,9 @@ app.get('/profile', verifyToken, (req, res) => {
 app.get('/aboutus', (req, res) => {
   res.sendFile(__dirname + '/src/sobrenosotros.html');
 });
-
+app.get('/register/check-email', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'check_email.html'));
+});
 // GET /productos?q=texto&page=1&limit=12
 app.get('/productos', async (req, res) => {
   const q = (req.query.q || '').trim();
@@ -453,7 +490,13 @@ app.get('/api/verificar-usuario', async (req, res) => {
   }
 });
 
+<<<<<<< Updated upstream
 app.get('/api/pedidos', async (req, res) => {
+=======
+// GET /api/pedidos?scope=generados|espera_pago|espera_despacho|despacho|finalizados|rechazados
+// (Opcional: también acepta ?estado=... o múltiples ?estado=a&estado=b)
+app.post('/api/pedidos', requireVerified, async (req,res)=> {
+>>>>>>> Stashed changes
   try {
     // Consulta para obtener los pedidos con la información del usuario y los nuevos campos
     const [pedidos] = await pool.query(`
@@ -951,3 +994,46 @@ app.get('/api/mis-pedidos', async (req, res) => {
     res.status(500).json({ error: 'Error interno' });
   }
 });
+
+
+function sha256(s){ return crypto.createHash('sha256').update(String(s)).digest('hex'); }
+
+app.get('/verify', async (req, res) => {
+  try {
+    const uid = Number(req.query.uid || 0);
+    const token = req.query.token || '';
+    if (!uid || !token) return res.status(400).send('Solicitud inválida');
+
+    const tokenHash = sha256(token);
+
+    // busca por id_usuarios + token
+    const [rows] = await pool.query(
+      `SELECT email_verif_expires
+         FROM usuarios
+        WHERE id_usuarios = ? AND email_verif_token = ?
+        LIMIT 1`,
+      [uid, tokenHash]
+    );
+
+    if (!rows.length) return res.status(400).send('Token inválido');
+    if (new Date(rows[0].email_verif_expires) < new Date()) {
+      return res.status(410).send('Token expirado. Solicita reenvío.');
+    }
+
+    // marca verificado y limpia token
+    await pool.query(
+      `UPDATE usuarios
+          SET email_verificado_at = NOW(),
+              email_verif_token   = NULL,
+              email_verif_expires = NULL
+        WHERE id_usuarios = ?`,
+      [uid]
+    );
+
+    return res.redirect('/login?verified=1');
+  } catch (e) {
+    console.error('[VERIFY] Error:', e);
+    return res.status(500).send('Error del servidor');
+  }
+});
+
