@@ -26,6 +26,9 @@ import requireVerified from './middlewares/requireVerified.js';
 // index.js (antes de tus rutas)
 import loadUser from './middlewares/loadUser.js';
 import crypto from 'crypto';
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 
@@ -75,7 +78,10 @@ const verifyToken = async (req, res, next) => {
   }
 };
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 import { verifyTransport } from './utils/mailer.js';
 verifyTransport();
 
@@ -496,6 +502,9 @@ app.get('/api/pedidos', async (req, res) => {
 // GET /api/pedidos?scope=generados|espera_pago|espera_despacho|despacho|finalizados|rechazados
 // (Opcional: también acepta ?estado=... o múltiples ?estado=a&estado=b)
 app.post('/api/pedidos', requireVerified, async (req,res)=> {
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   try {
     // Consulta para obtener los pedidos con la información del usuario y los nuevos campos
