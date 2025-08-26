@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { sha256 } from '../utils/hash.js';
 import { transporter } from '../utils/mailer.js';
 dotenv.config();
-const BASE_URL = (process.env.BASE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const BASE_URL = (process.env.BASE_URL || 'http://maderasmym.cl').replace(/\/+$/, '');
 
 export async function login(req, res) {
   const user = (req.body.user || '').trim();
