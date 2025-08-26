@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Verifica tu correo - Maderas MyM</title>
+  <style>body{font-family:sans-serif} .wrap{max-width:520px;margin:40px auto;text-align:center}</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Revisa tu correo ✉️</h1>
+    <p>Te enviamos un enlace para activar tu cuenta. Revisa spam/promociones si no lo ves.</p>
+    <form id="resend" method="post" action="/api/verify/resend">
+      <input type="email" name="email" id="email" placeholder="tu@correo.com" required>
+      <button type="submit">Reenviar verificación</button>
+    </form>
+    <p id="msg"></p>
+  </div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const e = p.get('email'); if (e) document.getElementById('email').value = e;
+    const f = document.getElementById('resend'), m = document.getElementById('msg');
+    f.addEventListener('submit', async (ev)=>{
+      ev.preventDefault(); m.textContent='Enviando...';
+      const body = new URLSearchParams(new FormData(f));
+      const r = await fetch('/api/verify/resend',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+      const d = await r.json().catch(()=>({}));
+      m.textContent = r.ok ? (d.alreadyVerified ? 'Ya está verificado.' : 'Listo, revisa tu correo.') : 'No se pudo reenviar.';
+    });
+  </script>
+</body>
+</html>

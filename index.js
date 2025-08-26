@@ -17,13 +17,14 @@ import cors from 'cors';
 import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';
 import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
-
+import { register, login, resendVerification } from './controllers/authentication.controller.js';
+import { sha256 } from './utils/hash.js';
 
 
 
 
 dotenv.config();
-
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // SERVIDOR 
@@ -36,6 +37,7 @@ app.listen(port, () => {
 
 // CONFIGURACION
 app.use(cors());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(cookieParser());
@@ -87,9 +89,14 @@ app.get('/login', isAuthenticated, (req, res) => { // Aplica el middleware aquí
 app.get('/register', authorization.soloPublico, (req, res) => {
   res.sendFile(__dirname + '/src/register.html');
 });
+// Pantalla "revisa tu correo"
+app.get('/register/check-email', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'check_email.html'));
+});
 
-app.post('/api/register', metodos.register);
-app.post('/api/login', metodos.login);
+app.post('/api/register', register);
+app.post('/api/login', login);
+app.post('/api/verify/resend', resendVerification);
 
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -1101,4 +1108,50 @@ app.get('/api/mis-pedidos', async (req, res) => {
     console.error('Error al obtener pedidos del usuario:', err);
     res.status(500).json({ error: 'Error interno' });
   }
+});
+// Verificación del enlace
+app.get('/verify', async (req, res) => {
+  try {
+    const uid   = Number(req.query.uid || 0);
+    const token = req.query.token || '';
+    if (!uid || !token) return res.status(400).send('Solicitud inválida');
+
+    const tokenHash = sha256(token);
+    const [rows] = await pool.query(
+      'SELECT email_verif_expires FROM usuarios WHERE id_usuarios=? AND email_verif_token=? LIMIT 1',
+      [uid, tokenHash]
+    );
+
+    if (!rows.length) return res.status(400).send('Token inválido');
+    if (new Date(rows[0].email_verif_expires) < new Date()) {
+      return res.status(410).send('Token expirado. Solicita reenvío.');
+    }
+
+    await pool.query(
+      `UPDATE usuarios
+          SET email_verificado_at=NOW(),
+              email_verif_token=NULL,
+              email_verif_expires=NULL
+        WHERE id_usuarios=?`,
+      [uid]
+    );
+
+    return res.redirect('/login?verified=1');
+  } catch (e) {
+    console.error('[VERIFY] Error:', e);
+    return res.status(500).send('Error del servidor');
+  }
+});
+
+// logger simple con hora
+app.use((req, res, next) => {
+  const started = Date.now();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+
+  res.on('finish', () => {
+    const ms = Date.now() - started;
+    console.log(`[${new Date().toISOString()}] ${res.statusCode} ${req.method} ${req.originalUrl} (${ms}ms)`);
+  });
+
+  next();
 });
