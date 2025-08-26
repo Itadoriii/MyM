@@ -8,6 +8,11 @@ import { transporter } from '../utils/mailer.js';
 dotenv.config();
 const BASE_URL = (process.env.BASE_URL || 'http://maderasmym.cl').replace(/\/+$/, '');
 
+
+
+// 👇 Asegúrate de tener este util (tal cual te lo pasé)
+import { signJWT, setAuthCookie } from '../middlewares/authorization.js';
+
 export async function login(req, res) {
   const user = (req.body.user || '').trim();
   const password = req.body.password || '';
@@ -21,22 +26,24 @@ export async function login(req, res) {
 
   try {
     const [rows] = await pool.query(
-      'SELECT id_usuarios, `password` AS pass, email_verificado_at FROM usuarios WHERE `user`=? LIMIT 1',
+      'SELECT id_usuarios, `password` AS pass, email_verificado_at, `role` FROM usuarios WHERE `user`=? LIMIT 1',
       [user]
     );
+
     if (!rows.length) {
       console.warn('[LOGIN] usuario no existe', user);
       return res.status(400).json({ status: 'Error', message: 'Credenciales inválidas' });
     }
 
     const u = rows[0];
+
     const ok = await bcrypt.compare(password, u.pass);
     if (!ok) {
       console.warn('[LOGIN] password incorrecta', user);
       return res.status(400).json({ status: 'Error', message: 'Credenciales inválidas' });
     }
 
-    // 🔒 bloqueo si NO verificado
+    // ✅ Solo usuarios con email verificado
     if (!u.email_verificado_at) {
       console.warn('[LOGIN] email no verificado', { user, id: u.id_usuarios });
       return res.status(403).json({
@@ -46,10 +53,17 @@ export async function login(req, res) {
       });
     }
 
-    console.log('[LOGIN] ok', { user, id: u.id_usuarios });
-    // aquí emites tu JWT/cookie si corresponde; por ahora:
-    return res.json({ status: 'ok', redirect: '/' });
+    // 🔐 Firmar JWT y guardarlo en cookie httpOnly
+    //    (el util setAuthCookie ya configura httpOnly/sameSite/secure/maxAge)
+    const payload = { uid: u.id_usuarios, user, role: u.role };
+    const token = signJWT(payload);
+    setAuthCookie(res, token);
 
+    // ↪️ Redirección según rol
+    const redirect = u.role === 'admin' ? '/admin' : '/';
+    console.log('[LOGIN] ok', { user, id: u.id_usuarios, role: u.role, redirect });
+
+    return res.json({ status: 'ok', redirect });
   } catch (err) {
     console.error('[LOGIN] error inesperado:', err);
     return res.status(500).json({ status: 'Error', message: err.message });

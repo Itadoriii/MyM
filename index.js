@@ -19,7 +19,7 @@ import nodemailer from 'nodemailer';
 import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
-
+import { requireAuth, requireRole, soloAdmin, soloPublico } from './middlewares/authorization.js';
 
 
 
@@ -109,13 +109,14 @@ app.get('/auth/google/callback',
     res.redirect('/profile');
   });
 
-app.get('/admin', verifyToken, authorization.soloAdmin, (req, res) => {
-  res.sendFile(__dirname + '/src/admin.html');
+app.get('/admin', requireAuth, requireRole('admin'), (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'admin.html'));
 });
 
-app.get('/profile', verifyToken, (req, res) => {
-  res.sendFile(__dirname + '/src/profile.html');
+app.get('/profile', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'profile.html'));
 });
+
 
 app.get('/aboutus', (req, res) => {
   res.sendFile(__dirname + '/src/sobrenosotros.html');
