@@ -1,32 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Maderas M&M - Register </title>
-        <link rel="stylesheet" href="stylelr.css">
-    </head>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Maderas MyM - Registro</title>
+  <link rel="stylesheet" href="stylelr.css" />
+  <style>
+    .hint{font-size:12px;color:#666;margin-top:4px}
+    .err{color:#b00020;font-weight:600;margin-top:6px}
+    .ok{color:#0a7a28;font-weight:600;margin-top:6px}
+    .escondido{display:none}
+    .invalid{border-color:#b00020}
+  </style>
+</head>
 <body>
-    <main>
-        <div class="form-container">
-            <h1>Crear cuenta</h1>
-            <p>Crea tu cuenta para iniciar sesion</p>
-            <form id="register-form">
-                <label for="User" class="sr-only">User</label>
-                <input type="text" name="user" id="user" placeholder="Nombre de usuario">
-                <label for="email" class="sr-only">Email</label>
-                <input type="email" name="email" id="email" placeholder="Correo electronico">
-                <label for="password" class="sr-only">Password</label>
-                <input type="password" name="password" id="password" placeholder="Contraseña">
-                <label for="number" class="sr-only">Teléfono</label>
-                <input type="tel" name="number" id="number" placeholder="Número de teléfono">
-                <button type="submit">Iniciar sesion </button>
-                <p class="error escondido"> Error al registrarse</p>
-            </form> 
-            <p>Ya estas registrado? - <a href="/login"> Inicia sesion</a></p>
+  <main>
+    <div class="form-container">
+      <h1>Crear cuenta</h1>
+      <p>Crea tu cuenta para iniciar sesión</p>
+
+      <form id="register-form" action="/api/register" method="post" novalidate>
+        <label for="user" class="sr-only">Usuario</label>
+        <input type="text" name="user" id="user" placeholder="Nombre de usuario"
+               required minlength="3" maxlength="50" autocomplete="username" />
+
+        <label for="email" class="sr-only">Correo electrónico</label>
+        <input type="email" name="email" id="email" placeholder="Correo electrónico"
+               required autocomplete="email" />
+
+        <label for="password" class="sr-only">Contraseña</label>
+        <input type="password" name="password" id="password" placeholder="Contraseña"
+               required autocomplete="new-password"
+               minlength="8"
+               pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$" />
+        <div class="hint">
+          Debe tener mínimo 8 caracteres e incluir mayúscula, minúscula y número.
         </div>
-    </main>
-    <script type="module" src="register.js"></script>
+
+        <label for="password2" class="sr-only">Repetir contraseña</label>
+        <input type="password" name="password2" id="password2" placeholder="Repite la contraseña"
+               required autocomplete="new-password" />
+
+        <label for="number" class="sr-only">Teléfono</label>
+        <!-- 🇺🇸 Si quieres solo teléfono USA descomenta esta línea y borra la de arriba:
+        <input type="tel" name="number" id="number" placeholder="Número de teléfono (opcional)"
+               inputmode="tel"
+               pattern="^\+?[1-9]\d{7,14}$" />-->
+        
+        <input type="tel" name="number" id="number" placeholder="+56 9 12345678"
+               inputmode="tel"
+               pattern="^(\+?56)?\s?9\d{8}$" />
+        
+
+        <button type="submit">Crear cuenta</button>
+
+        <p class="err escondido" id="err-msg"></p>
+        <p class="ok  escondido" id="ok-msg"></p>
+      </form>
+
+      <p>¿Ya estás registrado? <a href="/login">Inicia sesión</a></p>
+    </div>
+  </main>
+
+  <script>
+    const form   = document.getElementById('register-form');
+    const user   = document.getElementById('user');
+    const email  = document.getElementById('email');
+    const pass   = document.getElementById('password');
+    const pass2  = document.getElementById('password2');
+    const phone  = document.getElementById('number');
+    const errBox = document.getElementById('err-msg');
+    const okBox  = document.getElementById('ok-msg');
+
+    const passRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
+    const phoneRe = /^\+?[1-9]\d{7,14}$/; // E.164 genérico
+    // const phoneRe = /^(\+?56)?\s?9\d{8}$/; // 🇨🇱 móvil Chile
+
+    function showErr(msg){
+      errBox.textContent = msg;
+      errBox.classList.remove('escondido');
+      okBox.classList.add('escondido');
+    }
+    function showOk(msg){
+      okBox.textContent = msg;
+      okBox.classList.remove('escondido');
+      errBox.classList.add('escondido');
+    }
+    function clearStates(){
+      [user,email,pass,pass2,phone].forEach(i => i.classList.remove('invalid'));
+      errBox.classList.add('escondido'); okBox.classList.add('escondido');
+    }
+
+    function validateFields(){
+      clearStates();
+
+      if (!user.value.trim() || user.value.trim().length < 3){
+        user.classList.add('invalid'); showErr('El nombre de usuario debe tener al menos 3 caracteres.');
+        return false;
+      }
+      if (!email.checkValidity()){
+        email.classList.add('invalid'); showErr('Ingresa un correo válido.');
+        return false;
+      }
+      if (!passRe.test(pass.value)){
+        pass.classList.add('invalid');
+        showErr('La contraseña debe incluir mayúscula, minúscula, número y símbolo (mín. 8).');
+        return false;
+      }
+      if (pass.value !== pass2.value){
+        pass2.classList.add('invalid'); showErr('Las contraseñas no coinciden.');
+        return false;
+      }
+      if (phone.value.trim() && !phoneRe.test(phone.value.trim())){
+        phone.classList.add('invalid'); showErr('Ingresa un número de teléfono válido.');
+        return false;
+      }
+      return true;
+    }
+
+    // feedback instantáneo
+    pass2.addEventListener('input', () => {
+      if (pass2.value && pass.value && pass2.value !== pass.value) {
+        pass2.classList.add('invalid');
+      } else {
+        pass2.classList.remove('invalid');
+      }
+    });
+
+    form.addEventListener('submit', (e) => {
+      if (!validateFields()) {
+        e.preventDefault();
+      } else {
+        // opcional: mostrar mensaje mientras envía
+        showOk('Enviando… revisa tu correo para verificar la cuenta.');
+      }
+    });
+  </script>
 </body>
 </html>

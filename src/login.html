@@ -1,30 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Maderas M&M - Login </title>
-        <link rel="stylesheet" href="stylelr.css">
-    </head>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Maderas M&M - Login</title>
+  <link rel="stylesheet" href="stylelr.css" />
+  <style>
+    /* Por si no existen en tu CSS */
+    .error { color:#b00020; font-weight:600; margin-top:10px; }
+    .ok    { color:#0a7a28; font-weight:600; margin-top:10px; }
+    .escondido { display:none; }
+    .inline-actions { margin-top:8px; display:flex; gap:8px; justify-content:center; }
+    .linklike { background:none; border:none; color:#0066cc; cursor:pointer; text-decoration:underline; padding:0; }
+  </style>
+</head>
 <body>
-    <main>
-        <div class="form-container">
-            <h1>Iniciar sesion</h1>
-            <p>ingresa tu cuenta!</p>
-            <form id="login-form">
-                <label for="User" class="sr-only">User</label>
-                <input type="text" name="user" id="user" placeholder="Nombre de usuario">
-                <label for="password" class="sr-only">Password</label>
-                <input type="password" name="password" id="password" placeholder="Contraseña">
-                <button type="submit">Iniciar sesion </button>
-                <p class="error escondido"> Error al iniciar sesion</p>
-            </form> 
-            <p>Todavia no tienes una cuenta? - <a href="/register"> Registrate </a></p>
-            
+  <main>
+    <div class="form-container">
+      <h1>Iniciar sesión</h1>
+      <p>¡Ingresa a tu cuenta!</p>
 
-        </div>
-    </main>
-    <script src="login.js"></script>
+      <form id="login-form" novalidate>
+        <label for="user" class="sr-only">Usuario</label>
+        <input type="text" name="user" id="user" placeholder="Nombre de usuario" required>
+
+        <label for="password" class="sr-only">Contraseña</label>
+        <input type="password" name="password" id="password" placeholder="Contraseña" required>
+
+        <button type="submit">Iniciar sesión</button>
+      </form>
+
+      <!-- cuadro de mensaje -->
+      <p id="msg" class="escondido"></p>
+      <div id="actions" class="inline-actions escondido">
+        <button id="btn-resend" class="linklike" type="button">Reenviar verificación</button>
+      </div>
+
+      <p>¿Todavía no tienes una cuenta? <a href="/register">Regístrate</a></p>
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const msg  = document.getElementById('msg');
+    const actions = document.getElementById('actions');
+    const btnResend = document.getElementById('btn-resend');
+
+    function showMsg(text, kind='error') {
+      msg.textContent = text;
+      msg.className = ''; // limpia
+      msg.classList.add(kind === 'ok' ? 'ok' : 'error');
+    }
+    function hideMsg() {
+      msg.textContent = '';
+      msg.className = 'escondido';
+    }
+    function showResend(show) {
+      actions.className = show ? 'inline-actions' : 'inline-actions escondido';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideMsg();
+      showResend(false);
+
+      const user = form.user.value.trim();
+      const password = form.password.value;
+
+      if (!user || !password) {
+        showMsg('Completa usuario y contraseña');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user, password })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          // Caso especial: no verificado
+          if (res.status === 403 && data.code === 'EMAIL_NOT_VERIFIED') {
+            showMsg('Tu cuenta no está verificada. Revisa tu correo o reenvía el enlace.', 'error');
+            showResend(true);
+            return;
+          }
+          // Otros errores (credenciales, etc.)
+          showMsg(data.message || 'Error al iniciar sesión');
+          return;
+        }
+
+        // OK → redirigir
+        showMsg('Login correcto. Redirigiendo...', 'ok');
+        if (data.redirect) {
+          location.href = data.redirect;
+        } else {
+          location.reload();
+        }
+      } catch (err) {
+        console.error('[LOGIN] error', err);
+        showMsg('No se pudo conectar con el servidor.');
+      }
+    });
+
+    // Reenviar verificación (pide email)
+    btnResend.addEventListener('click', async () => {
+      const email = prompt('Ingresa tu correo para reenviar verificación:');
+      if (!email) return;
+      showMsg('Enviando verificación...', 'ok');
+      try {
+        const res = await fetch('/api/verify/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ email })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          if (data.alreadyVerified) {
+            showMsg('Tu correo ya estaba verificado. Intenta iniciar sesión.', 'ok');
+          } else {
+            showMsg('Listo. Revisa tu correo (o carpeta de spam).', 'ok');
+          }
+        } else {
+          showMsg('No se pudo reenviar. Intenta más tarde.');
+        }
+      } catch (e) {
+        console.error('[RESEND] error', e);
+        showMsg('No se pudo reenviar. Intenta más tarde.');
+      }
+    });
+  </script>
 </body>
 </html>
