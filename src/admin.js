@@ -95,28 +95,55 @@ document.addEventListener("DOMContentLoaded", function() {
     
     
     async function fetchUsuarios() {
-        try {
-          const response = await fetch('/api/usuarios');
-          const usuarios = await response.json();
-          console.log('Respuesta recibida:', usuarios);
-          console.log('Número de usuarios:', usuarios.length);
-          
-          if (!Array.isArray(usuarios)) {
-            console.error('La respuesta no es un array:', usuarios);
-            mainContent.innerHTML = '<p>Error: La respuesta no tiene el formato esperado.</p>';
-            return;
-          }
-          
-          mainContent.innerHTML = `
-            <h1>Usuarios</h1>
-            <p>Total de usuarios: ${usuarios.length}</p>
-            <ul>${usuarios.map(usuario => `<li>${usuario.user} - ${usuario.email} - ${usuario.number || 'No disponible'}</li>`).join('')}</ul>
-          `;
-        } catch (error) {
-          console.error('Error fetching usuarios:', error);
-          mainContent.innerHTML = '<p>Error loading usuarios.</p>';
+    try {
+        const response = await fetch('/api/usuarios');
+        const usuarios = await response.json();
+        console.log('Respuesta recibida:', usuarios);
+        console.log('Número de usuarios:', usuarios.length);
+
+        if (!Array.isArray(usuarios)) {
+        console.error('La respuesta no es un array:', usuarios);
+        mainContent.innerHTML = '<p>Error: La respuesta no tiene el formato esperado.</p>';
+        return;
         }
-      }
+
+        // Generamos tabla
+        const tableHTML = `
+        <h1>Usuarios</h1>
+        <p>Total de usuarios: ${usuarios.length}</p>
+        <div style="max-height:400px; overflow-y:auto; border:1px solid #ccc; border-radius:6px;">
+            <table style="width:100%; border-collapse:collapse;">
+            <thead style="position:sticky; top:0; background:#f5f5f5; z-index:1;">
+                <tr>
+                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">ID</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Usuario</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Correo</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Teléfono</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Rol</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${usuarios.map(u => `
+                <tr>
+                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.id_usuarios || '-'}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.user}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.email}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.number || 'No disponible'}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.role || 'user'}</td>
+                </tr>
+                `).join('')}
+            </tbody>
+            </table>
+        </div>
+        `;
+
+        mainContent.innerHTML = tableHTML;
+
+    } catch (error) {
+        console.error('Error fetching usuarios:', error);
+        mainContent.innerHTML = '<p>Error loading usuarios.</p>';
+    }
+    }
         // ----- PEDIDOS con pestañas y scroll -----
         async function fetchPedidos(scope = 'generados') {
         // Render header + contenedor
