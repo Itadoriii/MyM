@@ -474,99 +474,86 @@ app.get('/api/verificar-usuario', async (req, res) => {
 
 // GET /api/pedidos?scope=generados|espera_pago|espera_despacho|despacho|finalizados|rechazados
 // (Opcional: también acepta ?estado=... o múltiples ?estado=a&estado=b)
+// GET /api/pedidos?scope=...
 app.get('/api/pedidos', async (req, res) => {
   try {
-    const scope = String(req.query.scope || '');
+    const scopeRaw = String(req.query.scope || 'generados').toLowerCase();
 
-    // Mapeo de pestañas → estados
-    const SCOPE = {
-      generados:        ['generado'],
-      espera_pago:      ['aceptado_espera_pago'],
-      espera_despacho:  ['pagado_espera_despacho'],
-      despacho:         ['enviado', 'retirado'],
-      finalizados:      ['finalizado'],
-      rechazados:       ['rechazado']
-    };
+    // Aceptamos alias: "espera_envio" y "espera_despacho" significan lo mismo
+    const scope = ({
+      'generados': 'generados',
+      'pendientes': 'generados',
 
-    // Prioridad: scope → estado(s) explícitos
-    let estados = SCOPE[scope] || null;
-    const estadoQuery = req.query.estado;
-    if (estadoQuery) {
-      // permite ?estado=x o ?estado=x&estado=y
-      estados = Array.isArray(estadoQuery) ? estadoQuery : [estadoQuery];
+      'espera_pago': 'espera_pago',
+
+      'espera_envio': 'espera_envio',
+      'espera_despacho': 'espera_envio',     // <-- alias importante
+
+      'despacho': 'despacho',
+      'enviados': 'despacho',
+      'retirados': 'despacho',
+
+      'finalizados': 'finalizados',
+
+      'rechazados': 'rechazados'
+    })[scopeRaw] || 'generados';
+
+    // Construye el WHERE según el scope canónico
+    let where = '1=1';
+    switch (scope) {
+      case 'generados':
+        where = "LOWER(p.estado) IN ('generado','pendiente')";
+        break;
+      case 'espera_pago':
+        where = "LOWER(p.estado) = 'aceptado_espera_pago'";
+        break;
+      case 'espera_envio': // pagados esperando despacho/retiro
+        where = "LOWER(p.estado) = 'pagado_espera_envio'";
+        break;
+      case 'despacho':
+        where = "LOWER(p.estado) IN ('enviado','retirado')";
+        break;
+      case 'finalizados':
+        where = "LOWER(p.estado) = 'finalizado'";
+        break;
+      case 'rechazados':
+        where = "LOWER(p.estado) = 'rechazado'";
+        break;
     }
 
-    // Base query
-    let sql = `
+    // Trae pedidos + usuario
+    const [pedidos] = await pool.query(`
       SELECT 
-        p.id_pedido,
-        p.id_usuario,
-        p.precio_total,
-        p.fecha_pedido,
-        p.estado,
-        p.delivery,
-        p.descripcion,
-        u.user    AS user,
-        u.email   AS email,
-        u.number  AS number
+        p.id_pedido, p.id_usuario, p.precio_total, p.fecha_pedido,
+        p.estado, p.delivery, p.descripcion,
+        u.user AS user, u.email, u.number
       FROM pedidos p
       JOIN usuarios u ON p.id_usuario = u.id_usuarios
-    `;
-    const params = [];
+      WHERE ${where}
+      ORDER BY p.fecha_pedido DESC
+    `);
 
-    // Filtro por estado(s) si corresponde
-    if (estados && estados.length) {
-      const ph = estados.map(() => '?').join(',');
-      sql += ` WHERE p.estado IN (${ph}) `;
-      params.push(...estados);
-    }
-
-    sql += ` ORDER BY p.fecha_pedido DESC `;
-
-    const [pedidos] = await pool.query(sql, params);
-
-    if (pedidos.length === 0) {
-      return res.json([]); // sin pedidos, respondemos rápido
-    }
-
-    // Traer TODOS los detalles en un solo SELECT (evitamos N+1)
-    const ids = pedidos.map(p => p.id_pedido);
-    const phIds = ids.map(() => '?').join(',');
-    const [detalles] = await pool.query(`
-      SELECT 
-        dp.id_pedido,
-        dp.id_producto,
-        dp.cantidad,
-        dp.precio_detalle,
-        pr.nombre_prod
-      FROM detalle_pedido dp
-      JOIN productos pr ON dp.id_producto = pr.id_producto
-      WHERE dp.id_pedido IN (${phIds})
-    `, ids);
-
-    // Indexar detalles por id_pedido
-    const detallesByPedido = detalles.reduce((acc, d) => {
-      (acc[d.id_pedido] ||= []).push({
-        id_producto: d.id_producto,
-        cantidad: d.cantidad,
-        precio_detalle: d.precio_detalle,
-        nombre_prod: d.nombre_prod
-      });
-      return acc;
-    }, {});
-
-    // Unir
-    const pedidosConDetalles = pedidos.map(p => ({
-      ...p,
-      detalles: detallesByPedido[p.id_pedido] || []
-    }));
+    // Trae detalles para cada pedido
+    const pedidosConDetalles = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const [detalles] = await pool.query(`
+          SELECT dp.id_producto, dp.cantidad, dp.precio_detalle,
+                 pr.nombre_prod, pr.medidas, pr.dimensiones
+          FROM detalle_pedido dp
+          JOIN productos pr ON dp.id_producto = pr.id_producto
+          WHERE dp.id_pedido = ?
+        `, [pedido.id_pedido]);
+        return { ...pedido, detalles };
+      })
+    );
 
     res.json(pedidosConDetalles);
-  } catch (error) {
-    console.error('Error al obtener pedidos:', error);
+  } catch (err) {
+    console.error('GET /api/pedidos', err);
     res.status(500).json({ error: 'Error al obtener pedidos' });
   }
 });
+
 
 
 // Ruta PUT para actualizar productos

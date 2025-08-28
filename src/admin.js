@@ -150,7 +150,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const tabs = [
             ['generados',       'Generados'],
             ['espera_pago',     'Aceptados (espera de pago)'],
-            ['espera_despacho', 'Pagados (espera retiro/envío)'],
+            ['espera_envio', 'Pagados (espera retiro/envío)'],
             ['despacho',        'Enviados / Retirados'],
             ['finalizados',     'Finalizados'],
             ['rechazados',      'Rechazados']
@@ -403,14 +403,13 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     }
 
-    // === LISTAR ===
     async function fetchProductos() {
     // 1) intenta /api/productos
     let r = await tryJson('/api/productos');
     // 2) si falla, usa /productos (público)
     if (!r.ok) {
         const url = new URL('/productos', location.origin);
-        url.searchParams.set('limit', 9999); // por si tu API pagina
+        url.searchParams.set('limit', 9999);
         r = await tryJson(url);
     }
 
@@ -428,18 +427,61 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
     }
 
+    // sets para filtros
+    const tipos = Array.from(new Set(productos.map(p => (p.tipo || '').trim()).filter(Boolean))).sort();
+
     // UI base
     mainContent.innerHTML = `
-        <input type="text" id="search-input" placeholder="Buscar producto..." style="width:100%;padding:10px;margin-bottom:20px;">
-        <button class="buttonenlace" id="crearProductoBtn">Crear nuevo producto</button>
+        <input type="text" id="search-input" placeholder="Buscar (global)..." style="width:100%;padding:10px;margin-bottom:12px;">
+        <button class="buttonenlace" id="crearProductoBtn" style="margin-bottom:10px;">Crear nuevo producto</button>
 
         <h1 class="titulotable">Productos Actuales:</h1>
-        <div class="table-container" style="max-height:400px;overflow-y:auto;">
+        <div class="table-container" style="max-height:460px;overflow:auto;">
         <table>
             <thead>
             <tr>
-                <th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th>
-                <th>Tipo</th><th>Medidas</th><th>Dimensiones</th><th>Fecha</th><th>Visibilidad</th><th>Acciones</th>
+                <th style="min-width:70px">ID</th>
+                <th style="min-width:220px">Nombre</th>
+                <th style="min-width:110px">Precio</th>
+                <th style="min-width:100px">Stock</th>
+                <th style="min-width:140px">Tipo</th>
+                <th style="min-width:120px">Medidas</th>
+                <th style="min-width:140px">Dimensiones</th>
+                <th style="min-width:130px">Fecha</th>
+                <th style="min-width:120px">Visibilidad</th>
+                <th style="min-width:140px">Acciones</th>
+            </tr>
+            <!-- Fila de filtros por HEAD -->
+            <tr class="filters-row">
+                <th><input id="f-id"       type="text" placeholder="ID" style="width:100%"></th>
+                <th><input id="f-nombre"   type="text" placeholder="Nombre..." style="width:100%"></th>
+                <th></th>
+                <th>
+                <select id="f-stock" style="width:100%">
+                    <option value="">Stock (todos)</option>
+                    <option value="con">Con stock (&gt; 0)</option>
+                    <option value="sin">Sin stock (= 0)</option>
+                </select>
+                </th>
+                <th>
+                <select id="f-tipo" style="width:100%">
+                    <option value="">Tipo (todos)</option>
+                    ${tipos.map(t => `<option value="${t}">${t}</option>`).join('')}
+                </select>
+                </th>
+                <th><input id="f-medidas"     type="text" placeholder="Medidas..." style="width:100%"></th>
+                <th><input id="f-dimensiones" type="text" placeholder="Dimensiones..." style="width:100%"></th>
+                <th></th>
+                <th>
+                <select id="f-visible" style="width:100%">
+                    <option value="">Todos</option>
+                    <option value="1">Visibles</option>
+                    <option value="0">Ocultos</option>
+                </select>
+                </th>
+                <th>
+                <button id="f-clear" type="button">Limpiar filtros</button>
+                </th>
             </tr>
             </thead>
             <tbody id="productos-tbody"></tbody>
@@ -447,19 +489,23 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
     `;
 
+    // helpers
+    const isVisible = v => (v === 1 || v === '1' || v === true);
+    const fmtCL = n => Number(n || 0).toLocaleString('es-CL');
+
     function render(list) {
         const tbody = document.getElementById('productos-tbody');
         tbody.innerHTML = list.map(p => `
         <tr>
             <td>${p.id_producto}</td>
             <td>${p.nombre_prod ?? ''}</td>
-            <td>${p.precio_unidad ?? ''}</td>
+            <td>$ ${fmtCL(p.precio_unidad)}</td>
             <td>${p.disponibilidad ?? ''}</td>
             <td>${p.tipo ?? ''}</td>
             <td>${p.medidas ?? ''}</td>
             <td>${p.dimensiones ?? ''}</td>
             <td>${p.fecha_add ?? ''}</td>
-            <td>${p.visible == 1 ? 'Visible' : 'Oculto'}</td>
+            <td>${isVisible(p.visible) ? 'Visible' : 'Oculto'}</td>
             <td>
             <button class="editBtn" data-id="${p.id_producto}">Editar</button>
             <button class="deleteBtn" data-id="${p.id_producto}">Eliminar</button>
@@ -476,23 +522,94 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Buscar
-    const search = document.getElementById('search-input');
-    search.addEventListener('input', () => {
-        const q = search.value.trim().toLowerCase();
-        const filtered = !q ? productos : productos.filter(p =>
-        (p.nombre_prod || '').toLowerCase().includes(q)
-        );
-        render(filtered);
-    });
+    // ————— FILTRADO COMBINADO (head + búsqueda global) —————
+    const $ = sel => document.getElementById(sel);
+    const controls = {
+        qGlobal: $('search-input'),
+        id: $('f-id'),
+        nombre: $('f-nombre'),
+        stock: $('f-stock'),
+        tipo: $('f-tipo'),
+        medidas: $('f-medidas'),
+        dimensiones: $('f-dimensiones'),
+        visible: $('f-visible'),
+        clear: $('f-clear')
+    };
 
-    document.getElementById('crearProductoBtn').addEventListener('click', () => {
-        showProductForm(); // usa el mismo form de creación/edición
-    });
+    function applyFilters() {
+        const qg  = (controls.qGlobal.value || '').toLowerCase().trim();
+        const fid = (controls.id.value || '').toLowerCase().trim();
+        const fnm = (controls.nombre.value || '').toLowerCase().trim();
+        const fst = controls.stock.value;     // '' | 'con' | 'sin'
+        const ftp = controls.tipo.value;      // '' | <tipo>
+        const fmd = (controls.medidas.value || '').toLowerCase().trim();
+        const fdm = (controls.dimensiones.value || '').toLowerCase().trim();
+        const fvs = controls.visible.value;   // '' | '1' | '0'
 
-    render(productos);
+        let list = productos.filter(p => {
+        // HEAD: visibilidad
+        if (fvs !== '') {
+            if (fvs === '1' && !isVisible(p.visible)) return false;
+            if (fvs === '0' &&  isVisible(p.visible)) return false;
+        }
+        // HEAD: stock
+        if (fst === 'con' && !(Number(p.disponibilidad) > 0)) return false;
+        if (fst === 'sin' && !(Number(p.disponibilidad) === 0)) return false;
+        // HEAD: tipo
+        if (ftp && String(p.tipo || '').trim() !== ftp) return false;
+        // HEAD: id
+        if (fid && String(p.id_producto || '').toLowerCase().indexOf(fid) === -1) return false;
+        // HEAD: nombre
+        if (fnm && String(p.nombre_prod || '').toLowerCase().indexOf(fnm) === -1) return false;
+        // HEAD: medidas / dimensiones
+        if (fmd && String(p.medidas || '').toLowerCase().indexOf(fmd) === -1) return false;
+        if (fdm && String(p.dimensiones || '').toLowerCase().indexOf(fdm) === -1) return false;
+
+        // BÚSQUEDA GLOBAL extra (aplica sobre varias columnas)
+        if (qg) {
+            const hay = (
+            String(p.nombre_prod || '').toLowerCase().includes(qg) ||
+            String(p.tipo || '').toLowerCase().includes(qg) ||
+            String(p.medidas || '').toLowerCase().includes(qg) ||
+            String(p.dimensiones || '').toLowerCase().includes(qg) ||
+            String(p.id_producto || '').toLowerCase().includes(qg)
+            );
+            if (!hay) return false;
+        }
+
+        return true;
+        });
+
+        render(list);
     }
 
+    // eventos de filtros
+    controls.qGlobal.addEventListener('input', applyFilters);
+    controls.id.addEventListener('input', applyFilters);
+    controls.nombre.addEventListener('input', applyFilters);
+    controls.stock.addEventListener('change', applyFilters);
+    controls.tipo.addEventListener('change', applyFilters);
+    controls.medidas.addEventListener('input', applyFilters);
+    controls.dimensiones.addEventListener('input', applyFilters);
+    controls.visible.addEventListener('change', applyFilters);
+    controls.clear.addEventListener('click', () => {
+        Object.values(controls).forEach(el => {
+        if (!el || el.tagName === 'BUTTON') return;
+        if (el.tagName === 'SELECT') el.value = '';
+        else el.value = '';
+        });
+        applyFilters();
+    });
+
+    // crear nuevo
+    document.getElementById('crearProductoBtn').addEventListener('click', () => {
+        showProductForm();
+    });
+
+    // primera render + filtros aplicados
+    render(productos);
+    applyFilters();
+    }
     // === OBTENER UNO (para Editar) ===
     async function editProduct(productId) {
     // intenta API admin
