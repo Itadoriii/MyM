@@ -1447,11 +1447,18 @@ async function generarPDF(adelantoId) {
     const formatCLP = valor =>
       '$' + (Number(valor) || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 
-    const fechaFormateada = new Date(data.fecha).toLocaleDateString('es-CL', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
+    const fecha = new Date(data.fecha);
+
+    // Restar 1 día
+    fecha.setDate(fecha.getDate() - 1);
+
+    const fechaFormateada = fecha.toLocaleDateString('es-CL', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
     });
+
+    console.log(fechaFormateada);
 
     const { PDFDocument, rgb, StandardFonts } = PDFLib;
     const pdfDoc = await PDFDocument.create();
