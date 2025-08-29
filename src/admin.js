@@ -1448,7 +1448,7 @@ async function generarPDF(adelantoId) {
       '$' + (Number(valor) || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 
     const fecha = new Date(data.fecha);
-
+    console.log(fecha);
     // Restar 1 día
     fecha.setDate(fecha.getDate() - 1);
 
@@ -1462,7 +1462,7 @@ async function generarPDF(adelantoId) {
 
     const { PDFDocument, rgb, StandardFonts } = PDFLib;
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([800, 600]);
+    const page = pdfDoc.addPage([600, 800]);
     const { width, height } = page.getSize();
 
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -1563,7 +1563,7 @@ async function generarPDF(adelantoId) {
       'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
     drawWrappedText(authText, { x: fullWidthStartX, size: 12, lineHeight: 18, maxWidth: fullWidthMaxWidth });
 
-    y -= 40;
+    y -= 250;
 
     // Línea firma centrada
     const firmaLineStartX = marginX + 150;
@@ -1601,6 +1601,7 @@ async function generarPDF(adelantoId) {
       size: 10,
       font: fontRegular,
       color: rgb(0.4, 0.4, 0.4),
+      maxWidth: fullWidthMaxWidth 
     });
 
     // Guardar y descargar PDF
