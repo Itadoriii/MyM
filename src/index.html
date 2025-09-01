@@ -156,39 +156,9 @@
                 <h2>Categorias</h2>   
             </div>
             <p><a class="category-link">Madera</a></p>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 2,50m</a>
-                <ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
-                </ul>
+            <li><a href="#" class="category-link toggle-submenu">Pino Oregón Bruto</a>
             </li>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 3,20m</a> <ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
-                </ul></li>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 4m</a><ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
-                </ul></li>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregon de 5m</a><ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
-                </ul></li>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 6m</a><ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
-                </ul></li>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 7m</a><ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
-                </ul></li>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 8m</a><ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
-                </ul></li>
-            <li><a href="#" class="category-link toggle-submenu">Pino oregón de 9m</a><ul class="submenu">
-                <li><a href="#" class="category-link">Cepillado</a></li>
-                <li><a href="#" class="category-link">Bruto</a></li>
+            <li><a href="#" class="category-link toggle-submenu">Pino Oregón Cepillado</a> <ul class="submenu">
                 </ul></li>
             <li><a href="#" class="category-link">Roble</a></li>
             <li><a href="#" class="category-link">Cubiertas</a></li>
@@ -382,8 +352,16 @@
     const allItems = Array.isArray(dataAll) ? dataAll : (dataAll.productos || []);
 
     // 2) Filtramos solo visibles (1/true/'1')
-    const visibles = allItems.filter(p => p.visible === 1 || p.visible === true || p.visible === '1');
-
+    let visibles = allItems.filter(p => p.visible === 1 || p.visible === true || p.visible === '1');
+    // 2b) Filtramos por búsqueda
+    if (q) {
+        const qLower = q.toLowerCase();
+        visibles = visibles.filter(p => 
+            p.nombre_prod.toLowerCase().includes(qLower) ||
+            (p.tipo && p.tipo.toLowerCase().includes(qLower)) ||
+            (p.medidas && p.medidas.toLowerCase().includes(qLower))
+        );
+    }
     // 3) Paginación cliente solo con visibles
     const totalPages = Math.max(1, Math.ceil(visibles.length / PAGE_SIZE));
     const safePage = Math.min(Math.max(1, page), totalPages);
@@ -405,7 +383,7 @@ function renderGrid(items){
   const GRID = document.getElementById('catalog-grid');
   if (!items?.length){ GRID.innerHTML = '<p>No hay productos para mostrar.</p>'; return; }
   GRID.innerHTML = items.map(p=>{
-      const img = p.imagen_url || 'assets/placeholder.jpg';
+      const img = p.ruta || 'assets/placeholder.jpg';
       const precio = Number(p.precio_unidad)||0;
       return `
       <article class="product-card">
@@ -481,7 +459,7 @@ async function loadFeatured(){
     const items = visibles.slice(0, 6); // mostramos hasta 8
 
     WRAP.innerHTML = items.map(p=>{
-      const img = p.imagen_url || 'assets/placeholder.jpg';
+      const img = p.ruta|| 'assets/placeholder.jpg';
       const precio = Number(p.precio_unidad)||0;
       return `
       <article class="featured-card">
@@ -645,6 +623,17 @@ async function loadFeatured(){
         }
     });
     });
+    // Seleccionamos todos los enlaces de categorías
+    const categoryLinks = document.querySelectorAll('.category-link');
+
+    categoryLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault(); // evita que el enlace haga scroll
+        const query = link.textContent.trim(); // tomamos el texto de la categoría
+        loadProductsPage(1, query); // llamamos a tu función de carga con la búsqueda
+    });
+    });
+
 
     // Cargas iniciales
     loadProductsPage(1);
