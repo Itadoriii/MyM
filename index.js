@@ -110,7 +110,7 @@ app.get('/auth/google/callback',
   });
 
 app.get('/admin', requireAuth, requireRole('admin'), (req, res) => {
-  res.sendFile(path.join(__dirname, 'src', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'nostatic', 'admin.html'));
 });
 
 app.get('/profile', requireAuth, (req, res) => {
