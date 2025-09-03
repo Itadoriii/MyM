@@ -214,17 +214,17 @@ app.get('/checkout', (req, res) => {
 
 // Actualizar la ruta POST para crear productos
 app.post('/api/productos', async (req, res) => {
-    const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible } = req.body;
+    const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
 
     console.log('Creando nuevo producto:', req.body);
 
-    if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || visible === undefined) {
+    if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || visible === undefined || !ruta) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
     }
 
     try {
-      const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-      const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible];
+      const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+      const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta];
       const [result] = await pool.query(query, params);
       res.status(201).json({ message: 'Producto creado exitosamente', id: result.insertId });
     } catch (err) {
@@ -559,11 +559,11 @@ app.get('/api/pedidos', async (req, res) => {
 // Ruta PUT para actualizar productos
 app.put('/api/productos/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible } = req.body;
+  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible , ruta } = req.body;
 
   console.log('Actualizando producto:', req.body);
 
-  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add) {
+  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || !ruta) {
     return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
   }
 
@@ -577,10 +577,11 @@ app.put('/api/productos/:id', async (req, res) => {
           medidas = ?, 
           dimensiones = ?, 
           fecha_add = ?,
-          visible = ?
+          visible = ?,
+          ruta = ?
       WHERE id_producto = ?
     `;
-    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, id];
+    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta, id];
 
     const [result] = await pool.query(query, params);
     
