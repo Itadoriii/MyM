@@ -693,7 +693,6 @@ function showProductForm(product = null) {
         <label>Ruta:</label>
         <input type="text" id="ruta" name="ruta" value="${isEditing ? (product.ruta||'') : ''}" required>
       </div>
-      
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
         <button type="button" class="btn btn-secondary" onclick="fetchProductos()">Cancelar</button>
@@ -1743,8 +1742,9 @@ async function fetchInformeGeneral(mes = new Date().getMonth() + 1, anio = new D
             const totalAdelantos = adelantosTrab.reduce((sum, a) => sum + (parseFloat(a.monto) || 0), 0);
             const totalBonos = adelantosTrab.reduce((sum, a) => sum + (parseFloat(a.bono) || 0), 0);
 
-            const saldo = (parseFloat(t.sueldo) || 0) - (totalAdelantos + totalBonos);
-
+            
+            //const saldo = (parseFloat(t.sueldo) || 0) - (totalAdelantos + totalBonos);
+            const saldo = (parseFloat(t.sueldo) || 0) - totalAdelantos + totalBonos;
             return {
                 id_trabajador: t.id_trabajador,
                 nombre: `${t.nombres} ${t.apellidos}`,
@@ -1767,7 +1767,14 @@ function renderInformeGeneral(data, mes, anio) {
     const main = document.getElementById('main-content');
     const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-    // Calcular totales generales
+    // Formato CLP
+    const formatoCLP = new Intl.NumberFormat('es-CL', { 
+        style: 'currency', 
+        currency: 'CLP', 
+        minimumFractionDigits: 0 
+    });
+
+    // Totales generales
     const totalGeneral = data.reduce((acc, row) => {
         acc.sueldo += row.sueldo;
         acc.adelantos += row.totalAdelantos;
@@ -1777,60 +1784,123 @@ function renderInformeGeneral(data, mes, anio) {
     }, { sueldo:0, adelantos:0, bonos:0, saldo:0 });
 
     main.innerHTML = `
-        <h2>Informe General - ${meses[mes-1]} ${anio}</h2>
-        <div style="margin-bottom:15px;">
-            <label for="mes">Mes: </label>
-            <select id="mes">
-                ${meses.map((m,i) => `
-                    <option value="${i+1}" ${i+1===mes ? 'selected':''}>${m}</option>
-                `).join('')}
-            </select>
-            <label for="anio">Año: </label>
-            <input type="number" id="anio" value="${anio}" style="width:80px;">
-            <button id="filtrarBtn">Filtrar</button>
-        </div>
-        <table border="1" cellspacing="0" cellpadding="8" style="width:100%; border-collapse: collapse; margin-bottom:10px;">
-            <thead style="background:#f0f0f0;">
-                <tr>
-                    <th>ID</th>
-                    <th>Trabajador</th>
-                    <th>Sueldo</th>
-                    <th>Total Adelantos</th>
-                    <th>Total Bonos</th>
-                    <th>Saldo</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${data.map(row => `
+        <style>
+            .informe-container {
+                font-family: Arial, sans-serif;
+            }
+            .informe-container h2 {
+                margin-bottom: 15px;
+                color: #333;
+            }
+            .informe-container table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            }
+            .informe-container th, .informe-container td {
+                padding: 10px 12px;
+                text-align: left;
+                border-bottom: 1px solid #ddd;
+            }
+            .informe-container thead {
+                background-color: #007BFF;
+                color: white;
+            }
+            .informe-container tfoot {
+                background-color: #f5f5f5;
+                font-weight: bold;
+            }
+            .informe-container tr:hover {
+                background-color: #f9f9f9;
+            }
+            .informe-container .saldo-negativo {
+                color: red;
+                font-weight: bold;
+            }
+            .informe-container .saldo-positivo {
+                color: green;
+                font-weight: bold;
+            }
+            .filtros {
+                margin-bottom: 15px;
+            }
+            .filtros select, .filtros input, .filtros button {
+                padding: 5px 8px;
+                margin-right: 5px;
+                border-radius: 4px;
+                border: 1px solid #ccc;
+            }
+            .filtros button {
+                background: #007BFF;
+                color: white;
+                cursor: pointer;
+                border: none;
+            }
+            .filtros button:hover {
+                background: #0056b3;
+            }
+        </style>
+
+        <div class="informe-container">
+            <h2>Informe General - ${meses[mes-1]} ${anio}</h2>
+            <div class="filtros">
+                <label for="mes">Mes: </label>
+                <select id="mes">
+                    ${meses.map((m,i) => `
+                        <option value="${i+1}" ${i+1===mes ? 'selected':''}>${m}</option>
+                    `).join('')}
+                </select>
+                <label for="anio">Año: </label>
+                <input type="number" id="anio" value="${anio}" style="width:90px;">
+                <button id="filtrarBtn">Filtrar</button>
+            </div>
+            <table>
+                <thead>
                     <tr>
-                        <td>${row.id_trabajador}</td>
-                        <td>${row.nombre}</td>
-                        <td>${row.sueldo.toFixed(2)}</td>
-                        <td>${row.totalAdelantos.toFixed(2)}</td>
-                        <td>${row.totalBonos.toFixed(2)}</td>
-                        <td><b>${row.saldo.toFixed(2)}</b></td>
+                        <th>ID</th>
+                        <th>Trabajador</th>
+                        <th>Sueldo</th>
+                        <th>Total Adelantos</th>
+                        <th>Total Bonos</th>
+                        <th>Saldo</th>
                     </tr>
-                `).join('')}
-            </tbody>
-            <tfoot style="background:#e0e0e0; font-weight:bold;">
-                <tr>
-                    <td colspan="2">Totales</td>
-                    <td>${totalGeneral.sueldo.toFixed(2)}</td>
-                    <td>${totalGeneral.adelantos.toFixed(2)}</td>
-                    <td>${totalGeneral.bonos.toFixed(2)}</td>
-                    <td>${totalGeneral.saldo.toFixed(2)}</td>
-                </tr>
-            </tfoot>
-        </table>
+                </thead>
+                <tbody>
+                    ${data.map(row => `
+                        <tr>
+                            <td>${row.id_trabajador}</td>
+                            <td>${row.nombre}</td>
+                            <td>${formatoCLP.format(row.sueldo)}</td>
+                            <td>${formatoCLP.format(row.totalAdelantos)}</td>
+                            <td>${formatoCLP.format(row.totalBonos)}</td>
+                            <td class="${row.saldo < 0 ? 'saldo-negativo' : 'saldo-positivo'}">
+                                ${formatoCLP.format(row.saldo)}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2">Totales</td>
+                        <td>${formatoCLP.format(totalGeneral.sueldo)}</td>
+                        <td>${formatoCLP.format(totalGeneral.adelantos)}</td>
+                        <td>${formatoCLP.format(totalGeneral.bonos)}</td>
+                        <td>${formatoCLP.format(totalGeneral.saldo)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
     `;
 
-    // Evento para botón de filtro
+    // Evento filtro
     document.getElementById('filtrarBtn').addEventListener('click', () => {
         const nuevoMes = parseInt(document.getElementById('mes').value, 10);
         const nuevoAnio = parseInt(document.getElementById('anio').value, 10);
         fetchInformeGeneral(nuevoMes, nuevoAnio);
     });
 }
+
 
 
 
