@@ -689,6 +689,10 @@ function showProductForm(product = null) {
           <option value="0" ${product?.visible == 0 ? 'selected' : ''}>Oculto</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>Ruta:</label>
+        <input type="text" id="ruta" name="ruta" value="${isEditing ? (product.ruta||'') : ''}" required>
+      </div>
       
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
