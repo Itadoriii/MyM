@@ -7,6 +7,51 @@
     <title>Maderas MyM</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://kit.fontawesome.com/43804ad595.js" crossorigin="anonymous"></script>
+    <style>
+    .holiday-backdrop{
+        position:fixed; inset:0; display:none; place-items:center;
+        background:rgba(0,0,0,.45); z-index:99999; padding:24px;
+        animation: holidayFadeIn .25s ease-out;
+    }
+    .holiday-backdrop.is-open{ display:grid; }
+    .holiday-modal{
+        width:min(560px,92vw); background:#fff; border-radius:14px;
+        box-shadow:0 20px 60px rgba(0,0,0,.25);
+        overflow:hidden; font-family:system-ui, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .holiday-head{
+        display:flex; align-items:center; gap:12px;
+        padding:16px 18px;
+        background:#ffe8df; /* tono suave */
+        border-bottom:1px solid #f2d4c9;
+    }
+    .holiday-flag{
+        width:36px; height:36px; border-radius:10px;
+        display:grid; place-items:center; background:#e17055; color:#fff; font-size:20px;
+    }
+    .holiday-title{ margin:0; font-size:1.15rem; color:#1f2937; font-weight:800; }
+    .holiday-body{ padding:18px; color:#374151; line-height:1.5; }
+    .holiday-body p{ margin:.35rem 0; }
+    .holiday-note{ font-size:.92rem; color:#6b7280; }
+    .holiday-actions{
+        display:flex; gap:10px; justify-content:flex-end; padding:14px 18px; border-top:1px solid #f3f4f6;
+    }
+    .holiday-btn{
+        border:0; cursor:pointer; padding:10px 14px; border-radius:10px; font-weight:600;
+    }
+    .holiday-btn.primary{ background:#e17055; color:#fff; }
+    .holiday-btn.primary:hover{ filter:brightness(.95); }
+    .holiday-btn.ghost{ background:#f3f4f6; color:#111827; }
+    .holiday-close{
+        margin-left:auto; background:transparent; border:0; font-size:20px; line-height:1; cursor:pointer; color:#6b7280;
+    }
+    .holiday-close:hover{ color:#111827; }
+    .holiday-row{
+        display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+    }
+    .holiday-checkbox{ display:flex; align-items:center; gap:8px; color:#4b5563; font-size:.95rem; }
+    @keyframes holidayFadeIn { from{opacity:0} to{opacity:1} }
+    </style>
 </head>
 <div id="order-wait" aria-hidden="true">
     <div class="order-wait__box" role="dialog" aria-live="polite">
@@ -16,6 +61,31 @@
     </div>
     </div>
 <body>
+
+    <div id="holiday-pop" class="holiday-backdrop" role="dialog" aria-modal="true" aria-labelledby="holiday-title">
+    <div class="holiday-modal">
+        <div class="holiday-head">
+        <div class="holiday-flag">🇨🇱</div>
+        <h3 id="holiday-title" class="holiday-title">¡Felices Fiestas Patrias!</h3>
+        <button class="holiday-close" aria-label="Cerrar aviso" id="holiday-x">×</button>
+        </div>
+        <div class="holiday-body">
+        <p><strong>No atenderemos del 15 al 22 de septiembre</strong> por Fiestas Patrias.</p>
+        <p class="holiday-note">Los pedidos realizados durante este período se procesarán a partir del 23 de septiembre.</p>
+
+        <div class="holiday-row" style="margin-top:10px;">
+            <label class="holiday-checkbox">
+            <input type="checkbox" id="holiday-dontshow">
+            No volver a mostrar este aviso
+            </label>
+        </div>
+        </div>
+        <div class="holiday-actions">
+        <button class="holiday-btn ghost" id="holiday-more">Más tarde</button>
+        <button class="holiday-btn primary" id="holiday-ok">Entendido</button>
+        </div>
+    </div>
+    </div>
     
     <nav class="menu">
         <section class="menu__container">
@@ -640,6 +710,42 @@ async function loadFeatured(){
     loadFeatured();
     updateCartDisplay();
     });
+    </script>
+    <script>
+    (function(){
+    const now  = new Date();
+    const y    = now.getFullYear();
+    const startShow = new Date(`${y}-09-01T00:00:00`);
+    const endShow   = new Date(`${y}-09-22T23:59:59`);
+    const KEY = `holiday_fiestas_patrias_${y}`;
+
+    // Solo mostrar entre el 1 y el 22 de septiembre y si el usuario no lo desactivó
+    if (now >= startShow && now <= endShow && localStorage.getItem(KEY) !== 'hide') {
+        const root = document.getElementById('holiday-pop');
+        const ok   = document.getElementById('holiday-ok');
+        const more = document.getElementById('holiday-more');
+        const x    = document.getElementById('holiday-x');
+        const dont = document.getElementById('holiday-dontshow');
+
+        const close = (remember=false) => {
+        if (remember || dont.checked) localStorage.setItem(KEY, 'hide');
+        root.classList.remove('is-open');
+        // limpia del DOM para no dejar listeners colgando
+        setTimeout(()=> root.remove(), 200);
+        };
+
+        ok.addEventListener('click', ()=> close(true));
+        more.addEventListener('click', ()=> close(false));
+        x.addEventListener('click', ()=> close(false));
+        // cerrar al click fuera del cuadro
+        root.addEventListener('click', (e)=> { if (e.target === root) close(false); });
+        // cerrar con ESC
+        document.addEventListener('keydown', (e)=> { if (e.key === 'Escape') close(false); });
+
+        // ¡Mostrar!
+        root.classList.add('is-open');
+    }
+    })();
     </script>
 
     
