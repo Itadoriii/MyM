@@ -1506,33 +1506,38 @@ async function generarPDF(adelantoId) {
     // Función para dibujar texto con salto de línea y ajuste de ancho
     let y; // Declaramos y aquí para manejar posición vertical global
     function drawWrappedText(text, options = {}) {
-      text = cleanText(text);
-      const {
-        font = fontRegular,
-        size = fontSize,
-        lineHeight = fontSize * 1.4,
-        color = rgb(0, 0, 0),
-        x = marginX,
-        maxWidth = fullWidthMaxWidth
-      } = options;
+  if (!text) return;
+  const {
+    font = fontRegular,
+    size = fontSize,
+    lineHeight = fontSize * 1.4,
+    color = rgb(0, 0, 0),
+    x = marginX,
+    maxWidth = fullWidthMaxWidth
+  } = options;
 
-      const words = text.split(' ');
-      let line = '';
-      for (let i = 0; i < words.length; i++) {
-        const testLine = line + (line ? ' ' : '') + words[i];
-        const testWidth = font.widthOfTextAtSize(testLine, size);
-        if (testWidth > maxWidth && line) {
-          page.drawText(line, { x, y, size, font, color });
-          y -= lineHeight;
-          line = words[i];
-        } else {
-          line = testLine;
-        }
-      }
-      if (line) {
+  // Separar por saltos de línea
+  const lines = text.split('\n');
+
+  for (let lineText of lines) {
+    const words = lineText.split(' ');
+    let line = '';
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + (line ? ' ' : '') + words[i];
+      if (font.widthOfTextAtSize(testLine, size) > maxWidth && line) {
         page.drawText(line, { x, y, size, font, color });
         y -= lineHeight;
+        line = words[i];
+      } else {
+        line = testLine;
       }
+    }
+    if (line) {
+      page.drawText(line, { x, y, size, font, color });
+      y -= lineHeight;
+    }
+    y -= 2; // espacio extra entre saltos de línea
+  }
     }
 
     // Empezamos dibujando fecha arriba a la derecha del logo (alineado vertical medio)
@@ -1568,6 +1573,7 @@ async function generarPDF(adelantoId) {
     lineHeight: 20,
     maxWidth: fullWidthMaxWidth
     });
+
 
 
     // Texto final
