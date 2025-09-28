@@ -1426,12 +1426,9 @@ async function generarPDF(adelantoId) {
   showPopup('Generando comprobante PDF, por favor espere...');
 
   try {
-
     let response;
     try {
-      response = await fetch(`/api/adelantos/${adelantoId}`, {
-        method: 'GET'
-      });
+      response = await fetch(`/api/adelantos/${adelantoId}`, { method: 'GET' });
     } catch (networkError) {
       console.error('Error de red:', networkError);
       showPopup('No se pudo conectar con el servidor');
@@ -1451,17 +1448,13 @@ async function generarPDF(adelantoId) {
       '$' + (Number(valor) || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 
     const fecha = new Date(data.fecha);
-    console.log(fecha);
-    // Restar 1 día
-    fecha.setDate(fecha.getDate() - 1);
+    fecha.setDate(fecha.getDate() - 1); // restar 1 día
 
     const fechaFormateada = fecha.toLocaleDateString('es-CL', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
     });
-
-    console.log(fechaFormateada);
 
     const { PDFDocument, rgb, StandardFonts } = PDFLib;
     const pdfDoc = await PDFDocument.create();
@@ -1475,19 +1468,17 @@ async function generarPDF(adelantoId) {
     const marginX = 50;
 
     function cleanText(text) {
-    if (!text) return '';
-    return text.replace(/\r/g, ''); // solo quita \r, deja \n intacto
+      if (!text) return '';
+      return text.replace(/\r/g, ''); // solo quita \r, deja \n intacto
     }
 
-
     // Cargar logo
-    const logoUrl = '/assets/logo act.png'; // Ajusta ruta según sea necesario
+    const logoUrl = '/assets/logo act.png';
     const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
     const logoImage = await pdfDoc.embedPng(logoImageBytes);
     const logoScale = 0.3;
     const logoDims = logoImage.scale(logoScale);
 
-    // Dibujar logo a la izquierda arriba
     const logoX = marginX;
     const logoY = height - logoDims.height - 30;
     page.drawImage(logoImage, {
@@ -1497,52 +1488,52 @@ async function generarPDF(adelantoId) {
       height: logoDims.height,
     });
 
-    // Definir zonas de texto
     const textStartX = logoX + logoDims.width + 20;
     const textMaxWidth = width - textStartX - marginX;
     const fullWidthStartX = marginX;
     const fullWidthMaxWidth = width - marginX * 2;
 
-    // Función para dibujar texto con salto de línea y ajuste de ancho
-    let y; // Declaramos y aquí para manejar posición vertical global
-    function drawWrappedText(text, options = {}) {
-  if (!text) return;
-  const {
-    font = fontRegular,
-    size = fontSize,
-    lineHeight = fontSize * 1.4,
-    color = rgb(0, 0, 0),
-    x = marginX,
-    maxWidth = fullWidthMaxWidth
-  } = options;
+    // Función corregida para dibujar texto con salto de línea y ajuste de ancho
+    let y; // posición vertical global
+    function drawWrappedText(page, text, yPos, options = {}) {
+      if (!text) return yPos;
+      const {
+        font = fontRegular,
+        size = fontSize,
+        lineHeight = fontSize * 1.4,
+        color = rgb(0, 0, 0),
+        x = marginX,
+        maxWidth = fullWidthMaxWidth
+      } = options;
 
-  // Separar por saltos de línea
-  const lines = text.split('\n');
+      const lines = cleanText(text).split('\n'); // respeta saltos de línea
 
-  for (let lineText of lines) {
-    const words = lineText.split(' ');
-    let line = '';
-    for (let i = 0; i < words.length; i++) {
-      const testLine = line + (line ? ' ' : '') + words[i];
-      if (font.widthOfTextAtSize(testLine, size) > maxWidth && line) {
-        page.drawText(line, { x, y, size, font, color });
-        y -= lineHeight;
-        line = words[i];
-      } else {
-        line = testLine;
+      for (let lineText of lines) {
+        const words = lineText.split(' ');
+        let line = '';
+        for (let i = 0; i < words.length; i++) {
+          const testLine = line + (line ? ' ' : '') + words[i];
+          if (font.widthOfTextAtSize(testLine, size) > maxWidth && line) {
+            page.drawText(line, { x, y: yPos, size, font, color });
+            yPos -= lineHeight;
+            line = words[i];
+          } else {
+            line = testLine;
+          }
+        }
+        if (line) {
+          page.drawText(line, { x, y: yPos, size, font, color });
+          yPos -= lineHeight;
+        }
+        yPos -= 2; // espacio extra entre saltos de línea
       }
-    }
-    if (line) {
-      page.drawText(line, { x, y, size, font, color });
-      y -= lineHeight;
-    }
-    y -= 2; // espacio extra entre saltos de línea
-  }
+
+      return yPos; // devuelve nueva posición
     }
 
-    // Empezamos dibujando fecha arriba a la derecha del logo (alineado vertical medio)
-    y = logoY + logoDims.height / 2 + 10; // un poco arriba de la mitad del logo
-    drawWrappedText(`Santiago, ${fechaFormateada}`, {
+    // Fecha arriba a la derecha del logo
+    y = logoY + logoDims.height / 2 + 10;
+    y = drawWrappedText(page, `Santiago, ${fechaFormateada}`, y, {
       x: textStartX,
       size: 14,
       lineHeight: 18,
@@ -1550,36 +1541,32 @@ async function generarPDF(adelantoId) {
       maxWidth: textMaxWidth,
     });
 
-    // Ahora texto formal que empieza justo debajo del logo para evitar solapamiento
-    y = logoY - 20; // debajo del logo con margen
+    // Texto formal debajo del logo
+    y = logoY - 20;
 
     const nombreCompleto = `${data.nombres} ${data.apellidos}`.toUpperCase();
     const montoTotal = formatCLP(data.monto + (data.bono || 0));
 
-    // Texto principal
-    drawWrappedText(
-    `Por medio del presente, Maderas MyM certifica haber entregado a don(a) ${nombreCompleto} la suma de ${montoTotal}.`,
-    { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
+    y = drawWrappedText(page,
+      `Por medio del presente, Maderas MyM certifica haber entregado a don(a) ${nombreCompleto} la suma de ${montoTotal}.`,
+      y,
+      { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
 
     let motivosRaw = data.motivos || 'No especificado';
     const motivosNormalized = motivosRaw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
     const motivosText = 'Motivo:\n' + motivosNormalized;
 
-    drawWrappedText(motivosText, {
-    x: fullWidthStartX,
-    size: 13,
-    lineHeight: 20,
-    maxWidth: fullWidthMaxWidth
+    y = drawWrappedText(page, motivosText, y, {
+      x: fullWidthStartX,
+      size: 13,
+      lineHeight: 20,
+      maxWidth: fullWidthMaxWidth
     });
 
-
-
-    // Texto final
     const authText =
-    'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
-    drawWrappedText(authText, { x: fullWidthStartX, size: 12, lineHeight: 18, maxWidth: fullWidthMaxWidth });
+      'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
+    y = drawWrappedText(page, authText, y, { x: fullWidthStartX, size: 12, lineHeight: 18, maxWidth: fullWidthMaxWidth });
 
     y -= 250;
 
@@ -1611,7 +1598,7 @@ async function generarPDF(adelantoId) {
 
     y -= 50;
 
-    // Nota al pie pequeña y gris
+    // Nota al pie
     const nota = 'Nota: Se imprime este boucher para control interno de Maderas MyM el cual para ser válido debe ser firmado por el trabajador.';
     page.drawText(nota, {
       x: marginX,
@@ -1619,7 +1606,7 @@ async function generarPDF(adelantoId) {
       size: 10,
       font: fontRegular,
       color: rgb(0.4, 0.4, 0.4),
-      maxWidth: fullWidthMaxWidth 
+      maxWidth: fullWidthMaxWidth
     });
 
     // Guardar y descargar PDF
@@ -1641,12 +1628,12 @@ async function generarPDF(adelantoId) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     showPopup('Comprobante PDF generado correctamente');
+
   } catch (error) {
     console.error('Error al generar PDF:', error);
     showPopup('Error al generar el comprobante PDF');
   }
 }
-
 
 
 
