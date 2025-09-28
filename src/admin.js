@@ -1561,9 +1561,10 @@ async function generarPDF(adelantoId) {
 
     // Dibujar cada motivo en su propia línea
     const motivos = data.motivos.split(/\r?\n/);
-    for (let linea of motivos) {
-    drawWrappedText(linea, { x: fullWidthStartX + 10, size: 13, lineHeight: 18, maxWidth: fullWidthMaxWidth - 10 });
-    }
+    motivos.forEach(linea => {
+    page.drawText(linea, { x: fullWidthStartX + 10, y, size: 13, font: fontRegular });
+    y -= 18;
+    });
 
     y -= 10;
 
