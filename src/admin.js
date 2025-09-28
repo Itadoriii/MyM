@@ -1556,9 +1556,18 @@ async function generarPDF(adelantoId) {
     { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
 
-    // Dibujar Motivo + motivos en líneas separadas
-    const motivosText = 'Motivo:\n' + (data.motivos || 'No especificado');
-    drawWrappedText(motivosText, { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+   // Normalizar saltos de línea
+    let motivosRaw = data.motivos || 'No especificado';
+    const motivosNormalized = motivosRaw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Dibujar "Motivo:" + motivos en líneas separadas
+    const motivosText = 'Motivo:\n' + motivosNormalized;
+    drawWrappedText(motivosText, {
+    x: fullWidthStartX,
+    size: 13,
+    lineHeight: 20,
+    maxWidth: fullWidthMaxWidth
+    });
 
     // Texto final
     const authText =
