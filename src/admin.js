@@ -1555,10 +1555,29 @@ async function generarPDF(adelantoId) {
       { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
 
-    drawWrappedText(
-      `Motivo: ${cleanText(data.motivos) || 'No especificado'}.`,
-      { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
-    );
+    // --------------------
+    // Motivos listados correctamente
+    // --------------------
+    const motivosStr = cleanText(data.motivos || '');
+    const motivos = motivosStr
+    .split(/(?=\d+\.-)/) // separa por "1.-", "2.-", etc.
+    .map(m => m.trim())
+    .filter(m => m.length > 0);
+
+    if (motivos.length > 0) {
+    drawWrappedText("Motivos:", { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    y -= 5; // pequeño espacio
+
+    motivos.forEach(motivo => {
+        // Dibujar la línea completa sin separar por espacios
+        const words = [motivo]; // evita que drawWrappedText lo divida por espacios
+        drawWrappedText(words.join(' '), { x: fullWidthStartX + 15, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    });
+    } else {
+    drawWrappedText("Motivos: No especificado", { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    }
+
+
 
     y -= 10;
 
