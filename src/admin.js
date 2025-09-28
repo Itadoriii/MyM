@@ -1562,15 +1562,14 @@ async function generarPDF(adelantoId) {
     // Dibujar cada motivo en su propia línea
     const motivos = data.motivos || 'No especificado';
     motivos.split(/\r?\n/).forEach(linea => {
-    page.drawText(linea.trim(), {
+    drawWrappedText(linea.trim(), {
         x: fullWidthStartX + 10, // indentado
-        y,
         size: 13,
-        font: fontRegular,
-        color: rgb(0, 0, 0),
+        lineHeight: 18,
+        maxWidth: fullWidthMaxWidth - 10, // ajustar ancho por indentado
     });
-    y -= 20; // lineHeight
     });
+
 
     y -= 10;
 
