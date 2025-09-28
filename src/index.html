@@ -226,10 +226,27 @@
                 <h2>Categorias</h2>   
             </div>
             <p><a class="category-link">Madera</a></p>
-            <li><a href="#" class="category-link toggle-submenu">Pino Oregón Bruto</a>
+             <!-- Pino Oregón Bruto -->
+            <li>
+                <a href="#" class="category-link toggle-submenu">Pino Oregón Bruto</a>
+                <ul class="submenu">
+                <li><a href="/productos?q=Pino Oregón Bruto 2.50">2.50 mts</a></li>
+                <li><a href="/productos?q=Pino Oregón Bruto 3.20">3.20 mts</a></li>
+                <li><a href="/productos?q=Pino Oregón Bruto 4.00">4.00 mts</a></li>
+                <li><a href="/productos?q=Pino Oregón Bruto 5.00">5.00 mts</a></li>
+                </ul>
             </li>
-            <li><a href="#" class="category-link toggle-submenu">Pino Oregón Cepillado</a> <ul class="submenu">
-                </ul></li>
+
+            <!-- Pino Oregón Cepillado -->
+            <li>
+                <a href="#" class="category-link toggle-submenu">Pino Oregón Cepillado</a>
+                <ul class="submenu">
+                <li><a href="/productos?q=Pino Oregón Cepillado 2.50">2.50 mts</a></li>
+                <li><a href="/productos?q=Pino Oregón Cepillado 3.20">3.20 mts</a></li>
+                <li><a href="/productos?q=Pino Oregón Cepillado 4.00">4.00 mts</a></li>
+                <li><a href="/productos?q=Pino Oregón Cepillado 5.00">5.00 mts</a></li>
+                </ul>
+            </li>
             <li><a href="#" class="category-link">Roble</a></li>
             <li><a href="#" class="category-link">Cubiertas</a></li>
             <p><a href="#" class="category-link">Bases</a></p>
@@ -683,28 +700,35 @@ async function loadFeatured(){
     //Desplegables side-bar 
     const toggles = document.querySelectorAll('.toggle-submenu');
     toggles.forEach(toggle => {
-    toggle.addEventListener('click', (e) => {
-        e.preventDefault(); // evita que el enlace haga scroll
-        const submenu = toggle.nextElementSibling;
-        if (submenu.style.display === 'block') {
-        submenu.style.display = 'none';
-        } else {
-        submenu.style.display = 'block';
-        }
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault(); // evita que el enlace principal navegue
+            const submenu = toggle.nextElementSibling;
+            submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block';
+        });
     });
-    });
-    // Seleccionamos todos los enlaces de categorías
-    const categoryLinks = document.querySelectorAll('.category-link');
 
+    // Categorías principales (sin submenús)
+    const categoryLinks = document.querySelectorAll('.category-link:not(.toggle-submenu)');
     categoryLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault(); // evita que el enlace haga scroll
-        const query = link.textContent.trim(); // tomamos el texto de la categoría
-        loadProductsPage(1, query); // llamamos a tu función de carga con la búsqueda
+        link.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            const query = link.textContent.trim(); 
+            loadProductsPage(1, query); 
+        });
     });
+
+    // Submenús (medidas)
+    const subMenuLinks = document.querySelectorAll('.submenu a');
+    subMenuLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            const query = link.textContent.trim(); 
+            loadProductsPage(1, query); 
+        });
     });
 
 
+    
     // Cargas iniciales
     loadProductsPage(1);
     loadFeatured();
@@ -744,6 +768,8 @@ async function loadFeatured(){
 
         // ¡Mostrar!
         root.classList.add('is-open');
+         
+        
     }
     })();
     </script>
