@@ -1555,23 +1555,37 @@ async function generarPDF(adelantoId) {
       { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
 
-    // --------------------
-    // Motivos listados correctamente
-    // --------------------
-    // Dibujar motivos como lista
-    const motivos = data.motivos ? data.motivos.split(/\r?\n/) : ['No especificado'];
-    drawWrappedText(
-    'Motivos:',
-    { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
-    );
+    function drawWrappedLines(text, options = {}) {
+        const {
+            font = fontRegular,
+            size = fontSize,
+            lineHeight = fontSize * 1.4,
+            color = rgb(0, 0, 0),
+            x = marginX,
+            maxWidth = fullWidthMaxWidth
+        } = options;
 
-    motivos.forEach(motivo => {
-    drawWrappedText(
-        motivo.trim(),
-        { x: fullWidthStartX + 10, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
-    );
+        // Separa por saltos de línea reales
+        const lines = text.split(/\r?\n/);
+
+        lines.forEach(line => {
+            // Limpia espacios al inicio y final
+            line = line.trim();
+            if (!line) return;
+
+            // Dibuja la línea completa
+            page.drawText(line, { x, y, size, font, color });
+            y -= lineHeight;
+        });
+        }
+
+    // Uso:
+    drawWrappedText('Motivos:', { x: fullWidthStartX, size: 13, lineHeight: 20 });
+    drawWrappedLines(data.motivos || 'No especificado', {
+    x: fullWidthStartX + 10,
+    size: 13,
+    lineHeight: 20
     });
-
 
     y -= 10;
 
