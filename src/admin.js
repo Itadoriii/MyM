@@ -1555,29 +1555,16 @@ async function generarPDF(adelantoId) {
       { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
     
-    // Dibujar título "Motivo:"
-    drawWrappedText('Motivo:', {
-    x: fullWidthStartX,
-    size: 13,
-    lineHeight: 20,
-    maxWidth: fullWidthMaxWidth
-    });
+    // Dibujar "Motivo:"
+    drawWrappedText('Motivo:', { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    y -= 5; // espacio extra
 
-    // Dejar un pequeño espacio antes de los motivos
-    y -= 5; 
+    // Dibujar cada motivo en su propia línea
+    const motivos = data.motivos.split(/\r?\n/);
+    for (let linea of motivos) {
+    drawWrappedText(linea, { x: fullWidthStartX + 10, size: 13, lineHeight: 18, maxWidth: fullWidthMaxWidth - 10 });
+    }
 
-    // Dibujar cada motivo en su propia línea con indentado
-    const motivos = data.motivos || 'No especificado';
-    motivos.split(/\r?\n/).forEach(linea => {
-    drawWrappedText(linea.trim(), {
-        x: fullWidthStartX + 10, // indentado
-        size: 13,
-        lineHeight: 20,
-        maxWidth: fullWidthMaxWidth - 10
-    });
-    });
-
-   
     y -= 10;
 
     const authText =
