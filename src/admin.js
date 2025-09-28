@@ -1558,26 +1558,19 @@ async function generarPDF(adelantoId) {
     // --------------------
     // Motivos listados correctamente
     // --------------------
-    console.log('Motivos raw:', data.motivos);
-    const motivosStr = cleanText(data.motivos || '');
-    const motivos = motivosStr
-    .split(/(?=\d+\.-)/) // separa por "1.-", "2.-", etc.
-    .map(m => m.trim())
-    .filter(m => m.length > 0);
-
-    if (motivos.length > 0) {
-    // Título
-    page.drawText("Motivos:", { x: fullWidthStartX, y, size: 13, font: fontBold, color: rgb(0,0,0) });
-    y -= 20;
+    // Dibujar motivos como lista
+    const motivos = data.motivos ? data.motivos.split(/\r?\n/) : ['No especificado'];
+    drawWrappedText(
+    'Motivos:',
+    { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
+    );
 
     motivos.forEach(motivo => {
-        page.drawText(motivo, { x: fullWidthStartX + 15, y, size: 13, font: fontRegular, color: rgb(0,0,0) });
-        y -= 20; // espacio entre motivos
+    drawWrappedText(
+        motivo.trim(),
+        { x: fullWidthStartX + 10, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
+    );
     });
-    } else {
-    page.drawText("Motivos: No especificado", { x: fullWidthStartX, y, size: 13, font: fontRegular, color: rgb(0,0,0) });
-    y -= 20;
-    }
 
 
     y -= 10;
