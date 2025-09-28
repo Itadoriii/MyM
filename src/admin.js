@@ -1475,9 +1475,10 @@ async function generarPDF(adelantoId) {
     const marginX = 50;
 
     function cleanText(text) {
-      if (!text) return '';
-      return text.replace(/\r/g, '').replace(/\n/g, ' ');
+    if (!text) return '';
+    return text.replace(/\r/g, ''); // solo quita \r, deja \n intacto
     }
+
 
     // Cargar logo
     const logoUrl = '/assets/logo act.png'; // Ajusta ruta según sea necesario
@@ -1556,18 +1557,18 @@ async function generarPDF(adelantoId) {
     { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
 
-   // Normalizar saltos de línea
     let motivosRaw = data.motivos || 'No especificado';
     const motivosNormalized = motivosRaw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Dibujar "Motivo:" + motivos en líneas separadas
     const motivosText = 'Motivo:\n' + motivosNormalized;
+
     drawWrappedText(motivosText, {
     x: fullWidthStartX,
     size: 13,
     lineHeight: 20,
     maxWidth: fullWidthMaxWidth
     });
+
 
     // Texto final
     const authText =
