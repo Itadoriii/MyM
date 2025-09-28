@@ -1565,18 +1565,18 @@ async function generarPDF(adelantoId) {
     .filter(m => m.length > 0);
 
     if (motivos.length > 0) {
-    drawWrappedText("Motivos:", { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
-    y -= 5; // pequeño espacio
+    // Título
+    page.drawText("Motivos:", { x: fullWidthStartX, y, size: 13, font: fontBold, color: rgb(0,0,0) });
+    y -= 20;
 
     motivos.forEach(motivo => {
-        // Dibujar la línea completa sin separar por espacios
-        const words = [motivo]; // evita que drawWrappedText lo divida por espacios
-        drawWrappedText(words.join(' '), { x: fullWidthStartX + 15, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+        page.drawText(motivo, { x: fullWidthStartX + 15, y, size: 13, font: fontRegular, color: rgb(0,0,0) });
+        y -= 20; // espacio entre motivos
     });
     } else {
-    drawWrappedText("Motivos: No especificado", { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    page.drawText("Motivos: No especificado", { x: fullWidthStartX, y, size: 13, font: fontRegular, color: rgb(0,0,0) });
+    y -= 20;
     }
-
 
 
     y -= 10;
