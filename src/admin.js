@@ -1554,20 +1554,23 @@ async function generarPDF(adelantoId) {
       `Por medio del presente, Maderas MyM certifica haber entregado a don(a) ${nombreCompleto} la suma de ${montoTotal}.`,
       { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
-
-     // Dibujar motivos como lista
+    // Dibujar motivos como lista con guion alineado
     y -= 5;
     drawWrappedText('Motivo:', { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
 
     const motivos = data.motivos || 'No especificado';
     motivos.split(/\r?\n/).forEach(linea => {
-      drawWrappedText(linea.trim(), {
+    // Cada línea se dibuja con un guion y un pequeño margen
+    drawWrappedText(`- ${linea.trim()}`, {
         x: fullWidthStartX + 10, // indentado
         size: 13,
         lineHeight: 20,
         maxWidth: fullWidthMaxWidth
-      }, true);
+    }, true); // skipClean = true para respetar saltos de línea
     });
+
+
+
 
     y -= 10;
 
