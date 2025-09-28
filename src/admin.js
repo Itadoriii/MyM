@@ -1550,26 +1550,19 @@ async function generarPDF(adelantoId) {
     const nombreCompleto = `${data.nombres} ${data.apellidos}`.toUpperCase();
     const montoTotal = formatCLP(data.monto + (data.bono || 0));
 
+    // Texto principal
     drawWrappedText(
-      `Por medio del presente, Maderas MyM certifica haber entregado a don(a) ${nombreCompleto} la suma de ${montoTotal}.`,
-      { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
+    `Por medio del presente, Maderas MyM certifica haber entregado a don(a) ${nombreCompleto} la suma de ${montoTotal}.`,
+    { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
-    
-    // Dibujar "Motivo:"
-    drawWrappedText('Motivo:', { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
-    y -= 5; // espacio extra
 
-    // Dibujar cada motivo en su propia línea
-    const motivos = data.motivos.split(/\r?\n/);
-    motivos.forEach(linea => {
-    page.drawText(linea, { x: fullWidthStartX + 10, y, size: 13, font: fontRegular });
-    y -= 18;
-    });
+    // Dibujar Motivo + motivos en líneas separadas
+    const motivosText = 'Motivo:\n' + (data.motivos || 'No especificado');
+    drawWrappedText(motivosText, { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
 
-    y -= 10;
-
+    // Texto final
     const authText =
-      'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
+    'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
     drawWrappedText(authText, { x: fullWidthStartX, size: 12, lineHeight: 18, maxWidth: fullWidthMaxWidth });
 
     y -= 250;
