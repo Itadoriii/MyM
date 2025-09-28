@@ -1552,17 +1552,27 @@ async function generarPDF(adelantoId) {
       y,
       { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
-
+    // ---------- Procesamiento de motivos con logs ----------
     let motivosRaw = data.motivos || 'No especificado';
-    const motivosNormalized = motivosRaw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const motivosText = 'Motivo:\n' + motivosNormalized;
+    console.log('Motivos raw del JSON:', motivosRaw);
 
-    y = drawWrappedText(page, motivosText, y, {
-      x: fullWidthStartX,
-      size: 13,
-      lineHeight: 20,
-      maxWidth: fullWidthMaxWidth
+    const motivosNormalized = motivosRaw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    console.log('Motivos normalizados (saltos de línea \n):', motivosNormalized);
+
+    const motivosLines = motivosNormalized.split('\n');
+    console.log('Motivos separados por línea:', motivosLines);
+
+    // Dibujar "Motivo:" primero
+    y = drawWrappedText(page, 'Motivo:', y, { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    console.log('Dibujada la palabra "Motivo:", nueva y =', y);
+
+    // Dibujar cada línea de motivos
+    motivosLines.forEach((line, index) => {
+    console.log(`Dibujando motivo línea ${index}:`, line);
+    y = drawWrappedText(page, line, y, { x: fullWidthStartX + 10, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
+    console.log(`Motivo línea ${index} dibujado, nueva y =`, y);
     });
+
 
     const authText =
       'El trabajador autoriza a Maderas MyM a descontar este pago de su sueldo final del presente mes, no teniendo ninguna observación al respecto.';
