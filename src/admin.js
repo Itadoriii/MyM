@@ -1555,36 +1555,17 @@ async function generarPDF(adelantoId) {
       { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
 
-    function drawWrappedLines(text, options = {}) {
-        const {
-            font = fontRegular,
-            size = fontSize,
-            lineHeight = fontSize * 1.4,
-            color = rgb(0, 0, 0),
-            x = marginX,
-            maxWidth = fullWidthMaxWidth
-        } = options;
+    // Dibujamos el encabezado "Motivo:"
+    drawWrappedText('Motivo:', { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
 
-        // Separa por saltos de línea reales
-        const lines = text.split(/\r?\n/);
-
-        lines.forEach(line => {
-            // Limpia espacios al inicio y final
-            line = line.trim();
-            if (!line) return;
-
-            // Dibuja la línea completa
-            page.drawText(line, { x, y, size, font, color });
-            y -= lineHeight;
-        });
-        }
-
-    // Uso:
-    drawWrappedText('Motivos:', { x: fullWidthStartX, size: 13, lineHeight: 20 });
-    drawWrappedLines(data.motivos || 'No especificado', {
-    x: fullWidthStartX + 10,
-    size: 13,
-    lineHeight: 20
+    // Procesamos cada línea de motivos
+    (data.motivos || 'No especificado')
+    .split(/\r?\n/)           // separa por saltos de línea \n o \r\n
+    .forEach(linea => {
+        drawWrappedText(
+        linea.trim(),          // limpia espacios al inicio y fin
+        { x: fullWidthStartX + 10, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth } // indentado de 10px
+        );
     });
 
     y -= 10;
