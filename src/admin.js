@@ -1555,17 +1555,18 @@ async function generarPDF(adelantoId) {
       { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth }
     );
 
-    // Dibujamos el encabezado "Motivo:"
+     // Dibujar motivos como lista
+    y -= 5;
     drawWrappedText('Motivo:', { x: fullWidthStartX, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth });
 
-    // Procesamos cada línea de motivos
-    (data.motivos || 'No especificado')
-    .split(/\r?\n/)           // separa por saltos de línea \n o \r\n
-    .forEach(linea => {
-        drawWrappedText(
-        linea.trim(),          // limpia espacios al inicio y fin
-        { x: fullWidthStartX + 10, size: 13, lineHeight: 20, maxWidth: fullWidthMaxWidth } // indentado de 10px
-        );
+    const motivos = data.motivos || 'No especificado';
+    motivos.split(/\r?\n/).forEach(linea => {
+      drawWrappedText(linea.trim(), {
+        x: fullWidthStartX + 10, // indentado
+        size: 13,
+        lineHeight: 20,
+        maxWidth: fullWidthMaxWidth
+      }, true);
     });
 
     y -= 10;
