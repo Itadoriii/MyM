@@ -1558,6 +1558,7 @@ async function generarPDF(adelantoId) {
     // --------------------
     // Motivos listados correctamente
     // --------------------
+    console.log('Motivos raw:', data.motivos);
     const motivosStr = cleanText(data.motivos || '');
     const motivos = motivosStr
     .split(/(?=\d+\.-)/) // separa por "1.-", "2.-", etc.
