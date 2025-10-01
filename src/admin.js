@@ -1257,13 +1257,15 @@ function formatNumber(value) {
 }
 
 function formatDate(dateString) {
-    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const date = new Date(dateString);
-    const dia = date.getDate();
-    const mes = meses[date.getMonth()];
-    const anio = date.getFullYear();
-    return `${dia}/${mes}/${anio}`;
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split('-'); // ej: "2025-10-01"
+    const meses = [
+        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+    ];
+    return `${day}/${meses[parseInt(month, 10) - 1]}/${year}`;
 }
+
 
 // Resto de las funciones (editAdelanto, deleteAdelanto) se mantienen igual
 // Resto de las funciones (renderPaginationControls, editAdelanto, deleteAdelanto) se mantienen igual
@@ -1315,10 +1317,6 @@ function formatCurrency(value) {
     return Number(value || 0).toLocaleString('es-CL');
 }
 
-function formatDate(dateString) {
-    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-    return new Date(dateString).toLocaleDateString('es-CL', options);
-}
 
 
 async function editAdelanto(adelantoId) {
@@ -1448,7 +1446,6 @@ async function generarPDF(adelantoId) {
       '$' + (Number(valor) || 0).toLocaleString('es-CL', { minimumFractionDigits: 0 });
 
     const fecha = new Date(data.fecha);
-    fecha.setDate(fecha.getDate() - 1); // restar 1 día
 
     const fechaFormateada = fecha.toLocaleDateString('es-CL', {
       day: '2-digit',
