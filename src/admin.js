@@ -1753,7 +1753,7 @@ async function fetchInformeGeneral(mes = new Date().getMonth() + 1, anio = new D
 
             
             //const saldo = (parseFloat(t.sueldo) || 0) - (totalAdelantos + totalBonos);
-            const saldo = (parseFloat(t.sueldo) || 0) - totalAdelantos + totalBonos;
+            const saldo = (parseFloat(t.sueldo) || 0) - totalAdelantos - totalBonos;
             return {
                 id_trabajador: t.id_trabajador,
                 nombre: `${t.nombres} ${t.apellidos}`,
