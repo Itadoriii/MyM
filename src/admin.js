@@ -1751,9 +1751,9 @@ async function fetchInformeGeneral(mes = new Date().getMonth() + 1, anio = new D
             const totalAdelantos = adelantosTrab.reduce((sum, a) => sum + (parseFloat(a.monto) || 0), 0);
             const totalBonos = adelantosTrab.reduce((sum, a) => sum + (parseFloat(a.bono) || 0), 0);
 
-            
+            const sueldoLimpio = parseFloat(String(t.sueldo).replace(/[$.]/g, '').replace(',', '.')) || 0;
             //const saldo = (parseFloat(t.sueldo) || 0) - (totalAdelantos + totalBonos);
-            const saldo = (parseFloat(t.sueldo) || 0) - totalAdelantos - totalBonos;
+            const saldo = sueldoLimpio - totalAdelantos - totalBonos;
             return {
                 id_trabajador: t.id_trabajador,
                 nombre: `${t.nombres} ${t.apellidos}`,
