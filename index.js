@@ -213,25 +213,40 @@ app.get('/checkout', (req, res) => {
 
 
 // Actualizar la ruta POST para crear productos
+// Ruta POST para crear productos (ahora permite definir id_producto)
 app.post('/api/productos', async (req, res) => {
-    const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
+  const { id_producto, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
 
-    console.log('Creando nuevo producto:', req.body);
+  console.log('Creando nuevo producto:', req.body);
 
-    if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || visible === undefined || !ruta) {
-      return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
+  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || visible === undefined || !ruta) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
+  }
+
+  try {
+    // Si no viene id_producto, calculamos el siguiente manualmente
+    let newId = id_producto;
+    if (!newId || newId === '') {
+      const [rows] = await pool.query('SELECT MAX(id_producto) AS maxId FROM productos');
+      newId = (rows[0].maxId || 0) + 1;
     }
 
-    try {
-      const query = 'INSERT INTO productos (nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-      const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta];
-      const [result] = await pool.query(query, params);
-      res.status(201).json({ message: 'Producto creado exitosamente', id: result.insertId });
-    } catch (err) {
-      console.error('Error al crear producto:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+    const query = `
+      INSERT INTO productos (
+        id_producto, nombre_prod, precio_unidad, disponibilidad,
+        tipo, medidas, dimensiones, fecha_add, visible, ruta
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [newId, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta];
+
+    const [result] = await pool.query(query, params);
+    res.status(201).json({ message: 'Producto creado exitosamente', id: newId });
+  } catch (err) {
+    console.error('Error al crear producto:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.post('/api/generar-pedido', async (req, res) => {
     const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
@@ -556,10 +571,10 @@ app.get('/api/pedidos', async (req, res) => {
 
 
 
-// Ruta PUT para actualizar productos
+// Ruta PUT para actualizar productos (ahora permite cambiar id_producto)
 app.put('/api/productos/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible , ruta } = req.body;
+  const { id_producto: nuevoId, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
 
   console.log('Actualizando producto:', req.body);
 
@@ -568,33 +583,35 @@ app.put('/api/productos/:id', async (req, res) => {
   }
 
   try {
+    // Si el id cambió, verificar que no esté ocupado
+    if (nuevoId && nuevoId != id) {
+      const [existe] = await pool.query('SELECT id_producto FROM productos WHERE id_producto = ?', [nuevoId]);
+      if (existe.length > 0) {
+        return res.status(400).json({ error: 'El nuevo ID ya existe, elige otro.' });
+      }
+    }
+
     const query = `
-      UPDATE productos 
-      SET nombre_prod = ?, 
-          precio_unidad = ?, 
-          disponibilidad = ?, 
-          tipo = ?, 
-          medidas = ?, 
-          dimensiones = ?, 
-          fecha_add = ?,
-          visible = ?,
-          ruta = ?
+      UPDATE productos
+      SET id_producto = ?, nombre_prod = ?, precio_unidad = ?, disponibilidad = ?,
+          tipo = ?, medidas = ?, dimensiones = ?, fecha_add = ?, visible = ?, ruta = ?
       WHERE id_producto = ?
     `;
-    const params = [nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta, id];
+    const params = [nuevoId || id, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta, id];
 
     const [result] = await pool.query(query, params);
-    
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });
     }
-    
-    res.json({ message: 'Producto actualizado exitosamente' });
+
+    res.json({ message: 'Producto actualizado exitosamente', id: nuevoId || id });
   } catch (err) {
     console.error('Error al actualizar producto:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
 // ----- helpers: normalizar y mapear estados -----
 function slugifyEstado(s = '') {
   return String(s)

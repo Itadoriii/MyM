@@ -612,9 +612,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     // === OBTENER UNO (para Editar) ===
     async function editProduct(productId) {
-    // intenta API admin
     let r = await tryJson(`/api/productos/${productId}`);
-    // si no existe, intenta público
     if (!r.ok) r = await tryJson(`/productos/${productId}`);
 
     if (!r.ok) {
@@ -622,8 +620,11 @@ document.addEventListener("DOMContentLoaded", function() {
         showPopup('No se pudo cargar el producto.');
         return;
     }
+
+    r.data.id_original = r.data.id_producto; // <- Aquí guardamos el ID real
     showProductForm(r.data);
-    }
+}
+
 
     // === ELIMINAR ===
     async function deleteProduct(productId) {
@@ -653,49 +654,53 @@ function showProductForm(product = null) {
   mainContent.innerHTML = `
     <h1>${isEditing ? 'Editar' : 'Crear Nuevo'} Producto</h1>
     <form id="productoForm">
-      ${isEditing ? `<input type="hidden" id="id_producto" name="id_producto" value="${product.id_producto}">` : ''}
+      ${isEditing ? `<input type="hidden" name="id_original" value="${product.id_producto}">` : ''}
+      <div class="form-group">
+        <label>ID Producto:</label>
+        <input type="number" name="id_producto" value="${product?.id_producto || ''}" placeholder="Dejar vacío para asignar automáticamente">
+      </div>
       <div class="form-group">
         <label>Nombre:</label>
-        <input type="text" id="nombre_prod" name="nombre_prod" value="${isEditing ? (product.nombre_prod||'') : ''}" required>
+        <input type="text" name="nombre_prod" value="${product?.nombre_prod || ''}" required>
       </div>
       <div class="form-group">
         <label>Precio Unidad:</label>
-        <input type="number" id="precio_unidad" name="precio_unidad" step="0.01" value="${isEditing ? (product.precio_unidad||'') : ''}" required>
+        <input type="number" name="precio_unidad" step="0.01" value="${product?.precio_unidad || ''}" required>
       </div>
       <div class="form-group">
         <label>Disponibilidad:</label>
-        <input type="number" id="disponibilidad" name="disponibilidad" value="${isEditing ? (product.disponibilidad||'') : ''}" required>
+        <input type="number" name="disponibilidad" value="${product?.disponibilidad || ''}" required>
       </div>
       <div class="form-group">
         <label>Tipo:</label>
-        <input type="text" id="tipo" name="tipo" value="${isEditing ? (product.tipo||'') : ''}" required>
+        <input type="text" name="tipo" value="${product?.tipo || ''}" required>
       </div>
       <div class="form-group">
         <label>Medidas:</label>
-        <input type="text" id="medidas" name="medidas" value="${isEditing ? (product.medidas||'') : ''}" required>
+        <input type="text" name="medidas" value="${product?.medidas || ''}" required>
       </div>
       <div class="form-group">
         <label>Dimensiones:</label>
-        <input type="text" id="dimensiones" name="dimensiones" value="${isEditing ? (product.dimensiones||'') : ''}" required>
+        <input type="text" name="dimensiones" value="${product?.dimensiones || ''}" required>
       </div>
       <div class="form-group">
         <label>Fecha Añadido:</label>
-        <input type="date" id="fecha_add" name="fecha_add" value="${isEditing && product.fecha_add ? String(product.fecha_add).slice(0,10) : ''}" required>
+        <input type="date" name="fecha_add" value="${product?.fecha_add ? product.fecha_add.slice(0,10) : ''}" required>
       </div>
       <div class="form-group">
         <label>Visibilidad:</label>
-        <select id="visible" name="visible">
-          <option value="1" ${product?.visible == 1 || product === null ? 'selected' : ''}>Visible</option>
+        <select name="visible">
+          <option value="1" ${product?.visible == 1 || !product ? 'selected' : ''}>Visible</option>
           <option value="0" ${product?.visible == 0 ? 'selected' : ''}>Oculto</option>
         </select>
       </div>
       <div class="form-group">
         <label>Ruta:</label>
-        <input type="text" id="ruta" name="ruta" value="${isEditing ? (product.ruta||'') : ''}" required>
+        <input type="text" name="ruta" value="${product?.ruta || ''}" required>
       </div>
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
-        <button type="button" class="btn btn-secondary" onclick="fetchProductos()">Cancelar</button>
+        <button type="submit">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
+        <button type="button" onclick="fetchProductos()">Cancelar</button>
       </div>
     </form>
   `;
@@ -703,11 +708,13 @@ function showProductForm(product = null) {
   document.getElementById('productoForm').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const payload = Object.fromEntries(new FormData(ev.target).entries());
-    const body = JSON.stringify(payload);
+    const isEditing = !!product;
+    const idOriginal = payload.id_original; // ID actual en DB
 
-    // intentamos primero en /api/productos
-    const urlA = isEditing ? `/api/productos/${payload.id_producto}` : '/api/productos';
-    const urlB = isEditing ? `/productos/${payload.id_producto}`     : '/productos';
+    const urlA = isEditing ? `/api/productos/${idOriginal}` : '/api/productos';
+    const urlB = isEditing ? `/productos/${idOriginal}` : '/productos';
+
+    const body = JSON.stringify(payload);
 
     let res = await fetch(urlA, { method: isEditing ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body });
     if (!res.ok) {
@@ -725,6 +732,7 @@ function showProductForm(product = null) {
     }
   });
 }
+
 
 
 
