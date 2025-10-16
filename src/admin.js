@@ -1761,7 +1761,7 @@ async function fetchInformeGeneral(mes = new Date().getMonth() + 1, anio = new D
 
             const sueldoLimpio = parseFloat(String(t.sueldo).replace(/[$.]/g, '').replace(',', '.')) || 0;
             //const saldo = (parseFloat(t.sueldo) || 0) - (totalAdelantos + totalBonos);
-            const saldo = sueldoLimpio - totalAdelantos - totalBonos;
+            const saldo = sueldoLimpio - totalAdelantos 
             return {
                 id_trabajador: t.id_trabajador,
                 nombre: `${t.nombres} ${t.apellidos}`,
@@ -1879,8 +1879,9 @@ function renderInformeGeneral(data, mes, anio) {
                         <th>Trabajador</th>
                         <th>Sueldo</th>
                         <th>Total Adelantos</th>
-                        <th>Total Bonos</th>
                         <th>Saldo</th>
+                        <th>Total Bonos</th>
+                        
                     </tr>
                 </thead>
                 <tbody>
@@ -1890,10 +1891,11 @@ function renderInformeGeneral(data, mes, anio) {
                             <td>${row.nombre}</td>
                             <td>${formatoCLP.format(row.sueldo)}</td>
                             <td>${formatoCLP.format(row.totalAdelantos)}</td>
-                            <td>${formatoCLP.format(row.totalBonos)}</td>
                             <td class="${row.saldo < 0 ? 'saldo-negativo' : 'saldo-positivo'}">
                                 ${formatoCLP.format(row.saldo)}
                             </td>
+                            <td>${formatoCLP.format(row.totalBonos)}</td>
+                            
                         </tr>
                     `).join('')}
                 </tbody>
@@ -1902,8 +1904,9 @@ function renderInformeGeneral(data, mes, anio) {
                         <td colspan="2">Totales</td>
                         <td>${formatoCLP.format(totalGeneral.sueldo)}</td>
                         <td>${formatoCLP.format(totalGeneral.adelantos)}</td>
-                        <td>${formatoCLP.format(totalGeneral.bonos)}</td>
                         <td>${formatoCLP.format(totalGeneral.saldo)}</td>
+                        <td>${formatoCLP.format(totalGeneral.bonos)}</td>
+                        
                     </tr>
                 </tfoot>
             </table>
