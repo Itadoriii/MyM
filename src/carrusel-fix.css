@@ -1,0 +1,709 @@
+/* ========================================
+   CORRECCIONES CRÍTICAS PARA HEADER Y CARRUSEL
+   Este archivo debe cargarse DESPUÉS de style.css
+   ======================================== */
+
+/* ========================================
+   CORRECCIONES DEL HEADER/MENÚ
+   ======================================== */
+
+/* Prevenir scroll horizontal en todo el sitio */
+html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+}
+
+/* Ajustar el header completo */
+.menu {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    height: 100px !important;
+}
+
+/* Contenedor del menú */
+.menu__container {
+    width: 100% !important;
+    max-width: 1400px !important;
+    padding: 0 20px !important;
+    margin: 0 auto !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* LOGO - Tamaño controlado */
+.menu__container img,
+.menu__container.image {
+    width: 120px !important;
+    height: auto !important;
+    max-width: 120px !important;
+    max-height: 80px !important;
+    object-fit: contain !important;
+}
+
+/* Enlaces del menú */
+.menu__links {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    gap: 5px !important;
+}
+
+/* Items del menú */
+.menu__item {
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Enlaces individuales */
+.menu__link {
+    padding: 0 15px !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    white-space: nowrap !important;
+}
+
+/* Iconos del menú (usuario y carrito) */
+.menu__link i {
+    font-size: 1.3rem !important;
+}
+
+/* Alinear el carrito correctamente */
+#cart-container {
+    display: flex !important;
+    align-items: center !important;
+}
+
+#cart-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+/* Contador del carrito */
+.cart-count {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+}
+
+/* ========================================
+   RESPONSIVE PARA EL HEADER
+   ======================================== */
+
+@media (max-width: 1200px) {
+    .menu {
+        height: 90px !important;
+    }
+    
+    .menu__container img,
+    .menu__container.image {
+        width: 100px !important;
+        max-width: 100px !important;
+        max-height: 70px !important;
+    }
+    
+    .menu__link {
+        padding: 0 12px !important;
+        font-size: 0.9rem !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .menu {
+        height: 85px !important;
+    }
+    
+    .menu__container img,
+    .menu__container.image {
+        width: 90px !important;
+        max-width: 90px !important;
+        max-height: 65px !important;
+    }
+}
+
+@media (max-width: 800px) {
+    .menu {
+        height: 80px !important;
+    }
+    
+    .menu__container {
+        padding: 0 15px !important;
+    }
+    
+    .menu__container img,
+    .menu__container.image {
+        width: 80px !important;
+        max-width: 80px !important;
+        max-height: 60px !important;
+    }
+    
+    .menu__link i {
+        font-size: 1.2rem !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .menu {
+        height: 70px !important;
+    }
+    
+    .menu__container img,
+    .menu__container.image {
+        width: 70px !important;
+        max-width: 70px !important;
+        max-height: 55px !important;
+    }
+}
+
+/* ========================================
+   OPTIMIZACIÓN DEL GRID DE PRODUCTOS
+   3 FILAS x 5 COLUMNAS = 15 PRODUCTOS
+   ======================================== */
+
+/* Grid con 5 columnas y tarjetas más grandes */
+#catalog-grid.catalog-grid,
+.catalog-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    grid-template-rows: repeat(3, auto) !important;
+    gap: 16px !important;
+    width: 100% !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    min-height: auto !important;
+    max-height: none !important;
+}
+
+/* Área de productos - sin restricciones de altura */
+.products-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    min-height: auto !important;
+}
+
+/* Contenedor principal */
+.conteiner,
+#conteiner {
+    min-height: auto !important;
+}
+
+/* Tarjetas de productos - tamaño medio */
+#catalog-grid .product-card,
+.catalog-grid .product-card,
+.product-card,
+.featured-card {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+/* Imagen del producto - tamaño medio */
+#catalog-grid .product-card .thumb,
+.catalog-grid .product-card .thumb,
+.product-card .thumb,
+.featured-card .thumb {
+    width: 100% !important;
+    height: 170px !important;
+    aspect-ratio: 1 / 1 !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    background: #f4f4f4 !important;
+}
+
+#catalog-grid .product-card .thumb img,
+.catalog-grid .product-card .thumb img,
+.product-card .thumb img,
+.featured-card .thumb img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+/* Info del producto - más espaciosa */
+#catalog-grid .product-card .info,
+.catalog-grid .product-card .info,
+.product-card .info,
+.featured-card .info {
+    padding: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    flex: 1 !important;
+}
+
+/* Título - tamaño medio */
+#catalog-grid .product-card .title,
+.catalog-grid .product-card .title,
+.product-card .title,
+.featured-card .title {
+    font-size: 0.95rem !important;
+    line-height: 1.3 !important;
+    min-height: 2.4em !important;
+    margin-bottom: 6px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+
+/* Precio - más destacado */
+#catalog-grid .product-card .price,
+.catalog-grid .product-card .price,
+.product-card .price,
+.featured-card .price {
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 6px !important;
+    color: #A0352F !important;
+}
+
+/* Meta info - legible */
+#catalog-grid .product-card .meta,
+.catalog-grid .product-card .meta,
+.product-card .meta,
+.featured-card .meta {
+    font-size: 0.8rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 8px !important;
+    display: grid !important;
+    gap: 3px !important;
+}
+
+/* Botón - más grande */
+#catalog-grid .product-card .add-btn,
+.catalog-grid .product-card .add-btn,
+.product-card .add-btn,
+.featured-card .add-btn {
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
+    margin-top: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* ========================================
+   CORRECCIÓN DE LA PAGINACIÓN
+   ======================================== */
+
+/* Contenedor de la paginación */
+#pager.pager,
+.pager {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 20px 10px !important;
+    margin: 20px auto !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Botones de paginación */
+#pager button,
+.pager button {
+    min-width: 40px !important;
+    height: 40px !important;
+    padding: 8px 12px !important;
+    font-size: 1rem !important;
+    border: 2px solid #A0352F !important;
+    background: white !important;
+    color: #A0352F !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#pager button:hover,
+.pager button:hover {
+    background: #A0352F !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(160, 53, 47, 0.3) !important;
+}
+
+#pager button.active,
+.pager button.active {
+    background: #A0352F !important;
+    color: white !important;
+    font-weight: 700 !important;
+}
+
+#pager button:disabled,
+.pager button:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+#pager button:disabled:hover,
+.pager button:disabled:hover {
+    background: white !important;
+    color: #A0352F !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Responsive para Grid de productos */
+@media (min-width: 1400px) {
+    #catalog-grid.catalog-grid,
+    .catalog-grid {
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 18px !important;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1399px) {
+    #catalog-grid.catalog-grid,
+    .catalog-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 14px !important;
+    }
+    
+    #catalog-grid .product-card .thumb,
+    .catalog-grid .product-card .thumb,
+    .product-card .thumb,
+    .featured-card .thumb {
+        height: 160px !important;
+    }
+}
+
+/* Tablets: 3 productos por fila */
+@media (max-width: 1199px) and (min-width: 768px) {
+    #catalog-grid.catalog-grid,
+    .catalog-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 14px !important;
+    }
+    
+    #catalog-grid .product-card .thumb,
+    .catalog-grid .product-card .thumb,
+    .product-card .thumb,
+    .featured-card .thumb {
+        height: 160px !important;
+    }
+    
+    #pager button,
+    .pager button {
+        min-width: 36px !important;
+        height: 36px !important;
+        font-size: 0.9rem !important;
+    }
+}
+
+/* Móviles: 2 productos por fila */
+@media (max-width: 767px) {
+    #catalog-grid.catalog-grid,
+    .catalog-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        padding: 8px !important;
+    }
+    
+    #catalog-grid .product-card .thumb,
+    .catalog-grid .product-card .thumb,
+    .product-card .thumb,
+    .featured-card .thumb {
+        height: 150px !important;
+    }
+    
+    #catalog-grid .product-card .info,
+    .catalog-grid .product-card .info,
+    .product-card .info,
+    .featured-card .info {
+        padding: 10px !important;
+    }
+    
+    #catalog-grid .product-card .title,
+    .catalog-grid .product-card .title,
+    .product-card .title,
+    .featured-card .title {
+        font-size: 0.85rem !important;
+    }
+    
+    #catalog-grid .product-card .price,
+    .catalog-grid .product-card .price,
+    .product-card .price,
+    .featured-card .price {
+        font-size: 1.15rem !important;
+    }
+    
+    #pager,
+    .pager {
+        gap: 6px !important;
+        padding: 15px 8px !important;
+    }
+    
+    #pager button,
+    .pager button {
+        min-width: 32px !important;
+        height: 32px !important;
+        padding: 6px 10px !important;
+        font-size: 0.85rem !important;
+    }
+}
+
+/* Móviles muy pequeños */
+@media (max-width: 480px) {
+    #catalog-grid.catalog-grid,
+    .catalog-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        padding: 6px !important;
+    }
+    
+    #catalog-grid .product-card .thumb,
+    .catalog-grid .product-card .thumb,
+    .product-card .thumb,
+    .featured-card .thumb {
+        height: 140px !important;
+    }
+    
+    #pager button,
+    .pager button {
+        min-width: 30px !important;
+        height: 30px !important;
+        padding: 5px 8px !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* Featured products container */
+.featured-container {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 16px !important;
+    padding: 12px !important;
+}
+
+@media (min-width: 1400px) {
+    .featured-container {
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 18px !important;
+    }
+}
+
+@media (max-width: 1199px) and (min-width: 768px) {
+    .featured-container {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 14px !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .featured-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+}
+
+/* ========================================
+   CORRECCIONES DEL CARRUSEL
+   VERSIÓN BALANCEADA: BIEN EN DESKTOP Y MÓVIL
+   ======================================== */
+
+/* ⭐ ESTILOS BASE - DESKTOP PRIMERO ⭐ */
+#conteitemcarrusel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 450px !important; /* ⭐ Altura base para desktop */
+    overflow: hidden !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: linear-gradient(180deg, #ffffff 0%, #f8f8f8 100%) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1 !important;
+}
+
+.itemcarrusel {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+}
+
+.tarjetacarrusel {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+}
+
+/* ⭐⭐⭐ CRÍTICO: La imagen debe cubrir todo sin repetirse ⭐⭐⭐ */
+.imgbanner {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important; /* ⭐ Cubre sin repetir */
+    object-position: center !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Flechas de navegación */
+.flechascarrusel {
+    position: absolute !important;
+    top: 50% !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    transform: translateY(-50%) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0 20px !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+}
+
+.flechascarrusel a {
+    pointer-events: all !important;
+    background: linear-gradient(135deg, rgba(117, 35, 12, 0.85) 0%, rgba(160, 53, 47, 0.9) 100%) !important;
+    color: white !important;
+    width: 50px !important;
+    height: 50px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+    text-decoration: none !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.flechascarrusel a:hover {
+    background: linear-gradient(135deg, rgba(117, 35, 12, 1) 0%, rgba(160, 53, 47, 1) 100%) !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 6px 20px rgba(160, 53, 47, 0.4) !important;
+}
+
+.flechascarrusel i {
+    font-size: 1.5rem !important;
+}
+
+/* ========================================
+   RESPONSIVE DEL CARRUSEL
+   SOLO AFECTA MÓVIL, DESKTOP QUEDA INTACTO
+   ======================================== */
+
+/* ⭐ Desktop grande - MÁS ALTO ⭐ */
+@media (min-width: 1200px) {
+    #conteitemcarrusel {
+        height: 500px !important; /* ⭐ Desktop grande */
+    }
+}
+
+/* Desktop medio */
+@media (min-width: 1025px) and (max-width: 1199px) {
+    #conteitemcarrusel {
+        height: 450px !important; /* ⭐ Desktop medio */
+    }
+}
+
+/* Tablets horizontal */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #conteitemcarrusel {
+        height: 350px !important; /* ⭐ Tablets */
+    }
+}
+
+/* ⭐ Tablets verticales y móviles grandes ⭐ */
+@media (max-width: 768px) {
+    #conteitemcarrusel {
+        height: 250px !important; /* ⭐ Tablets verticales */
+        padding: 0 !important;
+    }
+    
+    .flechascarrusel {
+        padding: 0 10px !important;
+    }
+    
+    .flechascarrusel a {
+        width: 40px !important;
+        height: 40px !important;
+    }
+    
+    .flechascarrusel i {
+        font-size: 1.2rem !important;
+    }
+}
+
+/* ⭐ Móviles (600px y menos) ⭐ */
+@media (max-width: 600px) {
+    #conteitemcarrusel {
+        height: 180px !important; /* ⭐ Móviles normales */
+    }
+    
+    .flechascarrusel a {
+        width: 35px !important;
+        height: 35px !important;
+    }
+    
+    .flechascarrusel i {
+        font-size: 1rem !important;
+    }
+}
+
+/* ⭐ Móviles pequeños (480px y menos) ⭐ */
+@media (max-width: 480px) {
+    #conteitemcarrusel {
+        height: 160px !important; /* ⭐ Móviles pequeños */
+    }
+    
+    .flechascarrusel {
+        padding: 0 5px !important;
+    }
+    
+    .flechascarrusel a {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    .flechascarrusel i {
+        font-size: 0.9rem !important;
+    }
+}
+
+/* ⭐ Móviles muy pequeños (375px y menos) ⭐ */
+@media (max-width: 375px) {
+    #conteitemcarrusel {
+        height: 140px !important; /* ⭐ Móviles muy pequeños */
+    }
+    
+    .flechascarrusel a {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    
+    .flechascarrusel i {
+        font-size: 0.85rem !important;
+    }
+}
