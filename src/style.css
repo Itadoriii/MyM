@@ -85,7 +85,7 @@ body {
     width: max-content;
     transform: translateY(100%);
     background-color: #e17055;
-    z-index: 3; 
+    z-index: 999999; 
 }
 
 .menu__link--inside {
