@@ -35,9 +35,9 @@ html, body {
 /* LOGO - Tamaño controlado */
 .menu__container img,
 .menu__container.image {
-    width: 120px !important;
+    width: 200px !important;
     height: auto !important;
-    max-width: 120px !important;
+    max-width: 200px !important;
     max-height: 80px !important;
     object-fit: contain !important;
 }

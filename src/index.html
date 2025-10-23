@@ -2049,7 +2049,7 @@
     
     <nav class="menu">
         <section class="menu__container">
-            <img src="assets/logo act.png" class="menu__container image">
+            <img src="assets/mymlog.png" class="menu__container image">
             <ul class="menu__links">
                 <li class="menu__item">
                     <a href="/" class="menu__link">Inicio</a>
@@ -2220,9 +2220,13 @@
             <p><a href="#" class="category-link">Planchas Osb</a></p>
             <p><a href="#" class="category-link">Polines</a></p>
             <p><a href="#" class="category-link">Protectores y barníz</a></p>
-            <p><a href="#" class="category-link">Terciados</a></p>
-            <li><a href="#" class="category-link">Terciado estructural</a></li>
-            <li><a href="#" class="category-link">Terciado ranurado</a></li>
+            <li>
+                <a href="#" class="category-link toggle-submenu">Terciados</a>
+                <ul class="submenu">
+                <li><a href="#" class="submenu-link">Terciado estructural</a></li>
+                <li><a href="#" class="submenu-link">Terciado ranurado</a></li>
+                </ul>
+            </li>
             <p><a href="#" class="category-link">Treillage</a></p>
             <p><a href="#">Vitrificante de pisos</a></p>
             <div class="sidebarinfo">
@@ -2380,9 +2384,23 @@
     };
 
     /* =========================
+    ✅ VARIABLES GLOBALES PARA MANTENER EL ESTADO DEL FILTRO
+    ========================= */
+    let currentQuery = '';
+    let currentTipo = '';
+    let currentMedida = '';
+    let isFilterByTypeAndSize = false;
+
+    /* =========================
     CATALOGO + DESTACADOS
     ========================= */
    async function loadProductsPage(page = 1, q = '') {
+    // ✅ Guardar el estado del filtro
+    currentQuery = q;
+    currentTipo = '';
+    currentMedida = '';
+    isFilterByTypeAndSize = false;
+    
   const GRID  = document.getElementById('catalog-grid');
   const PAGER = document.getElementById('pager');
   const PAGE_SIZE = 15;
@@ -2594,6 +2612,12 @@ async function loadFeatured(){
    FUNCIÓN ESPECÍFICA PARA FILTRAR POR TIPO Y MEDIDA
    ========================= */
 async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
+  // ✅ Guardar el estado del filtro
+  currentQuery = '';
+  currentTipo = tipo;
+  currentMedida = medida;
+  isFilterByTypeAndSize = true;
+  
   const GRID  = document.getElementById('catalog-grid');
   const PAGER = document.getElementById('pager');
   const PAGE_SIZE = 18;
@@ -2662,13 +2686,41 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
 
     // Render
     renderGrid(pageItems);
-    renderPager(safePage, totalPages, ''); // Query vacío porque ya filtramos
+    // ✅ CORREGIDO: Usar nueva función que mantiene tipo y medida
+    renderPagerByTypeAndSize(safePage, totalPages, tipo, medida);
 
   } catch (err) {
     console.error(err);
     GRID.innerHTML = '<p>Error inesperado.</p>';
     PAGER.innerHTML = '';
   }
+}
+
+/* =========================
+   ✅ NUEVA FUNCIÓN: renderPagerByTypeAndSize
+   Mantiene el filtro de tipo y medida en la paginación
+   ========================= */
+function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
+  const PAGER = document.getElementById('pager');
+  if (totalPages <= 1){ PAGER.innerHTML=''; return; }
+
+  const btn = (label, goto, disabled=false, active=false)=>`
+    <button ${disabled?'disabled':''} class="${active?'active':''}" data-goto="${goto}" type="button">${label}</button>
+  `;
+
+  const parts = [];
+  parts.push(btn('« Anterior', Math.max(1, page-1), page===1));
+  const W = 2, start = Math.max(1, page-W), end = Math.min(totalPages, page+W);
+  if (start>1){ parts.push(btn('1',1,false,page===1)); if(start>2) parts.push('<span>…</span>'); }
+  for(let p=start;p<=end;p++) parts.push(btn(String(p), p, false, p===page));
+  if (end<totalPages){ if(end<totalPages-1) parts.push('<span>…</span>'); parts.push(btn(String(totalPages), totalPages, false, page===totalPages)); }
+  parts.push(btn('Siguiente »', Math.min(totalPages, page+1), page===totalPages));
+
+  PAGER.innerHTML = parts.join('');
+  // ✅ CORREGIDO: Pasar tipo y medida a la función
+  PAGER.querySelectorAll('button[data-goto]').forEach(b=>{
+    b.addEventListener('click', ()=> loadProductsPageByTypeAndSize(Number(b.dataset.goto), tipo, medida));
+  });
 }
 
     /* =========================
@@ -2698,24 +2750,19 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
             body: JSON.stringify({ cart: payload, delivery, comentarios })
         });
 
-        const ct = (res.headers.get('content-type')||'').toLowerCase();
-        const raw = await res.text();
-        let data = null; if (ct.includes('application/json')){ try{ data = JSON.parse(raw); }catch{} }
-
+        const data = await res.json();
         if (!res.ok){
-            const msg = (data && (data.error || data.message)) || raw || res.statusText;
-            // si fue deadlock, reintentar
-            if (/deadlock/i.test(msg) && i < attempts){
-            await new Promise(r=>setTimeout(r, 200 + Math.random()*400));
+            const msg = data.error || 'Error generando pedido';
+            if (i<attempts && msg.toLowerCase().includes('deadlock')){
+            await new Promise(r=>setTimeout(r,300));
             continue;
             }
             throw new Error(msg);
         }
 
-        // éxito
         clearCart(); updateCartDisplay();
         UI.closeModal();
-        alert('Pedido generado exitosamente. Hemos enviado toda la información a tu correo. Nos contactaremos contigo a la brevedad. ¡Gracias por su preferencia!');
+        alert(data.message || 'Pedido generado exitosamente. ¡Gracias!');
         return;
         }catch(err){
         if (i === attempts){
@@ -2948,7 +2995,6 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
         }
     });
     </script>
-
     
 
 </body>
