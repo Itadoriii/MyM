@@ -60,24 +60,14 @@
     
     /* Menú de navegación responsive */
     nav, .menu {
-        width: 100vw !important;
-        max-width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow-x: hidden !important;
-        box-sizing: border-box !important;
-        position: relative;
-        left: 0 !important;
-        right: 0 !important;
+        overflow: visible !important;
+        min-height: 90px;
+        height: auto !important;
     }
     
     .menu__container {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        overflow-x: hidden !important;
-        padding: 10px !important;
-        margin: 0 !important;
+        overflow: visible !important;
+        height: 150px;
     }
     
     @media (max-width: 768px) {
@@ -103,12 +93,6 @@
             height: auto;
         }
         
-        .menu__links {
-            gap: 6px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-        }
         
         .menu__link {
             font-size: 0.8rem;
@@ -141,11 +125,6 @@
             margin-bottom: 5px;
         }
         
-        .menu__links {
-            font-size: 0.75rem;
-            width: 100%;
-            justify-content: space-around;
-        }
         
         .menu__link {
             padding: 4px 6px;
@@ -160,10 +139,6 @@
         
         .menu__container img {
             max-width: 70px;
-        }
-        
-        .menu__links {
-            gap: 4px;
         }
         
         .menu__link {
