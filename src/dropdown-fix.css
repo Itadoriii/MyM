@@ -1,0 +1,111 @@
+/* ================================================================
+   SOLUCIÓN PARA EL PROBLEMA DEL DROPDOWN EN EL HEADER
+   Aplica este CSS DESPUÉS de tu style.css principal
+   ================================================================ */
+
+/* ⭐ SOLUCIÓN 1: Asegurar que el menú permita contenido fuera de sus límites */
+.menu {
+    overflow: visible !important;  /* ⭐ CRÍTICO: permite que el dropdown salga del header */
+    min-height: 150px;             /* ⭐ Cambiamos de height fijo a min-height */
+    height: auto !important;        /* ⭐ Permite que se expanda si es necesario */
+}
+
+.menu__container {
+    overflow: visible !important;   /* ⭐ CRÍTICO: el contenedor también debe permitir overflow */
+    height: 150px;                  /* ⭐ Mantiene la altura visual del header */
+}
+
+/* ⭐ SOLUCIÓN 2: Asegurar posicionamiento correcto del dropdown en DESKTOP */
+@media (min-width: 801px) {
+    
+    .menu__item {
+        position: relative;         /* ⭐ El padre debe ser relative */
+        height: 100%;               /* ⭐ Ocupa toda la altura del menú */
+    }
+    
+    .menu__nesting {
+        position: absolute !important;
+        left: 0 !important;                    /* ⭐ Alinea a la izquierda del item */
+        right: auto !important;
+        top: 100% !important;                  /* ⭐ Se posiciona justo debajo del item */
+        bottom: auto !important;
+        transform: none !important;            /* ⭐ Sin transformaciones que puedan causar problemas */
+        width: max-content;
+        min-width: 220px;
+        max-width: 320px;
+        margin-top: 0;                         /* ⭐ Sin margen superior */
+        z-index: 999999;                       /* ⭐ Por encima de todo */
+        display: none;                         /* ⭐ Oculto por defecto */
+        background-color: #e17055;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* ⭐ Sombra para mejor visibilidad */
+    }
+    
+    /* ⭐ Mostrar dropdown al hacer hover */
+    .menu__item:hover .menu__nesting {
+        display: block !important;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%) !important;
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    /* ⭐ Links dentro del dropdown */
+    .menu__link--inside {
+        padding: 15px 20px;
+        display: block;
+        white-space: nowrap;
+        color: #fff;
+        transition: background-color 0.2s ease;
+    }
+    
+    .menu__link--inside:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+}
+
+/* ⭐ SOLUCIÓN 3: Prevenir scroll horizontal en toda la página */
+body, html {
+    overflow-x: hidden;
+    overflow-y: auto;              /* ⭐ Solo permite scroll vertical en el body */
+}
+
+/* ⭐ SOLUCIÓN 4: Asegurar que nav también permita overflow */
+nav {
+    overflow: visible !important;
+}
+
+/* ⭐ SOLUCIÓN 5: Ajustar el comportamiento de los links del menú */
+.menu__link {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    position: relative;           /* ⭐ Para mejor control del z-index */
+}
+
+/* ⭐ OPCIONAL: Animación suave para el dropdown */
+@media (min-width: 801px) {
+    .menu__nesting {
+        animation: fadeInDown 0.25s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+/* ⭐ SOLUCIÓN 6: Fix para el comportamiento en móviles (no tocar el dropdown) */
+@media (max-width: 800px) {
+    .menu__nesting {
+        position: relative !important;
+        transform: none !important;
+        display: none;
+        width: 100%;
+        max-width: 100%;
+    }
+}

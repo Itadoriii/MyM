@@ -14,9 +14,11 @@ body {
     background-color: #75230C;
     background-image: url('assets/Vector.svg');
     color: #fff;
-    height: 150px;
+    min-height: 150px;           /* ⭐ CAMBIO: de height a min-height */
+    height: auto !important;      /* ⭐ NUEVO */
     position: relative;
-    z-index: 2; 
+    z-index: 2;
+    overflow: visible !important; /* ⭐ NUEVO: CRÍTICO */
 }
 
 .menu__container {
@@ -60,7 +62,6 @@ body {
     display: flex;
     height: 100%;
     align-items: center;
-    
 }
 
 .menu__link:hover {
@@ -79,13 +80,31 @@ body {
     list-style: none;
     transition: clip-path .3s;
     clip-path: var(--clip);
-    position: absolute;
-    right: 0;
+    position: absolute;          /* ⭐ DEBE ser absolute, NO fixed */
+    right: 0;                    /* ⭐ Cambia a left: 0; si prefieres */
     bottom: 0;
     width: max-content;
     transform: translateY(100%);
     background-color: #e17055;
-    z-index: 999999; 
+    z-index: 999999;
+    display: none;
+}
+
+.menu__item:hover .menu__nesting {
+    display: block !important; /* ⭐ Muestra el dropdown al hacer hover */
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%) !important;
+}
+
+@media (min-width: 801px) {
+    .menu__item {
+        position: relative;
+    }
+    
+    .menu__item:hover .menu__nesting {
+        display: block !important;
+        opacity: 1;
+        visibility: visible;
+    }
 }
 
 .menu__link--inside {
@@ -113,53 +132,72 @@ body {
 @media (max-width: 800px) {
     .menu__hamburguer {
         display: flex;
+        z-index: 10001;
     }
 
     .menu__item {
         --clip: 0;
         overflow: hidden;
+        width: 100% !important;        /* ⭐ ANCHO COMPLETO en móvil */
+        display: block !important;     /* ⭐ BLOQUE en móvil */
+        height: auto !important;       /* ⭐ ALTURA AUTO en móvil */
     }
 
     .menu__item--active {
         --transform: rotate(0);
         --background: #d63031;
-        
-        
     }
 
     .menu__item--show {
         background-color: var(--background);
-        
     }
 
+    /* ⭐ MENÚ LATERAL MEJORADO ⭐ */
     .menu__links {
         position: fixed;
-        max-width: 400px;
-        width: 100%;
-        top: 70px;
+        max-width: 280px !important;
+        width: 75% !important;
+        top: 0 !important;
         bottom: 0;
         right: 0;
-        background-color: #e17055;
+        background: linear-gradient(135deg, #e17055 0%, #d63031 100%) !important;
         overflow-y: auto;
-        display: grid;
-        grid-auto-rows: max-content;
+        display: flex !important;           /* ⭐ FLEX en móvil */
+        flex-direction: column !important;  /* ⭐ VERTICAL en móvil */
+        padding-top: 60px !important;
         transform: translateX(100%);
+        transition: transform 0.3s ease !important;
+        box-shadow: -5px 0 15px rgba(0,0,0,0.3) !important;
+        z-index: 10000;
+        height: 100vh !important;          /* ⭐ ALTURA COMPLETA */
+        gap: 0 !important;
     }
 
     .menu__links--show {
-        transform: unset;
-        width: 100%;
+        transform: translateX(0);
     }
 
+    /* ⭐ LINKS VERTICALES EN MÓVIL ⭐ */
     .menu__link {
-        padding: 25px 0;
+        padding: 16px 24px !important;
         padding-left: 30px;
-        height: auto;
+        height: auto !important;
+        width: 100% !important;
+        font-size: 0.95rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        display: block !important;
+        box-sizing: border-box !important;
+    }
+
+    .menu__link:hover,
+    .menu__link:active {
+        background: rgba(255, 255, 255, 0.15) !important;
+        padding-left: 35px !important;
     }
 
     .menu__arrow {
         margin-left: auto;
-        margin-right: 20px;
+        margin-right: 16px;
     }
 
     .menu__nesting {
@@ -168,15 +206,41 @@ body {
         width: 100%;
         transform: translateY(0);
         height: 0;
-        transition: height .3s;
+        transition: height 0.3s ease;
+        background: rgba(0, 0, 0, 0.15);
     }
 
     .menu__link--inside {
-        width: 90%;
-        margin-left: auto;
-        border-left: 1px solid #e17055;
+        width: 100%;
+        padding: 12px 24px 12px 36px;
+        border-left: 3px solid rgba(255, 255, 255, 0.3);
+        font-size: 0.95rem;
+    }
+
+    .menu__link--inside:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-left-color: #fff;
     }
 }
+
+/* ⭐ MEJORA PARA MÓVILES MUY PEQUEÑOS ⭐ */
+@media (max-width: 480px) {
+    .menu__links {
+        max-width: 280px; /* ⭐ Aún más compacto en móviles pequeños */
+        width: 80%;
+    }
+
+    .menu__link {
+        padding: 14px 20px;
+        font-size: 0.95rem;
+    }
+
+    .menu__link--inside {
+        padding: 10px 20px 10px 32px;
+        font-size: 0.9rem;
+    }
+}
+
 
 .search-bar {
     display: flex;
@@ -1475,4 +1539,137 @@ body { font-size: clamp(14px, 1.05vw, 16px); }
 
 .submenu li {
   list-style: none;
+}
+
+/* Overlay oscuro detrás del menú */
+.menu__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 9999;
+}
+
+.menu__overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Asegurar que el botón hamburguesa esté encima del overlay */
+.menu__hamburguer {
+    z-index: 10001;
+}
+/* Animación suave para los items del menú */
+.menu__links--show .menu__item {
+    animation: slideInRight 0.3s ease forwards;
+    opacity: 0;
+}
+
+.menu__links--show .menu__item:nth-child(1) { animation-delay: 0.1s; }
+.menu__links--show .menu__item:nth-child(2) { animation-delay: 0.15s; }
+.menu__links--show .menu__item:nth-child(3) { animation-delay: 0.2s; }
+.menu__links--show .menu__item:nth-child(4) { animation-delay: 0.25s; }
+.menu__links--show .menu__item:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Mejorar el botón hamburguesa */
+.menu__hamburguer {
+    transition: transform 0.3s ease;
+}
+
+.menu__hamburguer:active {
+    transform: scale(0.95);
+}
+
+/* Icono de cierre cuando el menú está abierto (opcional) */
+.menu__hamburguer.active .menu__img {
+    filter: brightness(0) invert(1); /* ⭐ Lo hace blanco */
+}
+
+/* Links más compactos */
+@media (max-width: 800px) {
+    .menu__link {
+        padding: 14px 20px !important;
+        font-size: 0.95rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    .menu__link:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        padding-left: 25px !important;
+    }
+}
+
+
+/* PASO 4 (OPCIONAL): Para móviles muy pequeños */
+
+@media (max-width: 480px) {
+    .menu__links {
+        max-width: 260px !important;
+        width: 70% !important;
+    }
+}
+
+/* ⭐ ESTILOS SOLO PARA DESKTOP (pantalla completa) ⭐ */
+@media (min-width: 801px) {
+    
+    /* El item padre debe tener position: relative */
+    .menu__item {
+        position: relative;
+    }
+    
+    /* El dropdown debe ser absolute y alinearse bien */
+    .menu__nesting {
+        position: absolute !important;
+        left: 0 !important;              /* ⭐ Alinear a la izquierda del botón */
+        right: auto !important;          /* ⭐ Quitar el right: 0 */
+        top: 100% !important;            /* ⭐ Justo debajo del botón */
+        bottom: auto !important;
+        transform: translateY(0) !important;  /* ⭐ Sin transform extra */
+        width: max-content;
+        min-width: 220px;                /* ⭐ Ancho mínimo */
+        max-width: 280px;                /* ⭐ Ancho máximo para que no se salga */
+    }
+    
+    /* Mostrar al hacer hover */
+    .menu__item:hover .menu__nesting {
+        display: block !important;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%) !important;
+    }
+}
+
+/* Prevenir overflow horizontal en toda la página */
+body {
+    overflow-x: hidden;
+}
+
+* Fix para dropdown */
+.menu__container {
+    overflow: visible !important;
+    height: 150px;
+}
+
+@media (min-width: 801px) {
+    .menu__nesting {
+        position: absolute !important;
+        left: 0 !important;
+        top: 100% !important;
+        transform: none !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
 }
