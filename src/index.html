@@ -1972,6 +1972,171 @@
                 height: 32px;
             }
         }
+        .catalog-section {
+            margin-top: 20px;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .catalog-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .catalog-link:hover {
+            background-color: #c0392b;
+        }
+
+        .catalog-link i {
+            font-size: 20px;
+        }
+        
+        /* ========================================
+           BOTONES MÓVILES DEBAJO DEL CARRUSEL
+           ======================================== */
+        .mobile-buttons-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .mobile-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 25px 15px;
+            border-radius: 15px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            min-height: 140px;
+        }
+        
+        .mobile-action-btn i {
+            font-size: 2.5rem;
+        }
+        
+        .mobile-action-btn span {
+            line-height: 1.3;
+        }
+        
+        /* Botón de Lista de Precios - Verde */
+        .btn-precios {
+            background: linear-gradient(135deg, #2F6B3F 0%, #245230 100%);
+            color: white;
+        }
+        
+        .btn-precios:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(47, 107, 63, 0.4);
+        }
+        
+        /* Botón de Catálogo - Rojo */
+        .btn-catalogo {
+            background: linear-gradient(135deg, #A0352F 0%, #7D2A25 100%);
+            color: white;
+        }
+        
+        .btn-catalogo:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(160, 53, 47, 0.4);
+        }
+        
+        /* Desktop - OCULTAR COMPLETAMENTE */
+        @media (min-width: 1024px) {
+            .mobile-buttons-container {
+                display: none !important;
+            }
+        }
+        
+        /* Tablets */
+        @media (max-width: 1023px) and (min-width: 768px) {
+            .mobile-buttons-container {
+                padding: 20px 15px;
+                gap: 15px;
+            }
+            
+            .mobile-action-btn {
+                padding: 25px 15px;
+                font-size: 1rem;
+                min-height: 130px;
+            }
+            
+            .mobile-action-btn i {
+                font-size: 2.5rem;
+            }
+        }
+        
+        /* Móviles */
+        @media (max-width: 767px) {
+            .mobile-buttons-container {
+                width: 100vw;
+                max-width: 100vw;
+                padding: 15px 10px;
+                gap: 12px;
+                margin: 0;
+                box-sizing: border-box;
+            }
+            
+            .mobile-action-btn {
+                padding: 20px 12px;
+                font-size: 0.9rem;
+                min-height: 120px;
+                border-radius: 12px;
+            }
+            
+            .mobile-action-btn i {
+                font-size: 2.2rem;
+            }
+        }
+        
+        /* Móviles pequeños */
+        @media (max-width: 480px) {
+            .mobile-buttons-container {
+                padding: 12px 8px;
+                gap: 10px;
+            }
+            
+            .mobile-action-btn {
+                padding: 18px 10px;
+                font-size: 0.85rem;
+                min-height: 110px;
+                border-radius: 10px;
+            }
+            
+            .mobile-action-btn i {
+                font-size: 2rem;
+            }
+        }
+        
+        /* Móviles muy pequeños - una columna */
+        @media (max-width: 360px) {
+            .mobile-buttons-container {
+                grid-template-columns: 1fr;
+                padding: 10px 8px;
+                gap: 10px;
+            }
+            
+            .mobile-action-btn {
+                min-height: 100px;
+            }
+        }
     </style>
 </head>
 <div id="order-wait" aria-hidden="true">
@@ -2148,6 +2313,21 @@
             </div>
         </div>
     </div>
+    
+    <!-- ========================================
+         BOTONES MÓVILES DEBAJO DEL CARRUSEL
+         ======================================== -->
+    <div class="mobile-buttons-container">
+        <a href="assets/precios.pdf" target="_blank" class="mobile-action-btn btn-precios">
+            <i class="fas fa-list-ul"></i>
+            <span>Lista de Precios</span>
+        </a>
+        <a href="assets/informativo mym.pdf" target="_blank" class="mobile-action-btn btn-catalogo">
+            <i class="fas fa-file-pdf"></i>
+            <span>Informativo Maderas (PDF)</span>
+        </a>
+    </div>
+    
     <form id="search-form" class="search-bar">
         <input id="search-input" type="search" name="search" pattern=".*\S.*" required>
         <button class="search-btn" type="submit">
@@ -2206,6 +2386,13 @@
             <p><a href="#">Vitrificante de pisos</a></p>
             <div class="sidebarinfo">
                 <a href="/assets/precios.pdf" target="_blank">Listado productos pdf</a>
+            </div>
+            <!-- Catálogo PDF -->
+            <div class="catalog-section">
+                <a href="assets/informativo mym.pdf" target="_blank" class="catalog-link">
+                    <i class="fas fa-file-pdf"></i>
+                    Informativo Maderas (PDF)
+                </a>
             </div>
 
 
