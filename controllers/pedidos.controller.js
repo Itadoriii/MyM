@@ -240,32 +240,37 @@ function progressBarEmailHTML(estado = 'generado') {
   `;
 }
 
-// Tabla HTML del detalle
+// Tabla HTML del detalle - ORDEN: ID, Nombre, Categoría, Cant, Precio, Subtotal
 function detallesHTML(detalles = []) {
   const head = `
     <table width="100%" role="presentation" style="border-collapse:collapse;border:1px solid #e5e7eb;">
       <thead>
         <tr>
           <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">ID</th>
-          <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">Producto</th>
-          <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">Medidas</th>
+          <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">Nombre</th>
+          <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">Categoría</th>
           <th align="right" style="padding:8px;border-bottom:1px solid #e5e7eb;">Cant.</th>
-          <th align="right" style="padding:8px;border-bottom:1px solid #e5e7eb;">Precio (u.)</th>
+          <th align="right" style="padding:8px;border-bottom:1px solid #e5e7eb;">Precio</th>
           <th align="right" style="padding:8px;border-bottom:1px solid #e5e7eb;">Subtotal</th>
         </tr>
       </thead>
       <tbody>
   `;
-  const rows = detalles.map(d => `
+  const rows = detalles.map(d => {
+    // Combinar medidas y dimensiones si existen
+    const medidaCompleta = d.medidas || d.dimensiones || '—';
+    const nombreCompleto = `${d.nombre_prod} ${medidaCompleta}`;
+    
+    return `
     <tr>
       <td style="padding:8px;border-top:1px solid #f3f4f6;">${d.id_producto}</td>
-      <td style="padding:8px;border-top:1px solid #f3f4f6;">${d.nombre_prod}</td>
-      <td style="padding:8px;border-top:1px solid #f3f4f6;">${d.medidas || d.dimensiones || '—'}</td>
+      <td style="padding:8px;border-top:1px solid #f3f4f6;">${nombreCompleto}</td>
+      <td style="padding:8px;border-top:1px solid #f3f4f6;">${d.categoria || '—'}</td>
       <td align="right" style="padding:8px;border-top:1px solid #f3f4f6;">${d.cantidad}</td>
       <td align="right" style="padding:8px;border-top:1px solid #f3f4f6;">${CLP(d.precio_detalle)}</td>
       <td align="right" style="padding:8px;border-top:1px solid #f3f4f6;">${CLP(d.cantidad * d.precio_detalle)}</td>
     </tr>
-  `).join('');
+  `}).join('');
   return head + rows + '</tbody></table>';
 }
 
@@ -292,6 +297,7 @@ async function fetchPedidoCompleto(idPedido) {
             dp.cantidad,
             dp.precio_detalle,
             pr.nombre_prod,
+            pr.categoria,
             pr.medidas,
             pr.dimensiones
      FROM detalle_pedido dp
@@ -432,13 +438,13 @@ export async function enviarMailCambioEstado(idPedido, nuevoEstado) {
   }
 }
 
-// --- ESTA es la función que necesitas: mail al generar pedido (SIN PDF) ---
+// --- Mail al generar pedido (SIN PDF) con flete a coordinar ---
 export async function notificarPedidoGenerado(idPedido) {
   try {
     const { pedido, detalles } = await fetchPedidoCompleto(idPedido);
 
     const htmlTabla = detallesHTML(detalles);
-    const entrega = pedido.delivery === 'retiro' ? 'Retiro en tienda' : 'Envío a domicilio';
+    const entrega = pedido.delivery === 'retiro' ? 'Retiro en tienda' : 'Envío a domicilio (flete a coordinar)';
 
     const htmlCliente = `
       <div style="font-family:system-ui,Segoe UI,Arial;line-height:1.45;">
