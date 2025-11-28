@@ -183,302 +183,31 @@
         }
     }
     
-    @media (max-width: 768px) {
-        .footer {
-            padding: 30px 10px;
-            overflow-x: hidden;
-            width: 100vw;
-            max-width: 100vw;
-            margin: 0;
-        }
-        
-        .footer-conteiner {
-            gap: 25px;
-            padding: 0 10px;
-            width: 100%;
-        }
-        
-        .fbox {
-            text-align: left;
-            padding: 10px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-        
-        .fbox ul {
-            padding-left: 0;
-            list-style: none;
-        }
-        
-        .fbox li {
-            margin: 8px 0;
-            word-wrap: break-word;
-            font-size: 0.9rem;
-        }
-        
-        .fbox iframe {
-            height: 200px !important;
-            border-radius: 10px;
-        }
-        
-        .fbox h4, .fbox h2 {
-            font-size: 1rem;
-            margin-bottom: 10px;
-            word-wrap: break-word;
-        }
-        
-        .fbox i {
-            margin-right: 8px;
-        }
-        
-        .red-social {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .red-social li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .footer {
-            padding: 20px 5px;
-        }
-        
-        .footer-conteiner {
-            padding: 0 5px;
-        }
-        
-        .fbox {
-            padding: 8px;
-        }
-        
-        .fbox li {
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-    }
-    
-    /* Carrusel responsive - CORREGIDO */
-    #conteitemcarrusel {
-        width: 100vw !important;
-        max-width: 100vw !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        position: relative;
-        left: 0 !important;
-        right: 0 !important;
-    }
-    
-    .itemcarrusel {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        height: auto !important;
-        min-height: 300px;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    
-    .tarjetacarrusel {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        height: 100%;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-    
-    .imgbanner {
-        width: 100% !important;
-        height: 400px !important;
-        max-width: 100% !important;
-        display: block !important;
-        object-fit: contain !important;
-        object-position: center !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        background: #fff;
-    }
-    
-    .flechascarrusel {
-        position: absolute;
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        justify-content: space-between;
-        padding: 0 20px;
-        pointer-events: none;
-    }
-    
-    .flechascarrusel a {
-        pointer-events: all;
-        background: rgba(0, 0, 0, 0.5);
-        color: white;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-        text-decoration: none;
-    }
-    
-    .flechascarrusel a:hover {
-        background: rgba(0, 0, 0, 0.8);
-        transform: scale(1.1);
-    }
-    
-    .flechascarrusel i {
-        font-size: 1.5rem;
-    }
-    
-    /* Desktop grande */
-    @media (min-width: 1200px) {
-        .imgbanner {
-            height: 500px !important;
-        }
-        
-        .itemcarrusel {
-            min-height: 500px;
-        }
-    }
-    
-    /* Tablets y Desktop pequeño */
-    @media (max-width: 1024px) {
-        .imgbanner {
-            height: 350px !important;
-        }
-        
-        .itemcarrusel {
-            min-height: 350px;
-        }
-    }
-    
-    /* Tablets */
-    @media (max-width: 768px) {
-        #conteitemcarrusel {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100vw !important;
-            max-width: 100vw !important;
-        }
-        
-        .itemcarrusel {
-            min-height: 250px;
-        }
-        
-        .tarjetacarrusel {
-            height: 100%;
-        }
-        
-        .imgbanner {
-            height: 250px !important;
-            object-fit: contain !important;
-        }
-        
-        .flechascarrusel {
-            padding: 0 10px;
-        }
-        
-        .flechascarrusel a {
-            width: 40px;
-            height: 40px;
-        }
-        
-        .flechascarrusel i {
-            font-size: 1.2rem;
-        }
-    }
-    
-    /* Móviles */
-    @media (max-width: 600px) {
-        .itemcarrusel {
-            min-height: 200px;
-        }
-        
-        .imgbanner {
-            height: 200px !important;
-        }
-        
-        .flechascarrusel a {
-            width: 35px;
-            height: 35px;
-        }
-        
-        .flechascarrusel i {
-            font-size: 1rem;
-        }
-    }
-    
-    /* Móviles pequeños */
-    @media (max-width: 480px) {
-        #conteitemcarrusel {
-            margin: 0 !important;
-            width: 100vw !important;
-        }
-        
-        .itemcarrusel {
-            min-height: 180px;
-        }
-        
-        .imgbanner {
-            height: 180px !important;
-        }
-        
-        .flechascarrusel {
-            padding: 0 5px;
-        }
-        
-        .flechascarrusel a {
-            width: 32px;
-            height: 32px;
-        }
-        
-        .flechascarrusel i {
-            font-size: 0.9rem;
-        }
-    }
-    
-    /* Modal carrito responsive mejorado */
+    /* Responsive móvil mejorado */
     @media (max-width: 768px) {
         .modal {
-            padding: 10px;
+            padding: 10px !important;
         }
         
         .modal-content {
-            width: 95%;
-            max-width: 100%;
-            margin: 10px auto;
-            padding: 15px;
-            max-height: 85vh;
-            overflow-y: auto;
+            width: 92vw !important;
+            max-width: 92vw !important;
+            max-height: 88vh !important;
+            margin: 10px !important;
+            padding: 20px 15px;
+            border-radius: 12px;
         }
         
         .modal-content h2 {
             font-size: 1.3rem;
             margin-bottom: 15px;
+            padding-right: 40px;
         }
         
         .cart-container {
-            max-height: 300px;
+            max-height: 35vh;
             overflow-y: auto;
+            margin-bottom: 15px;
         }
         
         .cart-item {
@@ -489,11 +218,19 @@
         
         .cart-item img {
             width: 100%;
-            max-width: 120px;
+            max-width: 100px;
         }
         
         .cart-item-info {
             width: 100%;
+        }
+        
+        .cart-item-info h4 {
+            font-size: 0.95rem;
+        }
+        
+        .cart-item-info p {
+            font-size: 0.85rem;
         }
         
         .cart-quantity {
@@ -501,25 +238,58 @@
             width: 100%;
         }
         
+        .cart-quantity button {
+            width: 35px;
+            height: 35px;
+            font-size: 1.1rem;
+        }
+        
+        .remove-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        
         .delivery-options {
             margin: 15px 0;
+            padding: 12px;
+        }
+        
+        .delivery-options h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
         }
         
         .delivery-option {
-            margin: 10px 0;
+            margin: 8px 0;
         }
         
         .delivery-option label {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        
+        .cart-comments {
+            margin: 15px 0;
+        }
+        
+        .cart-comments h3 {
+            font-size: 1rem;
         }
         
         .cart-comments textarea {
             font-size: 0.9rem;
-            min-height: 80px;
+            min-height: 70px;
+            padding: 10px;
+        }
+        
+        .cart-summary {
+            margin: 15px 0;
+            padding: 12px;
         }
         
         .cart-summary h3 {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
         }
         
         .cart-buttons {
@@ -530,25 +300,258 @@
         
         .cart-action-btn {
             width: 100%;
+            padding: 14px;
+            font-size: 0.95rem;
+        }
+        
+        .close {
+            font-size: 1.6rem;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .modal {
+            padding: 5px !important;
+        }
+        
+        .modal-content {
+            width: 96vw !important;
+            max-width: 96vw !important;
+            max-height: 92vh !important;
+            padding: 18px 12px;
+            margin: 5px !important;
+        }
+        
+        .modal-content h2 {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+        
+        .cart-container {
+            max-height: 30vh;
+        }
+        
+        .cart-item {
+            padding: 10px;
+        }
+        
+        .cart-item img {
+            max-width: 80px;
+        }
+        
+        .cart-action-btn {
             padding: 12px;
             font-size: 0.9rem;
         }
         
         .close {
-            font-size: 1.8rem;
-            top: 10px;
-            right: 10px;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .modal-content {
-            padding: 12px;
+            width: 30px;
+            height: 30px;
+            font-size: 1.5rem;
+            top: 8px;
+            right: 8px;
         }
         
-        .cart-item img {
-            max-width: 100px;
+        .delivery-options,
+        .cart-comments,
+        .cart-summary {
+            margin: 12px 0;
+            padding: 10px;
         }
+    }
+
+    /* Estilos para los items del carrito */
+    .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        background: #f9f9f9;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .cart-item img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .cart-item-info {
+        flex: 1;
+    }
+
+    .cart-item-info h4 {
+        margin: 0 0 8px 0;
+        font-size: 1rem;
+        color: #2d3748;
+    }
+
+    .cart-item-info p {
+        margin: 4px 0;
+        font-size: 0.9rem;
+        color: #4a5568;
+    }
+
+    .cart-quantity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .cart-quantity button {
+        width: 30px;
+        height: 30px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .cart-quantity button:hover {
+        background: #2F6B3F;
+        color: white;
+        border-color: #2F6B3F;
+    }
+
+    .cart-quantity span {
+        min-width: 30px;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .remove-btn {
+        padding: 8px 15px;
+        background: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+
+    .remove-btn:hover {
+        background: #c0392b;
+        transform: translateY(-2px);
+    }
+
+    /* Opciones de entrega */
+    .delivery-options {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    .delivery-options h3 {
+        margin: 0 0 12px 0;
+        font-size: 1.1rem;
+        color: #2d3748;
+    }
+
+    .delivery-option {
+        display: flex;
+        align-items: flex-start;
+        margin: 10px 0;
+    }
+
+    .delivery-option input[type="radio"] {
+        margin-right: 10px;
+        margin-top: 3px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .delivery-option label {
+        cursor: pointer;
+        font-size: 0.95rem;
+        color: #4a5568;
+        line-height: 1.4;
+    }
+
+    /* Comentarios */
+    .cart-comments {
+        margin: 20px 0;
+    }
+
+    .cart-comments h3 {
+        margin: 0 0 10px 0;
+        font-size: 1.1rem;
+        color: #2d3748;
+    }
+
+    .cart-comments textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        resize: vertical;
+        box-sizing: border-box;
+    }
+
+    .cart-comments textarea:focus {
+        outline: none;
+        border-color: #2F6B3F;
+    }
+
+    /* Resumen del carrito */
+    .cart-summary {
+        margin: 20px 0;
+        padding: 15px;
+        background: linear-gradient(135deg, #2F6B3F 0%, #245230 100%);
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+    }
+
+    .cart-summary h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Botones del carrito */
+    .cart-buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .cart-action-btn {
+        flex: 1;
+        padding: 14px 28px;
+        background: linear-gradient(135deg, #2F6B3F 0%, #245230 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .cart-action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(47, 107, 63, 0.4);
+    }
+
+    .cart-action-btn:active {
+        transform: translateY(0);
     }
     
     /* WhatsApp button ajustes móvil */
@@ -2462,6 +2465,42 @@
             </div>
         </div>
     </footer>
+                <div id="cartModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h2>Carrito de Compras</h2>
+                        <div class="cart-container">
+                            <!-- Aquí se mostrarán los productos del carrito -->
+                        </div>
+                        
+                        <!-- Nuevos campos agregados -->
+                        <div class="delivery-options">
+                            <h3>Método de entrega</h3>
+                            <div class="delivery-option">
+                                <input type="radio" id="delivery-shipping" name="delivery" value="envio" checked>
+                                <label for="delivery-shipping">Envío a domicilio (Indicar direccion en los comentarios, contamos con flete externo de confianza)</label>
+                            </div>
+                            <div class="delivery-option">
+                                <input type="radio" id="delivery-pickup" name="delivery" value="retiro">
+                                <label for="delivery-pickup">Retiro en tienda (Sin costo)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-comments">
+                            <h3>Comentarios</h3>
+                            <textarea id="order-comments" placeholder="¿Algún detalle importante para tu pedido? (Opcional)"></textarea>
+                        </div>
+                        
+                        <div class="cart-summary">
+                            <h3>Total: $<span id="cart-total">0.00</span></h3>
+                        </div>
+                        
+                        <div class="cart-buttons">
+                            <button id="generateOrder" class="cart-action-btn">Generar pedido</button>
+                            <button id="clear-cart-btn" class="cart-action-btn">Vaciar carrito</button>
+                        </div>
+                    </div>
+                </div>
     <script src="main.js"></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1020758030"></script>
@@ -2601,9 +2640,22 @@
             const medidas = (p.medidas || '').toLowerCase();
             const dimensiones = (p.dimensiones || '').toLowerCase();
             
-            // Si la búsqueda es solo "Bruto" o "Cepillado", buscar exactamente en el campo tipo
-            if (qLower === 'bruto' || qLower === 'cepillado') {
-                return tipo === qLower;
+            // ✅ CORREGIDO: Si la búsqueda es "Bruto" o "Cepillado", buscar en el tipo
+            if (qLower === 'bruto') {
+                return tipo.includes('bruto');
+            }
+            
+            if (qLower === 'cepillado') {
+                return tipo.includes('cepillado');
+            }
+            
+            // ✅ CORREGIDO: Si contiene "pino oregón bruto" o similar
+            if (qLower.includes('bruto')) {
+                return tipo.includes('bruto') || nombre.includes('bruto');
+            }
+            
+            if (qLower.includes('cepillado')) {
+                return tipo.includes('cepillado') || nombre.includes('cepillado');
             }
             
             // Si la búsqueda contiene múltiples palabras (ej: "Bruto 4.00")
@@ -2613,16 +2665,16 @@
                 // Búsqueda combinada: tipo + medida
                 return palabras.every(palabra => {
                     return tipo.includes(palabra) || 
-                           medidas.includes(palabra) ||
-                           dimensiones.includes(palabra) ||
-                           nombre.includes(palabra);
+                        medidas.includes(palabra) ||
+                        dimensiones.includes(palabra) ||
+                        nombre.includes(palabra);
                 });
             } else {
                 // Búsqueda simple en todos los campos
                 return nombre.includes(qLower) || 
-                       tipo.includes(qLower) || 
-                       medidas.includes(qLower) ||
-                       dimensiones.includes(qLower);
+                    tipo.includes(qLower) || 
+                    medidas.includes(qLower) ||
+                    dimensiones.includes(qLower);
             }
         });
         
@@ -3033,20 +3085,47 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         });
     });
 
-    // Categorías principales (sin submenús) - FILTRADO MEJORADO
-    const categoryLinks = document.querySelectorAll('.category-link:not(.toggle-submenu)');
-    categoryLinks.forEach(link => {
+    // ✅ NUEVO: Manejar clicks en el menú dropdown del navbar
+    const navbarDropdownLinks = document.querySelectorAll('.menu__nesting .menu__inside .menu__link--inside');
+    console.log('Enlaces del navbar encontrados:', navbarDropdownLinks.length);
+
+    navbarDropdownLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            e.preventDefault(); 
-            let query = link.textContent.trim();
+            e.preventDefault();
             
-            // Casos especiales: categorías que buscan otro término
-            if (query === 'Cielo Elaborado') {
-                query = 'Machihembrado';
+            const texto = link.textContent.trim();
+            console.log('Click en navbar dropdown:', texto);
+            
+            let query = '';
+            
+            // Determinar qué buscar según el texto del enlace
+            if (texto.includes('Pino Oregón Bruto')) {
+                query = 'Bruto';
+            } else if (texto.includes('Pino Oregón Cepillado')) {
+                query = 'Cepillado';
+            } else if (texto.includes('Placas metalicas')) {
+                query = 'Placas metalicas';
+            } else if (texto.includes('Base')) {
+                query = 'Base';
+            } else {
+                query = texto;
             }
             
-            console.log('Filtrando por categoría:', query);
-            loadProductsPage(1, query); 
+            console.log('Filtrando productos del navbar con query:', query);
+            
+            // Cerrar el menú después de hacer click
+            document.querySelectorAll('.menu__nesting').forEach(dropdown => {
+                dropdown.style.display = 'none';
+            });
+            
+            // Hacer scroll hacia los productos
+            const productosArea = document.querySelector('.conteiner');
+            if (productosArea) {
+                productosArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            
+            // Ejecutar la búsqueda
+            loadProductsPage(1, query);
         });
     });
 
