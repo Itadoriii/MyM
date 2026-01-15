@@ -341,12 +341,14 @@ app.post('/api/generar-pedido', async (req, res) => {
 
     // Traemos detalles
     const [detalles] = await pool.query(
-      `SELECT pr.nombre_prod AS nombre,
+      `SELECT dp.id_producto,
+              pr.nombre_prod AS nombre,
+              pr.categoria,
               dp.cantidad,
               dp.precio_detalle AS precio
-       FROM detalle_pedido dp
-       JOIN productos pr ON dp.id_producto = pr.id_producto
-       WHERE dp.id_pedido = ?`,
+      FROM detalle_pedido dp
+      JOIN productos pr ON dp.id_producto = pr.id_producto
+      WHERE dp.id_pedido = ?`,
       [idPedido]
     );
 
@@ -372,7 +374,9 @@ app.post('/api/generar-pedido', async (req, res) => {
         const subtotal = (Number(d.cantidad)||0) * (Number(d.precio)||0);
         return `
           <tr>
+            <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.id_producto}</td>
             <td style="padding:8px;border:1px solid #eee;">${d.nombre}</td>
+            <td style="padding:8px;border:1px solid #eee;">${d.categoria || '—'}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.cantidad}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(d.precio)}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(subtotal)}</td>

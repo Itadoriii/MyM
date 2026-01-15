@@ -4,15 +4,924 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maderas M&M</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Sobre Nosotros | Maderas M&M</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://kit.fontawesome.com/43804ad595.js" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ===== VARIABLES - COLORES DEL SITIO ===== */
+        :root {
+            --primary-red: #8B1A1A;
+            --primary-red-dark: #6d1515;
+            --primary-red-light: #a52222;
+            --green-pine: #2d5a27;
+            --green-light: #3d7a35;
+            --wood-brown: #5c4033;
+            --wood-light: #8b6914;
+            --cream: #f9f7f4;
+            --cream-dark: #f0ebe3;
+            --white: #ffffff;
+            --text-dark: #2c2c2c;
+            --text-muted: #5a5a5a;
+            --border-light: #e5e0d8;
+        }
+
+        /* ===== NAVBAR FIX - FONDO BLANCO ===== */
+        .menu {
+            background: var(--white) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1000;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        .menu__container {
+            background: var(--white) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            max-width: 1400px;
+            margin: 0 auto !important;
+            padding: 10px 30px !important;
+            height: auto !important;
+            min-height: 70px;
+        }
+        
+        .menu__container img.image,
+        .menu__container.image {
+            max-height: 60px !important;
+            width: auto !important;
+            object-fit: contain;
+        }
+        
+        .menu__links {
+            display: flex !important;
+            align-items: center !important;
+            gap: 30px !important;
+            list-style: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        .menu__item {
+            list-style: none !important;
+        }
+        
+        .menu__link {
+            color: var(--text-dark) !important;
+            text-decoration: none;
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.3s ease;
+        }
+        
+        .menu__link:hover {
+            color: var(--primary-red) !important;
+        }
+        
+        .menu__link i {
+            font-size: 1.2rem;
+        }
+        
+        .menu__arrow {
+            width: 12px;
+            height: 12px;
+            margin-left: 4px;
+        }
+        
+        .menu__nesting {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--white);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 10px 0;
+            min-width: 200px;
+            display: none;
+            z-index: 1001;
+        }
+        
+        .menu__item--show {
+            position: relative;
+        }
+        
+        .menu__item--show:hover .menu__nesting {
+            display: block;
+        }
+        
+        .menu__inside {
+            list-style: none;
+        }
+        
+        .menu__link--inside {
+            padding: 10px 20px !important;
+            display: block !important;
+        }
+        
+        .menu__link--inside:hover {
+            background: var(--cream) !important;
+        }
+        
+        .menu__hamburguer {
+            display: none;
+        }
+        
+        /* Responsive navbar */
+        @media (max-width: 900px) {
+            .menu__container {
+                padding: 10px 15px !important;
+            }
+            
+            .menu__links {
+                gap: 15px !important;
+            }
+            
+            .menu__link {
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .menu__container {
+                flex-wrap: wrap;
+                justify-content: center !important;
+                gap: 10px;
+            }
+            
+            .menu__container img.image,
+            .menu__container.image {
+                max-height: 50px !important;
+            }
+            
+            .menu__links {
+                gap: 10px !important;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .menu__link {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* ===== ABOUT PAGE STYLES ===== */
+        .about-hero {
+            background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-red-dark) 100%);
+            padding: 60px 20px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .about-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        .about-hero__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 10px 24px;
+            border-radius: 50px;
+            margin-bottom: 24px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .about-hero__badge i {
+            color: var(--green-light);
+        }
+
+        .about-hero__badge span {
+            font-family: 'Source Sans 3', sans-serif;
+            color: var(--white);
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .about-hero__title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            color: var(--white);
+            font-weight: 600;
+            margin: 0 0 20px;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        .about-hero__subtitle {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 1.25rem;
+            color: rgba(255,255,255,0.9);
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        /* ===== HISTORIA SECTION ===== */
+        .historia {
+            padding: 80px 20px;
+            background: var(--cream);
+        }
+
+        .historia__container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .historia__content {
+            animation: fadeInLeft 0.8s ease;
+        }
+
+        .section-label {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--primary-red);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-label::before {
+            content: '';
+            width: 30px;
+            height: 2px;
+            background: var(--green-pine);
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            color: var(--text-dark);
+            font-weight: 600;
+            margin: 0 0 24px;
+            line-height: 1.2;
+        }
+
+        .section-text {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        /* ===== IMAGE PLACEHOLDERS ===== */
+        .image-placeholder {
+            background: var(--cream-dark);
+            border: 3px dashed var(--border-light);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-family: 'Source Sans 3', sans-serif;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-placeholder:hover {
+            border-color: var(--primary-red);
+        }
+
+        .image-placeholder > i,
+        .image-placeholder > span {
+            z-index: 1;
+        }
+
+        .image-placeholder > i {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            color: var(--primary-red);
+            opacity: 0.5;
+        }
+
+        .image-placeholder > span {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .image-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        
+        /* Cuando la imagen carga, ocultar placeholder */
+        .image-placeholder:has(img:not([style*="display: none"])) {
+            border: none;
+            background: transparent;
+        }
+        
+        .image-placeholder:has(img:not([style*="display: none"])) > i,
+        .image-placeholder:has(img:not([style*="display: none"])) > span {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        /* Clase agregada por JS cuando imagen carga */
+        .image-placeholder.has-image {
+            border: none !important;
+            background: transparent !important;
+        }
+        
+        .image-placeholder.has-image > i,
+        .image-placeholder.has-image > span {
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+
+        .historia__image {
+            height: 400px;
+            animation: fadeInRight 0.8s ease;
+        }
+
+        /* ===== STATS SECTION ===== */
+        .stats-section {
+            padding: 60px 20px;
+            background: var(--white);
+            border-top: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .stats__container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 30px 20px;
+            background: var(--cream);
+            border-radius: 16px;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card__number {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            color: var(--primary-red);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-card__label {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* ===== GALERIA SECTION ===== */
+        .galeria {
+            padding: 80px 20px;
+            background: var(--white);
+        }
+
+        .galeria__container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .galeria__header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .galeria__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 200px 200px;
+            gap: 20px;
+        }
+
+        .galeria__item--large {
+            grid-row: span 2;
+        }
+
+        .galeria__item {
+            border-radius: 12px;
+        }
+
+        /* ===== PRODUCTOS SECTION ===== */
+        .productos-section {
+            padding: 80px 20px;
+            background: var(--cream);
+        }
+
+        .productos__container {
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .productos__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 50px;
+        }
+
+        .producto-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 30px 20px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .producto-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-red);
+            box-shadow: 0 15px 40px rgba(139, 26, 26, 0.1);
+        }
+
+        .producto-card__icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--green-pine), var(--green-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: var(--white);
+            font-size: 1.5rem;
+        }
+
+        .producto-card__title {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* ===== MISION VISION SECTION ===== */
+        .mision-vision {
+            padding: 80px 20px;
+            background: var(--white);
+        }
+
+        .mision-vision__container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .mv-card {
+            background: var(--cream);
+            border-radius: 24px;
+            padding: 50px 40px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .mv-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .mv-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .mv-card--mision::after {
+            background: linear-gradient(90deg, var(--primary-red), var(--primary-red-light));
+        }
+
+        .mv-card--vision::after {
+            background: linear-gradient(90deg, var(--green-pine), var(--green-light));
+        }
+
+        .mv-card__icon {
+            width: 70px;
+            height: 70px;
+            background: var(--white);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 2rem;
+        }
+
+        .mv-card--mision .mv-card__icon {
+            color: var(--primary-red);
+        }
+
+        .mv-card--vision .mv-card__icon {
+            color: var(--green-pine);
+        }
+
+        .mv-card__title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        .mv-card__text {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 1rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+
+        /* ===== EQUIPO SECTION (con fotos) ===== */
+        .equipo {
+            padding: 80px 20px;
+            background: var(--cream);
+        }
+
+        .equipo__container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .equipo__header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .equipo__grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+        }
+
+        .equipo__card {
+            background: var(--white);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .equipo__card:hover {
+            transform: translateY(-5px);
+        }
+
+        .equipo__foto {
+            width: 180px;
+            min-height: 220px;
+            flex-shrink: 0;
+        }
+
+        .equipo__info {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .equipo__nombre {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+
+        .equipo__cargo {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 0.9rem;
+            color: var(--primary-red);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .equipo__desc {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* ===== VALORES SECTION ===== */
+        .valores {
+            padding: 80px 20px;
+            background: var(--primary-red);
+            position: relative;
+        }
+
+        .valores::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .valores__container {
+            max-width: 1100px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .valores__header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .valores__header .section-label {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .valores__header .section-label::before {
+            background: var(--green-light);
+        }
+
+        .valores__header .section-title {
+            color: var(--white);
+        }
+
+        .valores__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .valor-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 35px 30px;
+            transition: all 0.3s ease;
+        }
+
+        .valor-card:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-3px);
+        }
+
+        .valor-card__icon {
+            width: 50px;
+            height: 50px;
+            background: var(--green-pine);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: var(--white);
+            font-size: 1.3rem;
+        }
+
+        .valor-card__title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: var(--white);
+            margin-bottom: 10px;
+        }
+
+        .valor-card__text {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.6;
+        }
+
+        /* ===== CTA SECTION ===== */
+        .cta-section {
+            padding: 80px 20px;
+            background: var(--white);
+            text-align: center;
+        }
+
+        .cta__container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .cta__title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            color: var(--text-dark);
+            margin-bottom: 16px;
+        }
+
+        .cta__text {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        .cta__buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 16px 32px;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn--primary {
+            background: var(--green-pine);
+            color: var(--white);
+        }
+
+        .btn--primary:hover {
+            background: var(--green-light);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(45, 90, 39, 0.3);
+        }
+
+        .btn--secondary {
+            background: var(--white);
+            color: var(--primary-red);
+            border: 2px solid var(--primary-red);
+        }
+
+        .btn--secondary:hover {
+            background: var(--primary-red);
+            color: var(--white);
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .historia__container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .mision-vision__container {
+                grid-template-columns: 1fr;
+            }
+
+            .galeria__grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 180px 180px 180px;
+            }
+
+            .galeria__item--large {
+                grid-row: span 1;
+                grid-column: span 2;
+            }
+
+            .stats__container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .equipo__grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .about-hero {
+                padding: 50px 20px 50px;
+            }
+
+            .historia,
+            .productos-section,
+            .mision-vision,
+            .valores,
+            .cta-section,
+            .galeria,
+            .equipo {
+                padding: 60px 16px;
+            }
+
+            .mv-card {
+                padding: 35px 25px;
+            }
+
+            .galeria__grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(5, 180px);
+            }
+
+            .galeria__item--large {
+                grid-column: span 1;
+            }
+
+            .stats__container {
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+
+            .stat-card {
+                padding: 20px 15px;
+            }
+
+            .stat-card__number {
+                font-size: 2.2rem;
+            }
+
+            .valores__grid {
+                grid-template-columns: 1fr;
+            }
+
+            .equipo__card {
+                flex-direction: column;
+            }
+
+            .equipo__foto {
+                width: 100%;
+                height: 200px;
+            }
+
+            .cta__buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="menu">
         <section class="menu__container">
-            <img src="assets/logo act.png" class="menu__container image">
+            <img src="assets/mymlog.png" class="menu__container image">
             <ul class="menu__links">
                 <li class="menu__item">
                     <a href="/" class="menu__link">Inicio</a>
@@ -21,17 +930,17 @@
                     <a href="#" class="menu__link ">Productos<img src="assets/arrow.svg" class="menu__arrow"></a>
     
                     <ul class="menu__nesting">
-                        <li class="menu__inside">
-                            <a href="#" class="menu__link menu__link--inside category-link">Pino oregon</a>
+                        <li class="menu__inside" >
+                            <a href="#" class="menu__link menu__link--inside category-link" >Pino Oregón Bruto</a>
                         </li>
                         <li class="menu__inside">
-                            <a href="#" class="menu__link menu__link--inside category-link">Terciados</a>
+                            <a href="#" class="menu__link menu__link--inside category-link ">Pino Oregón Cepillado</a>
                         </li>
                         <li class="menu__inside">
-                            <a href="#" class="menu__link menu__link--inside category-link">Placas metalicas</a>
+                            <a href="#" class="menu__link menu__link--inside category-link ">Placas metalicas</a>
                         </li>
                         <li class="menu__inside">
-                            <a href="#" class="menu__link menu__link--inside category-link">Bases metalicas</a>
+                            <a href="#" class="menu__link menu__link--inside category-link">Base</a>
                         </li>
                     </ul>
                 </li>
@@ -41,13 +950,13 @@
                 </li>
                 <li class="menu__item">
                     <a href="/login" class="menu__link" id="login-button">
-                        <img src="assets/Cuenta.png" alt="Cuenta" class="menu__img">
+                        <i class="fa-solid fa-user fa-2x"></i>
                     </a>
                 </li>
                 <!-- Contenedor del carrito -->
                
                 <li class="menu__item" id="cart-container">
-                    <a href="#" class="menu__link" id="cart-link">Carros (<span class="cart-count">0</span>)</a>
+                    <a href="#" class="menu__link" id="cart-link">Carrito (<span class="cart-count">0</span>)<i class="fa-solid fa-cart-shopping fa-2x"></i></a>
                 </li>
                 <div id="cartModal" class="modal">
                     <div class="modal-content">
@@ -56,6 +965,7 @@
                         <div class="cart-container"></div>
                     </div>
                 </div>
+                
             </ul>
 
             <div class="menu__hamburguer">
@@ -64,70 +974,305 @@
         </section>
     </nav>
 
-    <section class="about-us">
-        <h1>Sobre Nosotros</h1>
-        <p><strong>Maderas MyM</strong></p>
-        <p>Especialistas en Pino Oregón</p>
-        <p>Sólo trabajamos con empresas comprometidas con el bosque sustentable.</p>
-        <p>Nota: Si desea ver los precios de los productos, debe registrarse en el sitio e iniciar sesión.</p>
-        <p>Por favor realice sus compras con anticipación, y confirme las fechas de su productos, ya que todos nuestros productos se hacen con entrega programada.</p>
-        <p>Para compras por favor prefiera nuestras plataformas digitales. (correo, teléfono, WhatsApp, página web, carro de compras, En esta página existe el botón WEBPAY y/o transferencias bancarias).</p>
-        <p>Con estas medidas nos cuidamos todos.</p>
-        <p>Saludos cordiales,<br>Andrea M y Marco R.</p>
-        <h2>Instrucciones de uso de la madera</h2>
-        <p>Adquirir los productos cuando esté preparado para la construcción. Esto evitará que la madera quede expuesta al sol sin protección por tiempo prolongado.</p>
-        <p>Enfatizamos, que la madera no debe ser expuesta al sol ya que se puede resecar demasiado y puede producirse torciones inesperadas. La madera se entrega derecha desde nuestro local. Por lo que no respondemos si usted deja la madera al sol y esta se tuerce.</p>
-        <p>El Pino oregón que trabajamos es seco natural, esto quiere decir, que mantiene un porcentaje de humedad, si no lo protege podría producirse algún tipo de daños en la madera.</p>
-        <p>Existen en el mercado diversos productos que ayudan a proteger la madera. Busque el que mas se acomoda a sus necesides económicas.</p>
-        <p>En todos los pilares se recomienda hacer una ranura de 3 a 5mm de profundidad al centro y largo de la pieza en las cuatro caras. Esto evitará que el pilar se agriete en distintos lugares. Este simple detalle ayudara a que la madera pierda humedad y le quite tensión. A la vista aparecerá como una cantería.</p>
-        <p>Al menos una vez al año aplique un producto protector.</p>
+    <!-- HERO -->
+    <section class="about-hero">
+        <div class="about-hero__badge">
+            <i class="fas fa-leaf"></i>
+            <span>Desde 1989</span>
+        </div>
+        <h1 class="about-hero__title">Maderas MyM</h1>
+        <p class="about-hero__subtitle">Especialistas en Pino Oregón Nacional con más de 30 años de trayectoria y compromiso con el bosque sustentable</p>
     </section>
-    
-     <a href="https://wa.me/56976200646" class="whatsapp-button" target="_blank">
+
+    <!-- STATS -->
+    <section class="stats-section">
+        <div class="stats__container">
+            <div class="stat-card">
+                <div class="stat-card__number">35+</div>
+                <div class="stat-card__label">Años de experiencia</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number">9m</div>
+                <div class="stat-card__label">Vigas de hasta</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number">100%</div>
+                <div class="stat-card__label">Proveedores certificados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number">1989</div>
+                <div class="stat-card__label">Año de fundación</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HISTORIA -->
+    <section class="historia">
+        <div class="historia__container">
+            <div class="historia__content">
+                <div class="section-label">Nuestra Historia</div>
+                <h2 class="section-title">Una empresa familiar con tradición maderera</h2>
+                <p class="section-text">
+                    Maderas MyM es una empresa familiar del rubro maderero con trayectoria desde 1989, dedicada a la comercialización de productos de alta calidad para la construcción.
+                </p>
+                <p class="section-text">
+                    En sus inicios, la empresa se enfocó en la venta de maderas nativas y, con el paso del tiempo, evolucionó hasta especializarse en la venta de <strong>Pino Oregón Nacional</strong>, ofreciendo una amplia variedad de largos, medidas y elaboraciones, adaptadas a las necesidades de cada proyecto.
+                </p>
+                <p class="section-text">
+                    Trabajamos exclusivamente con proveedores y aserraderos certificados, comprometidos con el manejo responsable y sustentable del bosque.
+                </p>
+            </div>
+            <!-- ESPACIO PARA FOTO -->
+            <div class="image-placeholder historia__image">
+                <img src="assets/fotosau/11.JPG" alt="Local Maderas MyM" onerror="this.style.display='none'">
+                <i class="fas fa-image"></i>
+                <span>Foto del local o bodega</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- GALERÍA DE FOTOS -->
+    <section class="galeria">
+        <div class="galeria__container">
+            <div class="galeria__header">
+                <div class="section-label" style="justify-content: center;">Conócenos</div>
+                <h2 class="section-title">Nuestras Instalaciones</h2>
+            </div>
+            <div class="galeria__grid">
+                <!-- ESPACIO FOTO GRANDE -->
+                <div class="image-placeholder galeria__item galeria__item--large">
+                    <img src="assets/fotosau/12.JPG" alt="Instalaciones" onerror="this.style.display='none'">
+                    <i class="fas fa-image"></i>
+                    <span>Foto principal</span>
+                </div>
+                <!-- ESPACIO FOTO 2 -->
+                <div class="image-placeholder galeria__item">
+                    <img src="assets/fotosau/13.JPG" alt="Galería 2" onerror="this.style.display='none'">
+                    <i class="fas fa-image"></i>
+                    <span>Foto 2</span>
+                </div>
+                <!-- ESPACIO FOTO 3 -->
+                <div class="image-placeholder galeria__item">
+                    <img src="assets/fotosau/14.jpg" alt="Galería 3" onerror="this.style.display='none'">
+                    <i class="fas fa-image"></i>
+                    <span>Foto 3</span>
+                </div>
+                <!-- ESPACIO FOTO 4 -->
+                <div class="image-placeholder galeria__item">
+                    <img src="assets/fotosau/15.JPG" alt="Galería 4" onerror="this.style.display='none'">
+                    <i class="fas fa-image"></i>
+                    <span>Foto 4</span>
+                </div>
+                <!-- ESPACIO FOTO 5 -->
+                <div class="image-placeholder galeria__item">
+                    <img src="assets/fotosau/16.JPG" alt="Galería 5" onerror="this.style.display='none'">
+                    <i class="fas fa-image"></i>
+                    <span>Foto 5</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRODUCTOS -->
+    <section class="productos-section">
+        <div class="productos__container">
+            <div class="section-label" style="justify-content: center;">Qué ofrecemos</div>
+            <h2 class="section-title">Productos para tu proyecto</h2>
+            <p class="section-text" style="max-width: 700px; margin: 0 auto;">
+                Además de nuestra especialidad en Pino Oregón, contamos con diversos productos complementarios para la construcción.
+            </p>
+            <div class="productos__grid">
+                <div class="producto-card">
+                    <div class="producto-card__icon">
+                        <i class="fas fa-tree"></i>
+                    </div>
+                    <div class="producto-card__title">Pino Oregón Nacional</div>
+                </div>
+                <div class="producto-card">
+                    <div class="producto-card__icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="producto-card__title">Protectores de Madera</div>
+                </div>
+                <div class="producto-card">
+                    <div class="producto-card__icon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div class="producto-card__title">Bases Metálicas y Piedra</div>
+                </div>
+                <div class="producto-card">
+                    <div class="producto-card__icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="producto-card__title">Herrajes para Vigas</div>
+                </div>
+                <div class="producto-card">
+                    <div class="producto-card__icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="producto-card__title">Terciados y OSB</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MISIÓN Y VISIÓN -->
+    <section class="mision-vision">
+        <div class="mision-vision__container">
+            <div class="mv-card mv-card--mision">
+                <div class="mv-card__icon">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <h3 class="mv-card__title">Misión</h3>
+                <p class="mv-card__text">
+                    Proveer productos de Pino Oregón Nacional de alta calidad, provenientes de proveedores certificados en manejo forestal sustentable, entregando soluciones confiables para la construcción, con una atención personalizada, eficiente y transparente.
+                </p>
+            </div>
+            <div class="mv-card mv-card--vision">
+                <div class="mv-card__icon">
+                    <i class="fas fa-eye"></i>
+                </div>
+                <h3 class="mv-card__title">Visión</h3>
+                <p class="mv-card__text">
+                    Ser una empresa referente en la comercialización de Pino Oregón en Chile, reconocida por su responsabilidad ecológica, calidad de productos, precios competitivos y cercanía con sus clientes, manteniendo siempre el carácter familiar que nos define desde 1989.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- EQUIPO (con fotos) -->
+    <section class="equipo">
+        <div class="equipo__container">
+            <div class="equipo__header">
+                <div class="section-label" style="justify-content: center;">Quiénes somos</div>
+                <h2 class="section-title">Nuestro Equipo</h2>
+            </div>
+            <div class="equipo__grid">
+                <div class="equipo__card">
+                    <!-- ESPACIO FOTO ANDREA -->
+                    <div class="image-placeholder equipo__foto">
+                        <!-- <img src="assets/andrea.jpg" alt="Andrea M."> -->
+                        <i class="fas fa-user" style="font-size: 2rem;"></i>
+                    </div>
+                    <div class="equipo__info">
+                        <h4 class="equipo__nombre">Andrea M.</h4>
+                        <span class="equipo__cargo">Fundadora</span>
+                        <p class="equipo__desc">Con más de 30 años de experiencia en el rubro maderero, lidera la empresa con pasión y dedicación.</p>
+                    </div>
+                </div>
+                <div class="equipo__card">
+                    <!-- ESPACIO FOTO MARCO -->
+                    <div class="image-placeholder equipo__foto">
+                        <!-- <img src="assets/marco.jpg" alt="Marco R."> -->
+                        <i class="fas fa-user" style="font-size: 2rem;"></i>
+                    </div>
+                    <div class="equipo__info">
+                        <h4 class="equipo__nombre">Marco R.</h4>
+                        <span class="equipo__cargo">Fundador</span>
+                        <p class="equipo__desc">Experto en selección de maderas y relaciones con proveedores certificados.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VALORES -->
+    <section class="valores">
+        <div class="valores__container">
+            <div class="valores__header">
+                <div class="section-label" style="justify-content: center;">Lo que nos define</div>
+                <h2 class="section-title">Nuestros Valores</h2>
+            </div>
+            <div class="valores__grid">
+                <div class="valor-card">
+                    <div class="valor-card__icon">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <h4 class="valor-card__title">Sustentabilidad</h4>
+                    <p class="valor-card__text">Trabajamos solo con empresas con certificación y responsabilidad ecológica.</p>
+                </div>
+                <div class="valor-card">
+                    <div class="valor-card__icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h4 class="valor-card__title">Tradición y Experiencia</h4>
+                    <p class="valor-card__text">Más de 30 años de trayectoria respaldan nuestro trabajo.</p>
+                </div>
+                <div class="valor-card">
+                    <div class="valor-card__icon">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <h4 class="valor-card__title">Cercanía</h4>
+                    <p class="valor-card__text">Atención directa, cordial y personalizada.</p>
+                </div>
+                <div class="valor-card">
+                    <div class="valor-card__icon">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <h4 class="valor-card__title">Calidad</h4>
+                    <p class="valor-card__text">Productos confiables y seleccionados cuidadosamente.</p>
+                </div>
+                <div class="valor-card">
+                    <div class="valor-card__icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h4 class="valor-card__title">Responsabilidad</h4>
+                    <p class="valor-card__text">Cumplimiento en plazos, entregas programadas y procesos claros.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <div class="cta__container">
+            <h2 class="cta__title">Pónganos a prueba</h2>
+            <p class="cta__text">Cotice y compruebe la calidad de nuestro servicio. Estamos a su disposición para apoyar sus proyectos y necesidades en madera.</p>
+            <div class="cta__buttons">
+                <a href="https://wa.me/56976200646" class="btn btn--primary" target="_blank">
+                    <i class="fab fa-whatsapp"></i>
+                    Contactar por WhatsApp
+                </a>
+                <a href="/" class="btn btn--secondary">
+                    <i class="fas fa-box-open"></i>
+                    Ver Productos
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- WHATSAPP BUTTON -->
+    <a href="https://wa.me/56976200646" class="whatsapp-button" target="_blank">
         <i class="fab fa-whatsapp"></i>
     </a>
+
+    <!-- FOOTER -->
     <footer class="footer">
         <div class="footer-conteiner">
             <div class="fbox">
                 <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.6852179575494!2d-70.7193986234621!3d-33.43145019654093!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c3f58843e8e9%3A0xa27e1e1dada98bc8!2sMaderas%20MyM!5e0!3m2!1ses-419!2scl!4v1718148865655!5m2!1ses-419!2scl" width="500" height="300" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                 <ul>
                     <li><h4><i class="fa-solid fa-clock"></i>Nuestros horarios de atención</h4></li>
-                    <li>
-                        Lunes a jueves de 9:00 a 12:30 hrs y de 14:30 a 17:30 hrs.
-                        
-                    </li>
+                    <li>Lunes a jueves de 9:00 a 12:30 hrs y de 14:30 a 17:30 hrs.</li>
                     <li>Viernes de 9:00 a 12:30 hrs y de 14:30 a 16:30 hrs.</li>
-                    
- 
                 </ul>
             </div>
             <div class="fbox">
                 <ul>
-                    
-                
-                    <li>
-                        <i class="fa-solid fa-location-pin"></i>Av. José Joaquín Pérez 5877
-                         
-                    </li>
-                    <li>
-                        <li><i class="fa-solid fa-phone"></i>Téfono:  (FIJO)227743727</li>
-                        <li><i class="fa-solid fa-mobile-button"></i>Cel:  +56 9 76200646</li>
-                    </li>
-                    <li>
-                        <i class="fa-solid fa-envelope"></i>
-                        Email:  maderas.mym@gmail.com</li>
-                    
+                    <li><i class="fa-solid fa-location-pin"></i>Av. José Joaquín Pérez 5877</li>
+                    <li><i class="fa-solid fa-phone"></i>Téfono: (FIJO)227743727</li>
+                    <li><i class="fa-solid fa-mobile-button"></i>Cel: +56 9 76200646</li>
+                    <li><i class="fa-solid fa-envelope"></i>Email: maderas.mym@gmail.com</li>
                 </ul>
             </div>
             <div class="fbox" style="padding: 5px;">
                 <li><a href="/#">Inicio</a></li>
-                    <li><a href="/#">Productos</a></li>
-                    <li><a href="/#">Ofertas</a></li>
-                    <li><a href="/#">Sobre Nosotros</a></li>
+                <li><a href="/#">Productos</a></li>
+                <li><a href="/#">Ofertas</a></li>
+                <li><a href="/#">Sobre Nosotros</a></li>
                 <hr style="margin-top: 20px; margin-bottom: 20px;">
                 <h2>Sigamos en contacto!</h2>
                 <div class="red-social">
-                    
                     <li>
                         <i class="fa-brands fa-square-instagram fa-2x"></i>
                         <a href="/#">Instagram</a>
@@ -140,7 +1285,23 @@
             </div>
         </div>
     </footer>
-    <script src="main.js"></script>
 
+    <script src="main.js"></script>
+    <script>
+        // Manejar imágenes: ocultar placeholder cuando carga, mostrar cuando falla
+        document.querySelectorAll('.image-placeholder img').forEach(img => {
+            img.onload = function() {
+                this.parentElement.classList.add('has-image');
+            };
+            img.onerror = function() {
+                this.style.display = 'none';
+                this.parentElement.classList.remove('has-image');
+            };
+            // Si ya está cargada
+            if (img.complete && img.naturalHeight !== 0) {
+                img.parentElement.classList.add('has-image');
+            }
+        });
+    </script>
 </body>
-</html> 
+</html>
