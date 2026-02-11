@@ -5,6 +5,23 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maderas MyM</title>
+    <!-- Google Tag Manager -->
+    <script>
+    (function(w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({
+        'gtm.start': new Date().getTime(),
+        event: 'gtm.js'
+        });
+        var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s),
+        dl = l != 'dataLayer' ? '&l=' + l : '';
+        j.async = true;
+        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+        f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-M3LR2ZS7');
+    </script>
+    <!-- End Google Tag Manager -->
     <link rel="stylesheet" href="style.css">
     <!-- CSS de corrección del carrusel - DEBE cargarse DESPUÉS de style.css -->
     <link rel="stylesheet" href="carrusel-fix.css">
@@ -2240,6 +2257,214 @@
                 min-height: 100px;
             }
         }
+        
+        /* Estilo para categoría activa en sidebar */
+        .sidebar a.active-category {
+            background: linear-gradient(90deg, rgba(160, 53, 47, 0.15) 0%, rgba(160, 53, 47, 0.05) 100%);
+            color: #A0352F;
+            border-left-color: #A0352F;
+            font-weight: 600;
+        }
+        
+        /* Lista de categorías del sidebar */
+        .sidebar-categories {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-categories > li {
+            margin: 5px 0;
+        }
+        
+        /* ========================================
+           CARRITO MÓVIL FIJO - FUERA DEL MENÚ
+           ======================================== */
+        .mobile-cart-fixed {
+            display: none; /* Oculto en desktop */
+        }
+        
+        @media (max-width: 768px) {
+            /* Mostrar carrito fijo en móvil */
+            .mobile-cart-fixed {
+                display: flex;
+                position: fixed;
+                top: 10px;
+                right: 60px; /* Espacio para el menú hamburguesa */
+                z-index: 10001;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .mobile-cart-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                background: linear-gradient(135deg, #2F6B3F 0%, #245230 100%);
+                color: white;
+                border: none;
+                border-radius: 50px;
+                padding: 10px 16px;
+                font-size: 0.9rem;
+                font-weight: 700;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(47, 107, 63, 0.4);
+                transition: all 0.3s ease;
+                text-decoration: none;
+            }
+            
+            .mobile-cart-btn:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(47, 107, 63, 0.5);
+            }
+            
+            .mobile-cart-btn i {
+                font-size: 1.2rem;
+            }
+            
+            .mobile-cart-btn .cart-count-mobile {
+                background: #A0352F;
+                color: white;
+                border-radius: 50%;
+                min-width: 22px;
+                height: 22px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.75rem;
+                font-weight: 700;
+                margin-left: 4px;
+            }
+            
+            /* Ocultar el carrito del sidebar/menú en móvil */
+            #cart-container {
+                display: none !important;
+            }
+            
+            /* Ajustar posición del menú hamburguesa */
+            .menu__hamburguer {
+                position: fixed !important;
+                top: 10px;
+                right: 10px;
+                z-index: 10002;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .mobile-cart-fixed {
+                top: 8px;
+                right: 55px;
+            }
+            
+            .mobile-cart-btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .mobile-cart-btn i {
+                font-size: 1.1rem;
+            }
+            
+            .mobile-cart-btn .cart-count-mobile {
+                min-width: 20px;
+                height: 20px;
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .mobile-cart-fixed {
+                right: 50px;
+            }
+            
+            .mobile-cart-btn {
+                padding: 8px 10px;
+            }
+            
+            .mobile-cart-btn span:not(.cart-count-mobile) {
+                display: none; /* Ocultar texto "Carrito" en pantallas muy pequeñas */
+            }
+        }
+        
+        /* Modal del carrito - asegurar visibilidad en móvil */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .modal.is-open {
+            display: flex;
+        }
+        
+        .modal .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal .close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 28px;
+            color: #666;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #f5f5f5;
+            transition: all 0.3s ease;
+            line-height: 1;
+        }
+        
+        .modal .close:hover {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .modal {
+                padding: 10px;
+            }
+            
+            .modal .modal-content {
+                max-height: 85vh;
+                padding: 20px 15px;
+                border-radius: 12px;
+            }
+        }
     </style>
 </head>
 <div id="order-wait" aria-hidden="true">
@@ -2248,8 +2473,28 @@
         <p class="order-wait__title">Generando tu pedido…</p>
         <p class="order-wait__text">Por favor, espera un momento.</p>
     </div>
-    </div>
+</div>
 <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+    <iframe 
+        src="https://www.googletagmanager.com/ns.html?id=GTM-M3LR2ZS7"
+        height="0" 
+        width="0" 
+        style="display:none;visibility:hidden">
+    </iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <!-- ========================================
+         CARRITO MÓVIL FIJO (solo visible en móvil)
+         ======================================== -->
+    <div class="mobile-cart-fixed">
+        <a href="#" class="mobile-cart-btn" id="mobile-cart-link">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span>Carrito</span>
+            <span class="cart-count-mobile">0</span>
+        </a>
+    </div>
 
     <!-- ========================================
          BOTÓN FLOTANTE DE WHATSAPP MEJORADO
@@ -2324,47 +2569,11 @@
                         <i class="fa-solid fa-user fa-2x"></i>
                     </a>
                 </li>
-                <!-- Contenedor del carrito -->
+                <!-- Contenedor del carrito (desktop) -->
                
                 <li class="menu__item" id="cart-container">
-                    <a href="#" class="menu__link" id="cart-link"></i>Carrito (<span class="cart-count">0</span>)<i class="fa-solid fa-cart-shopping fa-2x"></i></a>
+                    <a href="#" class="menu__link" id="cart-link">Carrito (<span class="cart-count">0</span>)<i class="fa-solid fa-cart-shopping fa-2x"></i></a>
                 </li>
-                <div id="cartModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h2>Carrito de Compras</h2>
-                        <div class="cart-container">
-                            <!-- Aquí se mostrarán los productos del carrito -->
-                        </div>
-                        
-                        <!-- Nuevos campos agregados -->
-                        <div class="delivery-options">
-                            <h3>Método de entrega</h3>
-                            <div class="delivery-option">
-                                <input type="radio" id="delivery-shipping" name="delivery" value="envio" checked>
-                                <label for="delivery-shipping">Envío a domicilio (Indicar direccion en los comentarios, contamos con flete externo de confianza)</label>
-                            </div>
-                            <div class="delivery-option">
-                                <input type="radio" id="delivery-pickup" name="delivery" value="retiro">
-                                <label for="delivery-pickup">Retiro en tienda (Sin costo)</label>
-                            </div>
-                        </div>
-                        
-                        <div class="cart-comments">
-                            <h3>Comentarios</h3>
-                            <textarea id="order-comments" placeholder="¿Algún detalle importante para tu pedido? (Opcional)"></textarea>
-                        </div>
-                        
-                        <div class="cart-summary">
-                            <h3>Total: $<span id="cart-total">0.00</span></h3>
-                        </div>
-                        
-                        <div class="cart-buttons">
-                            <button id="generateOrder" class="cart-action-btn">Generar pedido</button>
-                            <button id="clear-cart-btn" class="cart-action-btn">Vaciar carrito</button>
-                        </div>
-                    </div>
-                </div>
                 
             </ul>
 
@@ -2375,6 +2584,47 @@
 
       
     </nav>
+    
+    <!-- ========================================
+         MODAL DEL CARRITO (fuera del menú para móvil)
+         ======================================== -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Carrito de Compras</h2>
+            <div class="cart-container">
+                <!-- Aquí se mostrarán los productos del carrito -->
+            </div>
+            
+            <!-- Opciones de entrega -->
+            <div class="delivery-options">
+                <h3>Método de entrega</h3>
+                <div class="delivery-option">
+                    <input type="radio" id="delivery-shipping" name="delivery" value="envio" checked>
+                    <label for="delivery-shipping">Envío a domicilio (Indicar direccion en los comentarios, contamos con flete externo de confianza)</label>
+                </div>
+                <div class="delivery-option">
+                    <input type="radio" id="delivery-pickup" name="delivery" value="retiro">
+                    <label for="delivery-pickup">Retiro en tienda (Sin costo)</label>
+                </div>
+            </div>
+            
+            <div class="cart-comments">
+                <h3>Comentarios</h3>
+                <textarea id="order-comments" placeholder="¿Algún detalle importante para tu pedido? (Opcional)"></textarea>
+            </div>
+            
+            <div class="cart-summary">
+                <h3>Total: $<span id="cart-total">0.00</span></h3>
+            </div>
+            
+            <div class="cart-buttons">
+                <button id="generateOrder" class="cart-action-btn">Generar pedido</button>
+                <button id="clear-cart-btn" class="cart-action-btn">Vaciar carrito</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="conteitemcarrusel">
         <div class="itemcarrusel" id="itemc1">
             <div class="tarjetacarrusel" id="ccard1">
@@ -2443,50 +2693,58 @@
             <div class="sidebarcate">
                 <h2>Categorias</h2>   
             </div>
-             <!-- Pino Oregón Bruto -->
-            <li>
-                <a href="#" class="category-link toggle-submenu">Pino Oregón Bruto</a>
-                <ul class="submenu">
-                <li><a href="#" class="submenu-link">2.50 mts</a></li>
-                <li><a href="#" class="submenu-link">3.20 mts</a></li>
-                <li><a href="#" class="submenu-link">4.00 mts</a></li>
-                <li><a href="#" class="submenu-link">5.00 mts</a></li>
-                <li><a href="#" class="submenu-link">6.00 mts</a></li>
-                <li><a href="#" class="submenu-link">7.00 mts</a></li>
-                <li><a href="#" class="submenu-link">8.00 mts</a></li>
-                <li><a href="#" class="submenu-link">9.00 mts</a></li>
-                </ul>
-            </li>
+            <ul class="sidebar-categories">
+                <!-- Pino Oregón Bruto -->
+                <li>
+                    <a href="#" class="category-link toggle-submenu" data-category="Bruto">Pino Oregón Bruto</a>
+                    <ul class="submenu" data-parent-type="Bruto">
+                        <li><a href="#" class="submenu-link medida-link" data-medida="2.50">2.50 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="3.20">3.20 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="4.00">4.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="5.00">5.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="6.00">6.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="7.00">7.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="8.00">8.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="9.00">9.00 mts</a></li>
+                    </ul>
+                </li>
 
-            <!-- Pino Oregón Cepillado -->
-            <li>
-                <a href="#" class="category-link toggle-submenu">Pino Oregón Cepillado</a>
-                <ul class="submenu">
-                <li><a href="#" class="submenu-link">2.50 mts</a></li>
-                <li><a href="#" class="submenu-link">3.20 mts</a></li>
-                <li><a href="#" class="submenu-link">4.00 mts</a></li>
-                <li><a href="#" class="submenu-link">5.00 mts</a></li>
-                <li><a href="#" class="submenu-link">6.00 mts</a></li>
-                <li><a href="#" class="submenu-link">7.00 mts</a></li>
-                <li><a href="#" class="submenu-link">8.00 mts</a></li>
-                <li><a href="#" class="submenu-link">9.00 mts</a></li>
-                </ul>
-            </li>
-            <li><a href="#" class="category-link">Base metalica</a></li>
-            <li><a href="#" class="category-link">Base de piedra</a></li>
-            <p><a href="#" class="category-link">Cielo Elaborado</a></p>
-            <p><a href="#" class="category-link">Planchas Osb</a></p>
-            <p><a href="#" class="category-link">Polines</a></p>
-            <p><a href="#" class="category-link">Protectores y barníz</a></p>
-            <li>
-                <a href="#" class="category-link toggle-submenu">Terciados</a>
-                <ul class="submenu">
-                <li><a href="#" class="submenu-link">Terciado estructural</a></li>
-                <li><a href="#" class="submenu-link">Terciado ranurado</a></li>
-                </ul>
-            </li>
-            <p><a href="#" class="category-link">Treillage</a></p>
-            <p><a href="#">Vitrificante de pisos</a></p>
+                <!-- Pino Oregón Cepillado -->
+                <li>
+                    <a href="#" class="category-link toggle-submenu" data-category="Cepillado">Pino Oregón Cepillado</a>
+                    <ul class="submenu" data-parent-type="Cepillado">
+                        <li><a href="#" class="submenu-link medida-link" data-medida="2.50">2.50 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="3.20">3.20 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="4.00">4.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="5.00">5.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="6.00">6.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="7.00">7.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="8.00">8.00 mts</a></li>
+                        <li><a href="#" class="submenu-link medida-link" data-medida="9.00">9.00 mts</a></li>
+                    </ul>
+                </li>
+                
+                <!-- Categorías simples -->
+                <li><a href="#" class="category-link simple-category" data-search="Base metalica">Base metalica</a></li>
+                <li><a href="#" class="category-link simple-category" data-search="Base piedra">Base de piedra</a></li>
+                <li><a href="#" class="category-link simple-category" data-search="Cielo Elaborado">Cielo Elaborado</a></li>
+                <li><a href="#" class="category-link simple-category" data-search="Planchas Osb">Planchas Osb</a></li>
+                <li><a href="#" class="category-link simple-category" data-search="Polines">Polines</a></li>
+                <li><a href="#" class="category-link simple-category" data-search="Protectores">Protectores y barníz</a></li>
+                
+                <!-- Terciados con submenú -->
+                <li>
+                    <a href="#" class="category-link toggle-submenu" data-category="Terciado">Terciados</a>
+                    <ul class="submenu" data-parent-type="Terciado">
+                        <li><a href="#" class="submenu-link simple-subcategory" data-search="Terciado estructural">Terciado estructural</a></li>
+                        <li><a href="#" class="submenu-link simple-subcategory" data-search="Terciado ranurado">Terciado ranurado</a></li>
+                    </ul>
+                </li>
+                
+                <li><a href="#" class="category-link simple-category" data-search="Treillage">Treillage</a></li>
+                <li><a href="#" class="category-link simple-category" data-search="Vitrificante">Vitrificante de pisos</a></li>
+            </ul>
+            
             <div class="sidebarinfo">
                 <a href="/assets/precios.pdf" target="_blank">Listado productos pdf</a>
             </div>
@@ -2497,10 +2755,6 @@
                     Informativo Maderas (PDF)
                 </a>
             </div>
-
-
-
-
         </div>
         <div class="products-area">
         <div id="catalog-grid" class="catalog-grid"></div>
@@ -2509,7 +2763,7 @@
     </div>
     <div class="featured-products" id="featured-products">
     <h2>Productos Destacados</h2>
-    <div class="featured-container"></div> <!-- deja este vacío -->
+    <div class="featured-container"></div>
     </div> 
     <footer class="footer">
         <div class="footer-conteiner">
@@ -2565,42 +2819,6 @@
             </div>
         </div>
     </footer>
-                <div id="cartModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h2>Carrito de Compras</h2>
-                        <div class="cart-container">
-                            <!-- Aquí se mostrarán los productos del carrito -->
-                        </div>
-                        
-                        <!-- Nuevos campos agregados -->
-                        <div class="delivery-options">
-                            <h3>Método de entrega</h3>
-                            <div class="delivery-option">
-                                <input type="radio" id="delivery-shipping" name="delivery" value="envio" checked>
-                                <label for="delivery-shipping">Envío a domicilio (Indicar direccion en los comentarios, contamos con flete externo de confianza)</label>
-                            </div>
-                            <div class="delivery-option">
-                                <input type="radio" id="delivery-pickup" name="delivery" value="retiro">
-                                <label for="delivery-pickup">Retiro en tienda (Sin costo)</label>
-                            </div>
-                        </div>
-                        
-                        <div class="cart-comments">
-                            <h3>Comentarios</h3>
-                            <textarea id="order-comments" placeholder="¿Algún detalle importante para tu pedido? (Opcional)"></textarea>
-                        </div>
-                        
-                        <div class="cart-summary">
-                            <h3>Total: $<span id="cart-total">0.00</span></h3>
-                        </div>
-                        
-                        <div class="cart-buttons">
-                            <button id="generateOrder" class="cart-action-btn">Generar pedido</button>
-                            <button id="clear-cart-btn" class="cart-action-btn">Vaciar carrito</button>
-                        </div>
-                    </div>
-                </div>
     <script src="main.js"></script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1020758030"></script>
@@ -2663,11 +2881,13 @@
         const cartContainer   = document.querySelector('.cart-container');
         const cartTotalEl     = document.getElementById('cart-total');
         const cartCountEl     = document.querySelector('.cart-count');
+        const cartCountMobileEl = document.querySelector('.cart-count-mobile'); // Contador móvil
         if (!cartContainer) return;
 
         cartContainer.innerHTML = '';
         const totalItems = cart.reduce((a,b)=>a + (b.quantity||0), 0);
         if (cartCountEl) cartCountEl.textContent = totalItems;
+        if (cartCountMobileEl) cartCountMobileEl.textContent = totalItems; // Actualizar contador móvil
 
         if (!cart.length){
             cartContainer.innerHTML = '<p>El carrito está vacío.</p>';
@@ -2812,6 +3032,18 @@
             };
         });
     }
+    
+    /* =========================
+    MARCAR CATEGORÍA ACTIVA EN SIDEBAR
+    ========================= */
+    function setActiveCategory(element) {
+        // Remover clase activa de todos
+        document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active-category'));
+        // Agregar clase activa al elemento actual
+        if (element) {
+            element.classList.add('active-category');
+        }
+    }
 
     /* =========================
     CATALOGO + DESTACADOS
@@ -2841,18 +3073,20 @@
 
     // 2) Filtramos solo visibles (1/true/'1')
     let visibles = allItems.filter(p => p.visible === 1 || p.visible === true || p.visible === '1');
+    
     // 2b) Filtramos por búsqueda - ALGORITMO MEJORADO
     if (q) {
         const qLower = q.toLowerCase().trim();
-        console.log('Filtrando productos con query:', qLower);
+        console.log('🔍 Filtrando productos con query:', qLower);
         
         visibles = visibles.filter(p => {
             const nombre = (p.nombre_prod || '').toLowerCase();
             const tipo = (p.tipo || '').toLowerCase();
             const medidas = (p.medidas || '').toLowerCase();
             const dimensiones = (p.dimensiones || '').toLowerCase();
+            const categoria = (p.categoria || '').toLowerCase();
             
-            // ✅ CORREGIDO: Si la búsqueda es "Bruto" o "Cepillado", buscar en el tipo
+            // Búsqueda exacta para tipos principales
             if (qLower === 'bruto') {
                 return tipo.includes('bruto');
             }
@@ -2861,7 +3095,7 @@
                 return tipo.includes('cepillado');
             }
             
-            // ✅ CORREGIDO: Si contiene "pino oregón bruto" o similar
+            // Búsqueda para categorías específicas
             if (qLower.includes('bruto')) {
                 return tipo.includes('bruto') || nombre.includes('bruto');
             }
@@ -2870,37 +3104,24 @@
                 return tipo.includes('cepillado') || nombre.includes('cepillado');
             }
             
-            // Si la búsqueda contiene múltiples palabras (ej: "Bruto 4.00")
+            // Búsqueda general en todos los campos
+            const searchFields = [nombre, tipo, medidas, dimensiones, categoria].join(' ');
+            
+            // Si la búsqueda contiene múltiples palabras
             const palabras = qLower.split(' ').filter(word => word.length > 0);
             
             if (palabras.length > 1) {
-                // Búsqueda combinada: tipo + medida
-                return palabras.every(palabra => {
-                    return tipo.includes(palabra) || 
-                        medidas.includes(palabra) ||
-                        dimensiones.includes(palabra) ||
-                        nombre.includes(palabra);
-                });
+                // Todas las palabras deben coincidir en algún campo
+                return palabras.every(palabra => searchFields.includes(palabra));
             } else {
-                // Búsqueda simple en todos los campos
-                return nombre.includes(qLower) || 
-                    tipo.includes(qLower) || 
-                    medidas.includes(qLower) ||
-                    dimensiones.includes(qLower);
+                // Búsqueda simple
+                return searchFields.includes(qLower);
             }
         });
         
-        console.log('Productos encontrados:', visibles.length);
-        
-        // Debug: mostrar los primeros 3 productos encontrados
-        if (visibles.length > 0) {
-            console.log('Primeros productos:', visibles.slice(0, 3).map(p => ({
-                nombre: p.nombre_prod,
-                tipo: p.tipo,
-                medidas: p.medidas
-            })));
-        }
+        console.log('✅ Productos encontrados:', visibles.length);
     }
+    
     // 3) Paginación cliente solo con visibles
     const totalPages = Math.max(1, Math.ceil(visibles.length / PAGE_SIZE));
     const safePage = Math.min(Math.max(1, page), totalPages);
@@ -3125,7 +3346,7 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
       visibles = visibles.filter(p => {
         const tipoProducto = (p.tipo || '').toLowerCase();
         const tipoLower = tipo.toLowerCase();
-        return tipoProducto === tipoLower;
+        return tipoProducto.includes(tipoLower);
       });
       console.log('Después de filtrar por tipo "' + tipo + '":', visibles.length);
     }
@@ -3262,8 +3483,10 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
 
     // Abrir/Cerrar modal
     const cartLink   = document.getElementById('cart-link');
+    const mobileCartLink = document.getElementById('mobile-cart-link'); // Carrito móvil
     const closeBtn   = UI.modal?.querySelector('.close');
     cartLink?.addEventListener('click', (e)=> UI.openModal(e));
+    mobileCartLink?.addEventListener('click', (e)=> UI.openModal(e)); // Evento para carrito móvil
     closeBtn?.addEventListener('click', ()=> UI.closeModal());
     UI.modal?.addEventListener('click', (e)=>{ if (e.target === UI.modal) UI.closeModal(); });
     document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && UI.modal?.classList.contains('is-open')) UI.closeModal(); });
@@ -3299,10 +3522,14 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
     const FORM  = document.getElementById('search-form');
     const INPUT = document.getElementById('search-input');
     FORM?.addEventListener('submit', (e)=>{
-        e.preventDefault(); loadProductsPage(1, (INPUT?.value||'').trim());
+        e.preventDefault(); 
+        setActiveCategory(null); // Limpiar categoría activa
+        loadProductsPage(1, (INPUT?.value||'').trim());
     });
 
-    //Desplegables side-bar 
+    /* =========================
+       ✅ SIDEBAR - CATEGORÍAS CON SUBMENÚ (Bruto, Cepillado, Terciados)
+       ========================= */
     const toggles = document.querySelectorAll('.toggle-submenu');
     toggles.forEach(toggle => {
         toggle.addEventListener('click', (e) => {
@@ -3317,39 +3544,112 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
             });
             
             // Toggle del submenú actual
-            if (submenu.style.display === 'block') {
+            if (submenu && submenu.style.display === 'block') {
                 submenu.style.display = 'none';
-            } else {
+            } else if (submenu) {
                 submenu.style.display = 'block';
-                
-                // También filtrar por la categoría principal cuando se abre
-                const categoriaTexto = toggle.textContent.trim();
-                let query = '';
-                
-                if (categoriaTexto.includes('Bruto')) {
-                    query = 'Bruto';
-                } else if (categoriaTexto.includes('Cepillado')) {
-                    query = 'Cepillado';
-                }
-                
-                if (query) {
-                    console.log('Filtrando por categoría principal:', query);
-                    loadProductsPage(1, query);
-                }
+            }
+            
+            // Filtrar por la categoría principal
+            const categoria = toggle.dataset.category;
+            if (categoria) {
+                console.log('📂 Filtrando por categoría principal:', categoria);
+                setActiveCategory(toggle);
+                loadProductsPage(1, categoria);
             }
         });
     });
 
-    // ✅ NUEVO: Manejar clicks en el menú dropdown del navbar
+    /* =========================
+       ✅ SIDEBAR - CATEGORÍAS SIMPLES (sin submenú)
+       ========================= */
+    const simpleCategories = document.querySelectorAll('.simple-category');
+    console.log('📋 Categorías simples encontradas:', simpleCategories.length);
+    
+    simpleCategories.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Evitar que suba al padre
+            
+            const searchQuery = link.dataset.search;
+            console.log('🔍 Click en categoría simple:', searchQuery);
+            
+            if (searchQuery) {
+                setActiveCategory(link);
+                
+                // Hacer scroll hacia los productos
+                const productosArea = document.querySelector('.conteiner');
+                if (productosArea) {
+                    productosArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                
+                loadProductsPage(1, searchQuery);
+            }
+        });
+    });
+    
+    /* =========================
+       ✅ SIDEBAR - SUBCATEGORÍAS SIMPLES (ej: Terciado estructural)
+       ========================= */
+    const simpleSubcategories = document.querySelectorAll('.simple-subcategory');
+    console.log('📋 Subcategorías simples encontradas:', simpleSubcategories.length);
+    
+    simpleSubcategories.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const searchQuery = link.dataset.search;
+            console.log('🔍 Click en subcategoría simple:', searchQuery);
+            
+            if (searchQuery) {
+                setActiveCategory(link);
+                loadProductsPage(1, searchQuery);
+            }
+        });
+    });
+
+    /* =========================
+       ✅ SIDEBAR - SUBMENÚS DE MEDIDAS (Bruto/Cepillado + metros)
+       ========================= */
+    const medidaLinks = document.querySelectorAll('.medida-link');
+    console.log('📏 Enlaces de medidas encontrados:', medidaLinks.length);
+    
+    medidaLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Obtener la medida del data attribute
+            const medida = link.dataset.medida;
+            
+            // Obtener el tipo del padre (submenu)
+            const parentSubmenu = link.closest('.submenu');
+            const tipoProducto = parentSubmenu ? parentSubmenu.dataset.parentType : '';
+            
+            console.log('📏 Filtro por medida:');
+            console.log('   - Tipo:', tipoProducto);
+            console.log('   - Medida:', medida);
+            
+            if (tipoProducto && medida) {
+                setActiveCategory(link);
+                loadProductsPageByTypeAndSize(1, tipoProducto, medida);
+            }
+        });
+    });
+
+    /* =========================
+       ✅ NAVBAR DROPDOWN - Productos
+       ========================= */
     const navbarDropdownLinks = document.querySelectorAll('.menu__nesting .menu__inside .menu__link--inside');
-    console.log('Enlaces del navbar encontrados:', navbarDropdownLinks.length);
+    console.log('🔗 Enlaces del navbar encontrados:', navbarDropdownLinks.length);
 
     navbarDropdownLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             
             const texto = link.textContent.trim();
-            console.log('Click en navbar dropdown:', texto);
+            console.log('🔗 Click en navbar dropdown:', texto);
             
             let query = '';
             
@@ -3366,7 +3666,7 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
                 query = texto;
             }
             
-            console.log('Filtrando productos del navbar con query:', query);
+            console.log('   Query:', query);
             
             // Cerrar el menú después de hacer click
             document.querySelectorAll('.menu__nesting').forEach(dropdown => {
@@ -3384,46 +3684,6 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         });
     });
 
-    // Submenús (medidas) - FILTRADO MEJORADO CON CONTEXTO
-    const subMenuLinks = document.querySelectorAll('.submenu-link, .submenu a');
-    subMenuLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            // Obtener el texto de la medida (ej: "2.50 mts")
-            const medidaTexto = link.textContent.trim();
-            
-            // Extraer solo el número de la medida (ej: "2.50" de "2.50 mts")
-            const medidaNumero = medidaTexto.match(/[\d.]+/)?.[0] || medidaTexto;
-            
-            // Obtener la categoría padre (Bruto o Cepillado)
-            const parentSubmenu = link.closest('.submenu');
-            const parentLi = parentSubmenu ? parentSubmenu.previousElementSibling : null;
-            const categoria = parentLi ? parentLi.textContent.trim() : '';
-            
-            console.log('=== DEBUG FILTRO POR MEDIDA ===');
-            console.log('Categoría completa:', categoria);
-            console.log('Medida texto completo:', medidaTexto);
-            console.log('Medida número extraído:', medidaNumero);
-            
-            // Determinar el tipo (Bruto o Cepillado)
-            let tipoProducto = '';
-            if (categoria.includes('Bruto')) {
-                tipoProducto = 'Bruto';
-            } else if (categoria.includes('Cepillado')) {
-                tipoProducto = 'Cepillado';
-            }
-            
-            console.log('Tipo de producto:', tipoProducto);
-            console.log('=== FIN DEBUG ===');
-            
-            // Llamar a la función de filtrado con tipo y medida separados
-            loadProductsPageByTypeAndSize(1, tipoProducto, medidaNumero);
-        });
-    });
-
-
-    
     // Cargas iniciales
     loadProductsPage(1);
     loadFeatured();
@@ -3463,8 +3723,6 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
 
         // ¡Mostrar!
         root.classList.add('is-open');
-         
-        
     }
     })();
     </script>
@@ -3500,7 +3758,14 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         }
     });
     </script>
-    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-X63BMSG51V"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
 
+        gtag('config', 'G-X63BMSG51V');
+    </script>
 </body>
 </html>
