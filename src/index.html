@@ -5,23 +5,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maderas MyM</title>
-    <!-- Google Tag Manager -->
-    <script>
-    (function(w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({
-        'gtm.start': new Date().getTime(),
-        event: 'gtm.js'
-        });
-        var f = d.getElementsByTagName(s)[0],
-        j = d.createElement(s),
-        dl = l != 'dataLayer' ? '&l=' + l : '';
-        j.async = true;
-        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-        f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-M3LR2ZS7');
-    </script>
-    <!-- End Google Tag Manager -->
     <link rel="stylesheet" href="style.css">
     <!-- CSS de corrección del carrusel - DEBE cargarse DESPUÉS de style.css -->
     <link rel="stylesheet" href="carrusel-fix.css">
@@ -2278,191 +2261,457 @@
         }
         
         /* ========================================
-           CARRITO MÓVIL FIJO - FUERA DEL MENÚ
+           HEADER MÓVIL FIJO (STICKY)
            ======================================== */
-        .mobile-cart-fixed {
+        .mobile-header {
             display: none; /* Oculto en desktop */
         }
         
         @media (max-width: 768px) {
-            /* Mostrar carrito fijo en móvil */
-            .mobile-cart-fixed {
+            /* Header móvil sticky */
+            .mobile-header {
                 display: flex;
                 position: fixed;
-                top: 10px;
-                right: 60px; /* Espacio para el menú hamburguesa */
-                z-index: 10001;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 60px;
+                background: linear-gradient(135deg, #A0352F 0%, #7D2A25 100%);
+                z-index: 10000;
                 align-items: center;
-                justify-content: center;
+                justify-content: space-between;
+                padding: 0 15px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             }
             
-            .mobile-cart-btn {
+            .mobile-header-logo {
+                height: 45px;
+                width: auto;
+            }
+            
+            .mobile-header-cart {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                gap: 6px;
+                gap: 8px;
                 background: linear-gradient(135deg, #2F6B3F 0%, #245230 100%);
                 color: white;
                 border: none;
-                border-radius: 50px;
-                padding: 10px 16px;
-                font-size: 0.9rem;
+                border-radius: 25px;
+                padding: 10px 18px;
+                font-size: 0.95rem;
                 font-weight: 700;
                 cursor: pointer;
-                box-shadow: 0 4px 15px rgba(47, 107, 63, 0.4);
-                transition: all 0.3s ease;
                 text-decoration: none;
+                box-shadow: 0 3px 10px rgba(47, 107, 63, 0.4);
+                transition: all 0.3s ease;
             }
             
-            .mobile-cart-btn:hover {
+            .mobile-header-cart:hover,
+            .mobile-header-cart:active {
                 transform: scale(1.05);
-                box-shadow: 0 6px 20px rgba(47, 107, 63, 0.5);
             }
             
-            .mobile-cart-btn i {
-                font-size: 1.2rem;
+            .mobile-header-cart i {
+                font-size: 1.1rem;
             }
             
-            .mobile-cart-btn .cart-count-mobile {
-                background: #A0352F;
-                color: white;
+            .mobile-header-cart .cart-count-mobile {
+                background: white;
+                color: #2F6B3F;
                 border-radius: 50%;
                 min-width: 22px;
                 height: 22px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 0.75rem;
-                font-weight: 700;
-                margin-left: 4px;
+                font-size: 0.8rem;
+                font-weight: 800;
             }
             
-            /* Ocultar el carrito del sidebar/menú en móvil */
-            #cart-container {
+            /* Espaciador para el header fijo */
+            .mobile-header-spacer {
+                display: block;
+                height: 60px;
+            }
+            
+            /* Ocultar navegación original en móvil */
+            nav.menu {
                 display: none !important;
             }
             
-            /* Ajustar posición del menú hamburguesa */
-            .menu__hamburguer {
-                position: fixed !important;
-                top: 10px;
-                right: 10px;
-                z-index: 10002;
+            /* Ocultar el carrito flotante anterior */
+            .mobile-cart-fixed {
+                display: none !important;
+            }
+            
+            /* Ocultar carrito del sidebar */
+            #cart-container {
+                display: none !important;
             }
         }
         
         @media (max-width: 480px) {
-            .mobile-cart-fixed {
-                top: 8px;
-                right: 55px;
+            .mobile-header {
+                height: 55px;
+                padding: 0 10px;
             }
             
-            .mobile-cart-btn {
-                padding: 8px 12px;
-                font-size: 0.85rem;
+            .mobile-header-logo {
+                height: 40px;
             }
             
-            .mobile-cart-btn i {
-                font-size: 1.1rem;
+            .mobile-header-cart {
+                padding: 8px 14px;
+                font-size: 0.9rem;
             }
             
-            .mobile-cart-btn .cart-count-mobile {
-                min-width: 20px;
-                height: 20px;
-                font-size: 0.7rem;
+            .mobile-header-spacer {
+                height: 55px;
             }
         }
         
-        @media (max-width: 360px) {
-            .mobile-cart-fixed {
-                right: 50px;
-            }
-            
-            .mobile-cart-btn {
-                padding: 8px 10px;
-            }
-            
-            .mobile-cart-btn span:not(.cart-count-mobile) {
-                display: none; /* Ocultar texto "Carrito" en pantallas muy pequeñas */
-            }
-        }
-        
-        /* Modal del carrito - asegurar visibilidad en móvil */
-        .modal {
+        /* ========================================
+           CARRITO PANTALLA COMPLETA (MÓVIL)
+           ======================================== */
+        .cart-fullscreen {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 99999;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        
-        .modal.is-open {
-            display: flex;
-        }
-        
-        .modal .modal-content {
-            background: white;
-            border-radius: 15px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            padding: 25px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: modalSlideIn 0.3s ease-out;
-        }
-        
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .modal .close {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 28px;
-            color: #666;
-            cursor: pointer;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
+            right: 0;
+            bottom: 0;
             background: #f5f5f5;
-            transition: all 0.3s ease;
-            line-height: 1;
+            z-index: 100000;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
         }
         
-        .modal .close:hover {
-            background: #e74c3c;
+        .cart-fullscreen.is-open {
+            display: flex;
+            transform: translateX(0);
+        }
+        
+        .cart-fullscreen-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #A0352F 0%, #7D2A25 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .cart-back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .cart-fullscreen-title {
+            flex: 1;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .cart-fullscreen-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        .cart-fullscreen-footer {
+            padding: 15px;
+            background: white;
+            box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .cart-fullscreen .cart-item {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .cart-fullscreen .cart-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        
+        .cart-fullscreen .cart-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .cart-fullscreen .cart-item-info h4 {
+            font-size: 0.95rem;
+            margin: 0 0 5px 0;
+            color: #2d3748;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .cart-fullscreen .cart-item-info .item-price {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #A0352F;
+            margin: 5px 0;
+        }
+        
+        .cart-fullscreen .cart-quantity {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0f0f0;
+            border-radius: 25px;
+            padding: 5px;
+        }
+        
+        .cart-fullscreen .cart-quantity button {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: white;
+            color: #2F6B3F;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .cart-fullscreen .cart-quantity button:hover {
+            background: #2F6B3F;
             color: white;
         }
         
-        @media (max-width: 768px) {
-            .modal {
-                padding: 10px;
+        .cart-fullscreen .cart-quantity span {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .cart-fullscreen .remove-item-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .cart-fullscreen .remove-item-btn:hover {
+            background: #dc2626;
+            color: white;
+        }
+        
+        /* Opciones de entrega en fullscreen */
+        .cart-fullscreen .delivery-options {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        
+        .cart-fullscreen .delivery-options h3 {
+            font-size: 1rem;
+            margin: 0 0 12px 0;
+            color: #2d3748;
+        }
+        
+        .cart-fullscreen .delivery-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .cart-fullscreen .delivery-option:hover {
+            background: #f8f9fa;
+        }
+        
+        .cart-fullscreen .delivery-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            flex-shrink: 0;
+        }
+        
+        .cart-fullscreen .delivery-option label {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #4a5568;
+            cursor: pointer;
+        }
+        
+        /* Comentarios en fullscreen */
+        .cart-fullscreen .cart-comments {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        
+        .cart-fullscreen .cart-comments h3 {
+            font-size: 1rem;
+            margin: 0 0 10px 0;
+            color: #2d3748;
+        }
+        
+        .cart-fullscreen .cart-comments textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: none;
+            box-sizing: border-box;
+        }
+        
+        .cart-fullscreen .cart-comments textarea:focus {
+            outline: none;
+            border-color: #2F6B3F;
+        }
+        
+        /* Total y botones en fullscreen */
+        .cart-fullscreen .cart-total-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #2F6B3F 0%, #245230 100%);
+            border-radius: 12px;
+            color: white;
+        }
+        
+        .cart-fullscreen .cart-total-section span {
+            font-size: 1rem;
+        }
+        
+        .cart-fullscreen .cart-total-section strong {
+            font-size: 1.5rem;
+        }
+        
+        .cart-fullscreen .cart-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .cart-fullscreen .btn-generate-order {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #2F6B3F 0%, #245230 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-fullscreen .btn-generate-order:hover {
+            box-shadow: 0 6px 20px rgba(47, 107, 63, 0.4);
+        }
+        
+        .cart-fullscreen .btn-clear-cart {
+            width: 100%;
+            padding: 14px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-fullscreen .btn-clear-cart:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        /* Carrito vacío */
+        .cart-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+        
+        .cart-empty-state i {
+            font-size: 4rem;
+            color: #d1d5db;
+            margin-bottom: 20px;
+        }
+        
+        .cart-empty-state h3 {
+            font-size: 1.3rem;
+            color: #6b7280;
+            margin: 0 0 10px 0;
+        }
+        
+        .cart-empty-state p {
+            color: #9ca3af;
+            font-size: 0.95rem;
+        }
+        
+        /* Desktop: mantener modal original */
+        @media (min-width: 769px) {
+            .cart-fullscreen {
+                display: none !important;
             }
             
-            .modal .modal-content {
-                max-height: 85vh;
-                padding: 20px 15px;
-                border-radius: 12px;
+            .mobile-header {
+                display: none !important;
+            }
+            
+            .mobile-header-spacer {
+                display: none !important;
             }
         }
     </style>
@@ -2475,25 +2724,72 @@
     </div>
 </div>
 <body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript>
-    <iframe 
-        src="https://www.googletagmanager.com/ns.html?id=GTM-M3LR2ZS7"
-        height="0" 
-        width="0" 
-        style="display:none;visibility:hidden">
-    </iframe>
-    </noscript>
-    <!-- End Google Tag Manager (noscript) -->
+
     <!-- ========================================
-         CARRITO MÓVIL FIJO (solo visible en móvil)
+         HEADER MÓVIL FIJO (solo visible en móvil)
          ======================================== -->
-    <div class="mobile-cart-fixed">
-        <a href="#" class="mobile-cart-btn" id="mobile-cart-link">
+    <div class="mobile-header">
+        <img src="assets/mymlog.png" alt="Maderas MyM" class="mobile-header-logo">
+        <a href="#" class="mobile-header-cart" id="mobile-cart-link">
             <i class="fa-solid fa-cart-shopping"></i>
             <span>Carrito</span>
             <span class="cart-count-mobile">0</span>
         </a>
+    </div>
+    
+    <!-- Espaciador para compensar el header fijo -->
+    <div class="mobile-header-spacer"></div>
+    
+    <!-- ========================================
+         CARRITO PANTALLA COMPLETA (MÓVIL)
+         ======================================== -->
+    <div class="cart-fullscreen" id="cartFullscreen">
+        <div class="cart-fullscreen-header">
+            <button class="cart-back-btn" id="cart-back-btn">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <h2 class="cart-fullscreen-title">Carrito de Compras</h2>
+        </div>
+        
+        <div class="cart-fullscreen-body">
+            <div class="cart-items-container">
+                <!-- Items del carrito se insertan aquí -->
+            </div>
+            
+            <!-- Opciones de entrega -->
+            <div class="delivery-options">
+                <h3>Método de entrega</h3>
+                <div class="delivery-option">
+                    <input type="radio" id="fs-delivery-shipping" name="fs-delivery" value="envio" checked>
+                    <label for="fs-delivery-shipping">Envío a domicilio (Indicar dirección en comentarios)</label>
+                </div>
+                <div class="delivery-option">
+                    <input type="radio" id="fs-delivery-pickup" name="fs-delivery" value="retiro">
+                    <label for="fs-delivery-pickup">Retiro en tienda (Sin costo)</label>
+                </div>
+            </div>
+            
+            <!-- Comentarios -->
+            <div class="cart-comments">
+                <h3>Comentarios</h3>
+                <textarea id="fs-order-comments" placeholder="¿Algún detalle importante para tu pedido? (Opcional)"></textarea>
+            </div>
+        </div>
+        
+        <div class="cart-fullscreen-footer">
+            <div class="cart-total-section">
+                <span>Total:</span>
+                <strong>$<span id="fs-cart-total">0</span></strong>
+            </div>
+            <div class="cart-actions">
+                <button class="btn-generate-order" id="fs-generate-order">
+                    <i class="fa-solid fa-check"></i> Generar Pedido
+                </button>
+                <button class="btn-clear-cart" id="fs-clear-cart">
+                    <i class="fa-solid fa-trash"></i> Vaciar Carrito
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- ========================================
@@ -2882,65 +3178,158 @@
         const cartTotalEl     = document.getElementById('cart-total');
         const cartCountEl     = document.querySelector('.cart-count');
         const cartCountMobileEl = document.querySelector('.cart-count-mobile'); // Contador móvil
-        if (!cartContainer) return;
-
-        cartContainer.innerHTML = '';
+        
+        // Elementos del carrito fullscreen (móvil)
+        const fsCartContainer = document.querySelector('.cart-items-container');
+        const fsCartTotalEl   = document.getElementById('fs-cart-total');
+        
         const totalItems = cart.reduce((a,b)=>a + (b.quantity||0), 0);
         if (cartCountEl) cartCountEl.textContent = totalItems;
-        if (cartCountMobileEl) cartCountMobileEl.textContent = totalItems; // Actualizar contador móvil
-
-        if (!cart.length){
-            cartContainer.innerHTML = '<p>El carrito está vacío.</p>';
-            if (cartTotalEl) cartTotalEl.textContent = '0.00';
-            return;
-        }
+        if (cartCountMobileEl) cartCountMobileEl.textContent = totalItems;
 
         let totalPrice = 0;
-        cart.forEach((product, idx) => {
-            const sub = (Number(product.precio)||0) * (Number(product.quantity)||0);
-            totalPrice += sub;
-            const div = document.createElement('div');
-            div.className = 'cart-item';
-            div.innerHTML = `
-            <img src="assets/productos/${product.Linkimg || product.id_producto}.jpg" alt="${product.name}">
-            <div class="cart-item-info">
-                <h4>${product.name}</h4>
-                <p>Precio: $${Number(product.precio).toLocaleString('es-CL')}</p>
-                <p>Subtotal: $${sub.toLocaleString('es-CL')}</p>
-            </div>
-            <div class="cart-quantity">
-                <button data-act="minus" data-idx="${idx}">-</button>
-                <span>${product.quantity}</span>
-                <button data-act="plus" data-idx="${idx}">+</button>
-            </div>
-            <button class="remove-btn" data-act="rm" data-idx="${idx}">Eliminar</button>
-            `;
-            cartContainer.appendChild(div);
+        cart.forEach((product) => {
+            totalPrice += (Number(product.precio)||0) * (Number(product.quantity)||0);
         });
-        cartContainer.onclick = (e)=>{
-            const btn = e.target.closest('button[data-act]');
-            if (!btn) return;
-            const cart = getCart();
-            const idx = Number(btn.dataset.idx);
-            const act = btn.dataset.act;
-            if (act === 'minus' && cart[idx]) cart[idx].quantity = Math.max(1, (cart[idx].quantity||1)-1);
-            if (act === 'plus'  && cart[idx]) cart[idx].quantity = (cart[idx].quantity||1)+1;
-            if (act === 'rm') cart.splice(idx,1);
-            saveCart(cart); updateCartDisplay(); refreshProductCards();
-        };
-        if (cartTotalEl) cartTotalEl.textContent = totalPrice.toFixed(2);
+
+        // ========== Renderizar en modal desktop ==========
+        if (cartContainer) {
+            cartContainer.innerHTML = '';
+            
+            if (!cart.length){
+                cartContainer.innerHTML = '<p>El carrito está vacío.</p>';
+            } else {
+                cart.forEach((product, idx) => {
+                    const sub = (Number(product.precio)||0) * (Number(product.quantity)||0);
+                    const div = document.createElement('div');
+                    div.className = 'cart-item';
+                    div.innerHTML = `
+                    <img src="assets/productos/${product.Linkimg || product.id_producto}.jpg" alt="${product.name}">
+                    <div class="cart-item-info">
+                        <h4>${product.name}</h4>
+                        <p>Precio: $${Number(product.precio).toLocaleString('es-CL')}</p>
+                        <p>Subtotal: $${sub.toLocaleString('es-CL')}</p>
+                    </div>
+                    <div class="cart-quantity">
+                        <button data-act="minus" data-idx="${idx}">-</button>
+                        <span>${product.quantity}</span>
+                        <button data-act="plus" data-idx="${idx}">+</button>
+                    </div>
+                    <button class="remove-btn" data-act="rm" data-idx="${idx}">Eliminar</button>
+                    `;
+                    cartContainer.appendChild(div);
+                });
+                
+                cartContainer.onclick = (e)=>{
+                    const btn = e.target.closest('button[data-act]');
+                    if (!btn) return;
+                    const cart = getCart();
+                    const idx = Number(btn.dataset.idx);
+                    const act = btn.dataset.act;
+                    if (act === 'minus' && cart[idx]) cart[idx].quantity = Math.max(1, (cart[idx].quantity||1)-1);
+                    if (act === 'plus'  && cart[idx]) cart[idx].quantity = (cart[idx].quantity||1)+1;
+                    if (act === 'rm') cart.splice(idx,1);
+                    saveCart(cart); updateCartDisplay(); refreshProductCards();
+                };
+            }
+            
+            if (cartTotalEl) cartTotalEl.textContent = totalPrice.toLocaleString('es-CL');
+        }
+        
+        // ========== Renderizar en carrito fullscreen (móvil) ==========
+        if (fsCartContainer) {
+            fsCartContainer.innerHTML = '';
+            
+            if (!cart.length){
+                fsCartContainer.innerHTML = `
+                    <div class="cart-empty-state">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <h3>Tu carrito está vacío</h3>
+                        <p>Agrega productos para comenzar tu pedido</p>
+                    </div>
+                `;
+            } else {
+                cart.forEach((product, idx) => {
+                    const sub = (Number(product.precio)||0) * (Number(product.quantity)||0);
+                    const div = document.createElement('div');
+                    div.className = 'cart-item';
+                    div.innerHTML = `
+                    <img src="assets/productos/${product.Linkimg || product.id_producto}.jpg" alt="${product.name}" onerror="this.src='assets/placeholder.jpg'">
+                    <div class="cart-item-info">
+                        <h4>${product.name}</h4>
+                        <div class="item-price">$${sub.toLocaleString('es-CL')}</div>
+                    </div>
+                    <div class="cart-quantity">
+                        <button data-fsact="minus" data-idx="${idx}">−</button>
+                        <span>${product.quantity}</span>
+                        <button data-fsact="plus" data-idx="${idx}">+</button>
+                    </div>
+                    <button class="remove-item-btn" data-fsact="rm" data-idx="${idx}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    `;
+                    fsCartContainer.appendChild(div);
+                });
+                
+                fsCartContainer.onclick = (e)=>{
+                    const btn = e.target.closest('button[data-fsact]');
+                    if (!btn) return;
+                    const cart = getCart();
+                    const idx = Number(btn.dataset.idx);
+                    const act = btn.dataset.fsact;
+                    if (act === 'minus' && cart[idx]) cart[idx].quantity = Math.max(1, (cart[idx].quantity||1)-1);
+                    if (act === 'plus'  && cart[idx]) cart[idx].quantity = (cart[idx].quantity||1)+1;
+                    if (act === 'rm') cart.splice(idx,1);
+                    saveCart(cart); updateCartDisplay(); refreshProductCards();
+                };
+            }
+            
+            if (fsCartTotalEl) fsCartTotalEl.textContent = totalPrice.toLocaleString('es-CL');
+        }
     }
 
     /* =========================
-    MODAL CARRITO + OVERLAY
+    MODAL CARRITO + OVERLAY + FULLSCREEN
     ========================= */
     const UI = {
     modal:    null,
+    fullscreen: null,
     wait:     null,
     genBtn:   null,
     placing:  false,
-    openModal(e){ if(e) e.preventDefault(); this.modal?.classList.add('is-open'); document.body.style.overflow='hidden'; updateCartDisplay(); },
-    closeModal(){ this.modal?.classList.remove('is-open'); document.body.style.overflow=''; },
+    
+    // Detectar si es móvil
+    isMobile() {
+        return window.innerWidth <= 768;
+    },
+    
+    // Abrir carrito (detecta si usar modal o fullscreen)
+    openCart(e) {
+        if(e) e.preventDefault();
+        
+        if (this.isMobile()) {
+            // Móvil: abrir fullscreen
+            this.fullscreen?.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Desktop: abrir modal
+            this.modal?.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        }
+        updateCartDisplay();
+    },
+    
+    // Cerrar carrito
+    closeCart() {
+        this.modal?.classList.remove('is-open');
+        this.fullscreen?.classList.remove('is-open');
+        document.body.style.overflow = '';
+    },
+    
+    // Métodos legacy para compatibilidad
+    openModal(e){ this.openCart(e); },
+    closeModal(){ this.closeCart(); },
+    
     openWait(){ this.wait?.classList.add('is-open'); },
     closeWait(){ this.wait?.classList.remove('is-open'); }
     };
@@ -3425,6 +3814,51 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
     /* =========================
     GENERAR PEDIDO (con retry si deadlock)
     ========================= */
+    // Función para generar pedido con parámetros (usado desde fullscreen móvil)
+    async function generateOrderWithParams(delivery, comentarios){
+        const cart = getCart();
+        if (!cart.length){ alert('Tu carrito está vacío.'); return; }
+
+        // payload que espera el backend
+        const payload = cart.map(p => ({
+            id_producto: p.id_producto,
+            precio: Number(p.precio ?? p.precio_unidad ?? 0),
+            quantity: Number(p.quantity ?? 1)
+        }));
+
+        const attempts = 3;
+        for (let i=1; i<=attempts; i++){
+            try{
+            const res = await fetch('/api/generar-pedido', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ cart: payload, delivery, comentarios })
+            });
+
+            const data = await res.json();
+            if (!res.ok){
+                const msg = data.error || 'Error generando pedido';
+                if (i<attempts && msg.toLowerCase().includes('deadlock')){
+                await new Promise(r=>setTimeout(r,300));
+                continue;
+                }
+                throw new Error(msg);
+            }
+
+            clearCart(); updateCartDisplay();
+            UI.closeCart();
+            alert(data.message || 'Pedido generado exitosamente. ¡Gracias!');
+            return;
+            }catch(err){
+            if (i === attempts){
+                console.error('Error generando pedido:', err);
+                alert('No se pudo generar el pedido: ' + (err?.message || 'Inténtalo nuevamente.'));
+            }
+            }
+        }
+    }
+
     async function generateOrder(){
     const cart = getCart();
     if (!cart.length){ alert('Tu carrito está vacío.'); return; }
@@ -3460,7 +3894,7 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         }
 
         clearCart(); updateCartDisplay();
-        UI.closeModal();
+        UI.closeCart();
         alert(data.message || 'Pedido generado exitosamente. ¡Gracias!');
         return;
         }catch(err){
@@ -3478,24 +3912,70 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
     document.addEventListener('DOMContentLoaded', ()=>{
     // Referencias UI
     UI.modal  = document.getElementById('cartModal');
+    UI.fullscreen = document.getElementById('cartFullscreen'); // Carrito fullscreen móvil
     UI.wait   = document.getElementById('order-wait');
     UI.genBtn = document.getElementById('generateOrder');
 
-    // Abrir/Cerrar modal
+    // Abrir/Cerrar carrito (desktop y móvil)
     const cartLink   = document.getElementById('cart-link');
     const mobileCartLink = document.getElementById('mobile-cart-link'); // Carrito móvil
     const closeBtn   = UI.modal?.querySelector('.close');
-    cartLink?.addEventListener('click', (e)=> UI.openModal(e));
-    mobileCartLink?.addEventListener('click', (e)=> UI.openModal(e)); // Evento para carrito móvil
-    closeBtn?.addEventListener('click', ()=> UI.closeModal());
-    UI.modal?.addEventListener('click', (e)=>{ if (e.target === UI.modal) UI.closeModal(); });
-    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && UI.modal?.classList.contains('is-open')) UI.closeModal(); });
+    const backBtn    = document.getElementById('cart-back-btn'); // Botón volver en fullscreen
+    
+    cartLink?.addEventListener('click', (e)=> UI.openCart(e));
+    mobileCartLink?.addEventListener('click', (e)=> UI.openCart(e));
+    closeBtn?.addEventListener('click', ()=> UI.closeCart());
+    backBtn?.addEventListener('click', ()=> UI.closeCart()); // Cerrar fullscreen con botón volver
+    
+    UI.modal?.addEventListener('click', (e)=>{ if (e.target === UI.modal) UI.closeCart(); });
+    document.addEventListener('keydown', (e)=>{ 
+        if (e.key==='Escape') {
+            if (UI.modal?.classList.contains('is-open') || UI.fullscreen?.classList.contains('is-open')) {
+                UI.closeCart();
+            }
+        }
+    });
 
-    // Botones del carrito
+    // Botones del carrito (modal desktop)
     const clearBtn = document.getElementById('clear-cart-btn');
     clearBtn?.addEventListener('click', (e)=>{ e.preventDefault(); clearCart(); });
+    
+    // Botones del carrito fullscreen (móvil)
+    const fsClearBtn = document.getElementById('fs-clear-cart');
+    const fsGenBtn = document.getElementById('fs-generate-order');
+    
+    fsClearBtn?.addEventListener('click', (e)=>{ 
+        e.preventDefault(); 
+        clearCart(); 
+    });
+    
+    // Generar pedido desde fullscreen móvil
+    fsGenBtn?.addEventListener('click', async (e)=>{
+        e.preventDefault();
+        if (UI.placing) return;
+        UI.placing = true;
+        
+        const original = fsGenBtn.innerHTML;
+        fsGenBtn.disabled = true;
+        fsGenBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando…';
+        UI.openWait();
+        
+        try { 
+            // Obtener valores del fullscreen
+            const delivery = document.querySelector('input[name="fs-delivery"]:checked')?.value || 'envio';
+            const comentarios = document.getElementById('fs-order-comments')?.value?.trim() || '';
+            
+            await generateOrderWithParams(delivery, comentarios);
+        }
+        finally {
+            UI.closeWait();
+            fsGenBtn.disabled = false;
+            fsGenBtn.innerHTML = original;
+            UI.placing = false;
+        }
+    });
 
-    // ÚNICO listener del botón "Generar pedido"
+    // ÚNICO listener del botón "Generar pedido" (modal desktop)
     if (UI.genBtn && !UI.genBtn.dataset.bound){
         UI.genBtn.dataset.bound = '1';
         UI.genBtn.addEventListener('click', async (e)=>{
