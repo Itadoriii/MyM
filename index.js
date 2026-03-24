@@ -20,6 +20,7 @@ import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
 import { requireAuth, requireRole, soloAdmin, soloPublico } from './middlewares/authorization.js';
+import bcrypt from 'bcrypt';
 
 
 
@@ -205,6 +206,39 @@ app.get('/api/usuarios', async (req, res) => {
   } catch (err) {
     console.error('Error al obtener usuarios:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/usuarios/:id/password', requireAuth, requireRole('admin'), async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+
+  if (!newPassword) {
+    return res.status(400).json({ status: 'Error', message: 'La nueva contraseña es requerida' });
+  }
+
+  // Validación básica de contraseña (puedes ajustar según tus necesidades)
+  if (newPassword.length < 8) {
+    return res.status(400).json({ status: 'Error', message: 'La contraseña debe tener al menos 8 caracteres' });
+  }
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(newPassword, salt);
+
+    const [result] = await pool.query(
+      'UPDATE usuarios SET password = ? WHERE id_usuarios = ?',
+      [hashPassword, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: 'Error', message: 'Usuario no encontrado' });
+    }
+
+    res.json({ status: 'ok', message: 'Contraseña restablecida con éxito' });
+  } catch (err) {
+    console.error('Error al restablecer contraseña:', err);
+    res.status(500).json({ status: 'Error', message: 'Error interno del servidor' });
   }
 });
 app.get('/checkout', (req, res) => {
