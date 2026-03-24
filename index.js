@@ -377,7 +377,7 @@ app.post('/api/generar-pedido', async (req, res) => {
     const [detalles] = await pool.query(
       `SELECT dp.id_producto,
               pr.nombre_prod AS nombre,
-              pr.categoria,
+              pr.tipo,
               dp.cantidad,
               dp.precio_detalle AS precio
       FROM detalle_pedido dp
@@ -410,7 +410,7 @@ app.post('/api/generar-pedido', async (req, res) => {
           <tr>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.id_producto}</td>
             <td style="padding:8px;border:1px solid #eee;">${d.nombre}</td>
-            <td style="padding:8px;border:1px solid #eee;">${d.categoria || '—'}</td>
+            <td style="padding:8px;border:1px solid #eee;">${d.tipo || '—'}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.cantidad}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(d.precio)}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(subtotal)}</td>
