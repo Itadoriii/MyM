@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Usuario</th>
                 <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Correo</th>
                 <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Teléfono</th>
-                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Rol</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -130,6 +130,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     <td style="padding:6px; border-bottom:1px solid #eee;">${u.email}</td>
                     <td style="padding:6px; border-bottom:1px solid #eee;">${u.number || 'No disponible'}</td>
                     <td style="padding:6px; border-bottom:1px solid #eee;">${u.role || 'user'}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee;">
+                        <button class="resetPassBtn" data-id="${u.id_usuarios}" style="padding:4px 8px; cursor:pointer;">Restablecer Pass</button>
+                    </td>
                 </tr>
                 `).join('')}
             </tbody>
@@ -138,6 +141,14 @@ document.addEventListener("DOMContentLoaded", function() {
         `;
 
         mainContent.innerHTML = tableHTML;
+
+        // Atachamos eventos
+        document.querySelectorAll('.resetPassBtn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                resetUserPassword(id);
+            });
+        });
 
     } catch (error) {
         console.error('Error fetching usuarios:', error);
@@ -384,6 +395,36 @@ document.addEventListener("DOMContentLoaded", function() {
     // Asignar las funciones al objeto global `window`
     window.aceptarPedido = aceptarPedido;
     window.rechazarPedido = rechazarPedido;
+    window.resetUserPassword = resetUserPassword;
+
+
+    async function resetUserPassword(id) {
+        const newPassword = prompt('Ingrese la nueva contraseña (mínimo 8 caracteres):');
+        if (newPassword === null) return; // Cancelado
+        
+        if (newPassword.length < 8) {
+            alert('La contraseña debe tener al menos 8 caracteres.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/usuarios/${id}/password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newPassword })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                showPopup(data.message || 'Contraseña restablecida con éxito');
+            } else {
+                alert(data.message || 'Error al restablecer la contraseña');
+            }
+        } catch (err) {
+            console.error('Error in resetUserPassword:', err);
+            alert('Error al conectar con el servidor');
+        }
+    }
 
 
 
