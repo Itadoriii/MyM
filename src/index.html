@@ -2290,6 +2290,33 @@
                 width: auto;
             }
             
+            .mobile-header-actions {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .mobile-header-login {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border-radius: 50%;
+                text-decoration: none;
+                transition: transform 0.3s ease;
+            }
+            
+            .mobile-header-login:active {
+                transform: scale(0.95);
+            }
+            
+            .mobile-header-login i {
+                font-size: 1.2rem;
+            }
+            
             .mobile-header-cart {
                 display: flex;
                 align-items: center;
@@ -2730,12 +2757,17 @@
          HEADER MÓVIL FIJO (solo visible en móvil)
          ======================================== -->
     <div class="mobile-header">
-        <img src="assets/mymlog.png" alt="Maderas MyM" class="mobile-header-logo">
-        <a href="#" class="mobile-header-cart" id="mobile-cart-link">
-            <i class="fa-solid fa-cart-shopping"></i>
-            <span>Carrito</span>
-            <span class="cart-count-mobile">0</span>
-        </a>
+        <a href="/"><img src="assets/mymlog.png" alt="Maderas MyM" class="mobile-header-logo"></a>
+        <div class="mobile-header-actions">
+            <a href="/login" class="mobile-header-login" id="mobile-login-link" aria-label="Iniciar Sesión">
+                <i class="fa-solid fa-user"></i>
+            </a>
+            <a href="#" class="mobile-header-cart" id="mobile-cart-link" aria-label="Ver Carrito">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>Carrito</span>
+                <span class="cart-count-mobile">0</span>
+            </a>
+        </div>
     </div>
     
     <!-- Espaciador para compensar el header fijo -->
