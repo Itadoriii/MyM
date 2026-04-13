@@ -106,7 +106,7 @@ app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login' }),
   (req, res) => {
     const token = jsonwebtoken.sign({ user: req.user.user, role: req.user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('jwt', token, { httpOnly: true, secure: false }); // Asegúrate de que `secure` esté en false para pruebas locales
+    res.cookie('jwt', token, { httpOnly: true, secure: false, sameSite: 'lax' }); // sameSite:lax necesario para móviles
     res.redirect('/profile');
   });
 
