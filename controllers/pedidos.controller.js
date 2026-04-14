@@ -129,70 +129,8 @@ async function buildPdf(pedido, detalles) {
   return pdfDoc.save();
 }
 
-export async function enviarConfirmacion(req, res) {
-  const { id } = req.params;
-  try {
-    // Marcar como aceptado
-    await pool.query('UPDATE pedidos SET estado = ? WHERE id_pedido = ?', ['ACEPTADO', id]);
-
-    // Datos del pedido
-    const [[pedido]] = await pool.query(
-      `SELECT p.id_pedido AS id,
-              p.precio_total AS total,
-              p.fecha_pedido AS fecha,
-              u.email,
-              u.user AS nombre,
-              u.number AS telefono
-       FROM pedidos p
-       JOIN usuarios u ON p.id_usuario = u.id_usuarios
-       WHERE p.id_pedido = ?`,
-      [id]
-    );
-
-    // Detalles
-    const [detalles] = await pool.query(
-      `SELECT pr.nombre_prod AS nombre,
-              dp.cantidad,
-              dp.precio_detalle AS precio
-       FROM detalle_pedido dp
-       JOIN productos pr ON dp.id_producto = pr.id_producto
-       WHERE dp.id_pedido = ?`,
-      [id]
-    );
-
-    // Generar PDF
-    const pdfBytes = await buildPdf(pedido, detalles);
-
-    // Configurar nodemailer
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS
-      }
-    });
-
-    const mailOpts = {
-      from: `"Maderas MyM" <${process.env.GMAIL_USER}>`,
-      to: pedido.email,
-      subject: `Pedido #${pedido.id} Confirmado`,
-      text: `Hola ${pedido.nombre},\nTu pedido ha sido aceptado. Adjunto encontrarás el detalle en PDF.\nGracias por tu preferencia.`,
-      attachments: [{
-        filename: `pedido_${pedido.id}.pdf`,
-        content: pdfBytes
-      }]
-    };
-
-    // Enviar al cliente y copia a tienda
-    await transporter.sendMail(mailOpts);
-    await transporter.sendMail({ ...mailOpts, to: process.env.GMAIL_USER });
-
-    res.json({ message: 'Pedido aceptado y correos enviados.' });
-  } catch (err) {
-    console.error('enviarConfirmacion:', err);
-    res.status(500).json({ error: 'No se pudo enviar la confirmación.' });
-  }
-}
+// La función enviarConfirmacion ha sido eliminada.
+// Use enviarMailCambioEstado para enviar notificaciones de cambio de estado.
 
 function progressBarEmailHTML(estado = 'generado') {
   const GREEN = '#16a34a', BLUE = '#2563eb', GRAY = '#e5e7eb', DARK = '#111827', MUTED = '#6b7280';
