@@ -14,7 +14,7 @@ import dotenv from 'dotenv';
 import { revisarCookie } from './middlewares/authorization.js';
 import { enviarConfirmacion } from './controllers/pedidos.controller.js';
 import cors from 'cors';
-import mailRouter from './routes/pedidosMail.js';
+// import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';
 import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification } from './controllers/authentication.controller.js';
@@ -721,8 +721,6 @@ const ALLOWED_ESTADOS = new Set([
 // ----- RUTA: PUT /api/pedidos/:id/estado -----
 app.put('/api/pedidos/:id/estado', async (req, res) => {
   const { id } = req.params;
-
-  // Soporta body { estado: '...' } o { to: '...' }
   const raw = (req.body && (req.body.estado ?? req.body.to)) || '';
   const estadoCanon = canonEstado(raw);
 
@@ -735,13 +733,48 @@ app.put('/api/pedidos/:id/estado', async (req, res) => {
     });
   }
 
+  const connection = await pool.getConnection();
   try {
-    await pool.query(
+    await connection.beginTransaction();
+
+    // 1. Obtener estado actual
+    const [[pedido]] = await connection.query(
+      'SELECT estado FROM pedidos WHERE id_pedido = ? FOR UPDATE',
+      [id]
+    );
+
+    if (!pedido) {
+      connection.release();
+      return res.status(404).json({ success: false, error: 'Pedido no encontrado' });
+    }
+
+    const estadoAnterior = pedido.estado.toLowerCase();
+
+    // 2. Si el nuevo estado es "aceptado_espera_pago" y el anterior era "generado/pendiente", descontamos stock
+    if (estadoCanon === 'aceptado_espera_pago' && (estadoAnterior === 'generado' || estadoAnterior === 'pendiente')) {
+      const [detalles] = await connection.query(
+        'SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ?',
+        [id]
+      );
+
+      for (const det of detalles) {
+        await connection.query(
+          'UPDATE productos SET disponibilidad = disponibilidad - ? WHERE id_producto = ?',
+          [Number(det.cantidad) || 0, det.id_producto]
+        );
+      }
+    }
+
+    // 3. Actualizar estado
+    await connection.query(
       'UPDATE pedidos SET estado = ? WHERE id_pedido = ?',
       [estadoCanon, id]
     );
 
-    // Dispara mail sin bloquear la respuesta
+    await connection.commit();
+    connection.release();
+
+    // 4. Disparar mail (fuera de la transacción para no bloquear)
     if (typeof enviarMailCambioEstado === 'function') {
       enviarMailCambioEstado(id, estadoCanon).catch(err =>
         console.error('[MAIL estado]', err)
@@ -750,239 +783,18 @@ app.put('/api/pedidos/:id/estado', async (req, res) => {
 
     res.json({ success: true, id, estado: estadoCanon });
   } catch (e) {
-    console.error('PUT /api/pedidos/:id/estado', e);
-    res.status(500).json({ success: false, error: 'DB error' });
-  }
-});
-
-
-// Ya está correcto en tu código - solo verifica que esté así:
-app.put('/api/pedidos/:id/rechazar', async (req, res) => {
-  const { id } = req.params;
-  try {
-      const [result] = await pool.query(
-          'UPDATE pedidos SET estado = "rechazado" WHERE id_pedido = ?',
-          [id]
-      );
-
-      if (result.affectedRows === 0) {
-          return res.status(404).json({ error: 'Pedido no encontrado' });
-      }
-
-      res.json({ message: 'Pedido rechazado exitosamente' });
-  } catch (error) {
-      console.error('Error al rechazar el pedido:', error);
-      res.status(500).json({ error: 'Error al rechazar el pedido' });
-  }
-});
-
-
-// PUT /api/pedidos/:id/confirmar-mail - Aceptar pedido, reducir stock y enviar email
-app.put('/api/pedidos/:id/confirmar-mail', async (req, res) => {
-  const idPedido = parseInt(req.params.id);
-  const connection = await pool.getConnection();
-  
-  try {
-    // Verifica que el usuario sea admin (ajusta según tu lógica de autenticación)
-    const user = await revisarCookie(req);
-    if (!user || user.role !== 'admin') {
+    if (connection) {
+      await connection.rollback();
       connection.release();
-      return res.status(403).json({ success: false, error: 'No autorizado' });
     }
-
-    await connection.beginTransaction();
-
-    // Verifica que el pedido exista y esté en estado "generado"
-    const [[pedido]] = await connection.query(
-      'SELECT id_pedido, estado, id_usuario FROM pedidos WHERE id_pedido = ?',
-      [idPedido]
-    );
-
-    if (!pedido) {
-      throw new Error('Pedido no encontrado');
-    }
-
-    const estadoActual = pedido.estado.toLowerCase();
-    if (estadoActual !== 'generado' && estadoActual !== 'pendiente') {
-      throw new Error('El pedido ya fue procesado anteriormente');
-    }
-
-    // Obtiene los detalles del pedido
-    const [detalles] = await connection.query(
-      'SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ?',
-      [idPedido]
-    );
-
-    if (!detalles.length) {
-      throw new Error('Pedido sin productos');
-    }
-
-    // Ordena los IDs para evitar deadlocks
-    const ids = [...new Set(detalles.map(d => Number(d.id_producto)))].sort((a,b) => a-b);
-
-    // Bloquea las filas de productos en orden
-    const [rows] = await connection.query(
-      `SELECT id_producto, disponibilidad 
-       FROM productos 
-       WHERE id_producto IN (?)
-       FOR UPDATE`,
-      [ids]
-    );
-
-    // Crea un mapa de disponibilidades
-    const stockMap = new Map(rows.map(r => [Number(r.id_producto), Number(r.disponibilidad) || 0]));
-
-    // Verifica que haya stock suficiente ANTES de reducir
-    for (const det of detalles) {
-      const need = Number(det.cantidad) || 0;
-      const have = stockMap.get(Number(det.id_producto)) ?? 0;
-      if (have < need) {
-        throw new Error(`Stock insuficiente para producto ${det.id_producto}. Disponible: ${have}, Requerido: ${need}`);
-      }
-    }
-
-    // AHORA SÍ reduce el stock (en el mismo orden)
-    for (const pid of ids) {
-      const itemsDeEste = detalles.filter(d => Number(d.id_producto) === pid);
-      for (const it of itemsDeEste) {
-        await connection.query(
-          'UPDATE productos SET disponibilidad = disponibilidad - ? WHERE id_producto = ?',
-          [Number(it.cantidad) || 0, pid]
-        );
-      }
-    }
-
-    // Actualiza el estado del pedido
-    await connection.query(
-      'UPDATE pedidos SET estado = ? WHERE id_pedido = ?',
-      ['aceptado_espera_pago', idPedido]
-    );
-
-    await connection.commit();
-
-    // ===========================
-    //  ENVÍO DE EMAIL CON LINK DE PAGO
-    // ===========================
-    try {
-      // Obtiene la info completa del pedido para el email
-      const [[pedidoInfo]] = await pool.query(
-        `SELECT p.id_pedido, p.precio_total, p.fecha_pedido,
-                u.user, u.email, u.number
-         FROM pedidos p
-         JOIN usuarios u ON p.id_usuario = u.id_usuarios
-         WHERE p.id_pedido = ?`,
-        [idPedido]
-      );
-
-      const [productosDetalle] = await pool.query(
-        `SELECT pr.nombre_prod, dp.cantidad, dp.precio_detalle
-         FROM detalle_pedido dp
-         JOIN productos pr ON dp.id_producto = pr.id_producto
-         WHERE dp.id_pedido = ?`,
-        [idPedido]
-      );
-
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_PASS
-        }
-      });
-
-      const fmt = (n) => Number(n || 0).toLocaleString('es-CL');
-      const fechaStr = pedidoInfo?.fecha_pedido
-        ? new Date(pedidoInfo.fecha_pedido).toLocaleString('es-CL')
-        : '';
-
-      const filas = productosDetalle.map(d => {
-        const subtotal = (Number(d.cantidad)||0) * (Number(d.precio_detalle)||0);
-        return `
-          <tr>
-            <td style="padding:8px;border:1px solid #eee;">${d.nombre_prod}</td>
-            <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.cantidad}</td>
-            <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(d.precio_detalle)}</td>
-            <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(subtotal)}</td>
-          </tr>
-        `;
-      }).join('');
-
-      const tablaHTML = `
-        <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:700px;margin:10px 0;">
-          <thead>
-            <tr style="background:#f6f6f6;">
-              <th style="padding:10px;border:1px solid #eee;text-align:left;">Producto</th>
-              <th style="padding:10px;border:1px solid #eee;text-align:center;">Cant.</th>
-              <th style="padding:10px;border:1px solid #eee;text-align:right;">Precio</th>
-              <th style="padding:10px;border:1px solid #eee;text-align:right;">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>${filas}</tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3" style="padding:10px;border:1px solid #eee;text-align:right;font-weight:600;">Total</td>
-              <td style="padding:10px;border:1px solid #eee;text-align:right;font-weight:600;">$${fmt(pedidoInfo.precio_total)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      `;
-
-      // TODO: Genera aquí tu link de pago real (Flow, Mercadopago, etc.)
-      const linkDePago = `https://wa.me/56976200646?text=Hola,%20quiero%20pagar%20mi%20pedido%20%23${idPedido}`;
-
-      const htmlCliente = `
-        <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#333;max-width:720px;margin:auto;">
-          <h2>¡Tu pedido fue aceptado! 🎉</h2>
-          <p>Hola <b>${pedidoInfo.user || ''}</b>,</p>
-          <p>Tu pedido <b>#${pedidoInfo.id_pedido}</b> ha sido <b>aceptado y confirmado</b> por nuestra tienda.</p>
-          
-          <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;margin:20px 0;">
-            <p style="margin:0;"><b>⚠️ Importante:</b> Para completar tu pedido, ponte en contacto con nosotros para coordinar el pago:</p>
-          </div>
-
-          <div style="text-align:center;margin:30px 0;">
-            <a href="${linkDePago}" 
-               style="background:#25D366;color:white;padding:15px 30px;text-decoration:none;border-radius:5px;font-weight:600;display:inline-block;">
-              💬 CONTACTAR POR WHATSAPP
-            </a>
-          </div>
-
-          <h3>Resumen del pedido</h3>
-          ${tablaHTML}
-
-          <p>Una vez confirmado el pago, te notificaremos el estado del envío.</p>
-          <p>¿Dudas? Escríbenos por WhatsApp: <a href="https://wa.me/56976200646">+56 9 7620 0646</a></p>
-          
-          <p style="margin-top:30px;">Gracias por confiar en <b>Maderas MyM</b>.</p>
-        </div>
-      `;
-
-      await transporter.sendMail({
-        from: `"Maderas MyM" <${process.env.GMAIL_USER}>`,
-        to: pedidoInfo.email,
-        subject: `✅ Pedido #${pedidoInfo.id_pedido} confirmado`,
-        html: htmlCliente
-      });
-
-      console.log('[MAIL] Email de confirmación enviado a:', pedidoInfo.email);
-    } catch (mailErr) {
-      console.warn('[MAIL] Error enviando email de confirmación:', mailErr?.message);
-      // No rompemos el flujo si falla el email
-    }
-
-    connection.release();
-    res.json({ success: true, message: 'Pedido aceptado, stock reducido y email enviado' });
-
-  } catch (err) {
-    await connection.rollback();
-    connection.release();
-    console.error('Error al confirmar pedido:', err);
-    res.status(500).json({ 
-      success: false, 
-      error: err.message || 'Error al confirmar el pedido' 
-    });
+    console.error('PUT /api/pedidos/:id/estado error:', e);
+    res.status(500).json({ success: false, error: 'Error al actualizar el estado y stock' });
   }
 });
+
+
+// La lógica de confirmar-mail ahora está integrada en /api/pedidos/:id/estado
+// enviando el estado 'aceptado_espera_pago'
 
 // Obtener todos los trabajadores
 app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
