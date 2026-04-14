@@ -12,7 +12,7 @@ import pool from './db.js';
 import jsonwebtoken from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { revisarCookie } from './middlewares/authorization.js';
-import { enviarConfirmacion } from './controllers/pedidos.controller.js';
+// import { enviarConfirmacion } from './controllers/pedidos.controller.js';
 import cors from 'cors';
 // import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';

@@ -186,7 +186,6 @@ function detallesHTML(detalles = []) {
         <tr>
           <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">ID</th>
           <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">Nombre</th>
-          <th align="left" style="padding:8px;border-bottom:1px solid #e5e7eb;">Categoría</th>
           <th align="right" style="padding:8px;border-bottom:1px solid #e5e7eb;">Cant.</th>
           <th align="right" style="padding:8px;border-bottom:1px solid #e5e7eb;">Precio</th>
           <th align="right" style="padding:8px;border-bottom:1px solid #e5e7eb;">Subtotal</th>
@@ -203,7 +202,6 @@ function detallesHTML(detalles = []) {
     <tr>
       <td style="padding:8px;border-top:1px solid #f3f4f6;">${d.id_producto}</td>
       <td style="padding:8px;border-top:1px solid #f3f4f6;">${nombreCompleto}</td>
-      <td style="padding:8px;border-top:1px solid #f3f4f6;">${d.categoria || '—'}</td>
       <td align="right" style="padding:8px;border-top:1px solid #f3f4f6;">${d.cantidad}</td>
       <td align="right" style="padding:8px;border-top:1px solid #f3f4f6;">${CLP(d.precio_detalle)}</td>
       <td align="right" style="padding:8px;border-top:1px solid #f3f4f6;">${CLP(d.cantidad * d.precio_detalle)}</td>
@@ -235,7 +233,6 @@ async function fetchPedidoCompleto(idPedido) {
             dp.cantidad,
             dp.precio_detalle,
             pr.nombre_prod,
-            pr.categoria,
             pr.medidas,
             pr.dimensiones
      FROM detalle_pedido dp
