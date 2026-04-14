@@ -795,7 +795,146 @@
         max-width: 100%;
     }
     
-    /* REGLA DE EMERGENCIA: Todos los hijos directos del body */
+    /* ========================================
+       ESTILOS PARA MODAL DE DETALLE DE PRODUCTO
+       ======================================== */
+    .product-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        place-items: center;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 99999;
+        padding: 20px;
+        animation: productModalFadeIn 0.3s ease-out;
+    }
+    .product-modal-backdrop.is-open {
+        display: grid;
+    }
+    .product-modal-content {
+        width: min(900px, 95vw);
+        max-height: 90vh;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .product-modal-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: #f3f4f6;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.2s;
+        color: #4b5563;
+        font-size: 24px;
+        line-height: 1;
+    }
+    .product-modal-close:hover {
+        background: #e5e7eb;
+        color: #111827;
+        transform: rotate(90deg);
+    }
+    .product-modal-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        padding: 40px;
+    }
+    @media (max-width: 768px) {
+        .product-modal-grid {
+            grid-template-columns: 1fr;
+            padding: 25px;
+            gap: 20px;
+        }
+    }
+    .product-modal-image {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border: 1px solid #eee;
+    }
+    .product-modal-info h2 {
+        font-size: 2rem;
+        color: #111827;
+        margin-bottom: 12px;
+        line-height: 1.2;
+        font-weight: 800;
+    }
+    .product-modal-price {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #2F6B3F;
+        margin-bottom: 25px;
+    }
+    .product-modal-specs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    .spec-item {
+        background: #f9fafb;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #f3f4f6;
+    }
+    .spec-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: #9ca3af;
+        font-weight: 700;
+        margin-bottom: 4px;
+        letter-spacing: 0.05em;
+    }
+    .spec-value {
+        font-size: 0.95rem;
+        color: #1f2937;
+        font-weight: 600;
+    }
+    .product-modal-desc {
+        color: #4b5563;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        font-size: 1rem;
+        border-top: 1px solid #f3f4f6;
+        padding-top: 20px;
+    }
+    .product-modal-actions {
+        margin-top: auto;
+    }
+    @keyframes productModalFadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Regla para hacer el card interactivo */
+    .product-card {
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .product-card .actions {
+        cursor: default; /* Los botones dentro no deben abrir el modal */
+    }
+
     body > * {
         max-width: 100vw !important;
         overflow-x: hidden !important;
@@ -3602,7 +3741,7 @@ function renderGrid(items){
       }
       
       return `
-      <article class="product-card">
+      <article class="product-card" onclick="openProductModal(${productId})">
         <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
         <div class="info">
           <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
@@ -3614,6 +3753,7 @@ function renderGrid(items){
             <div><strong>Stock:</strong> ${p.disponibilidad ?? '—'}</div>
           </div>
           <div class="actions" 
+               onclick="event.stopPropagation()"
                data-product-id="${productId}"
                data-product-name="${p.nombre_prod}"
                data-product-price="${precio}"
@@ -3698,7 +3838,7 @@ async function loadFeatured(){
       }
       
       return `
-      <article class="featured-card">
+      <article class="featured-card" onclick="openProductModal(${productId})">
         <div class="thumb"><img src="${img}" alt="${p.nombre_prod}"></div>
         <div class="info">
           <h4 class="title" title="${p.nombre_prod}">${p.nombre_prod}</h4>
@@ -4276,6 +4416,98 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         });
     });
 
+    /* ========================================
+       LOGICA PARA MODAL DE DETALLE DE PRODUCTO
+       ======================================== */
+    const PRODUCT_MODAL = document.getElementById('product-detail-modal');
+
+    async function openProductModal(id) {
+        // Buscar el producto en los datos cargados actualmente
+        // (allItems o visibles según donde estemos, pero currentProductsData suele tener los visibles)
+        // Intentaremos buscar en currentProductsData (usado por el catálogo)
+        let p = (typeof currentProductsData !== 'undefined') ? currentProductsData.find(prod => prod.id_producto === Number(id)) : null;
+        
+        // Si no está ahí (ej. es un destacado no cargado en el grid principal), lo buscamos individualmente o usamos una caché global
+        if (!p) {
+             try {
+                 const res = await fetch(`/productos?limit=1000`); // fallback simple
+                 const data = await res.json();
+                 const all = Array.isArray(data) ? data : (data.productos || []);
+                 p = all.find(prod => prod.id_producto === Number(id));
+             } catch(e) { console.error("Error buscando producto para modal", e); }
+        }
+
+        if (!p) {
+            console.error("Producto no encontrado", id);
+            return;
+        }
+
+        const img = p.ruta || 'assets/placeholder.jpg';
+        const precio = Number(p.precio_unidad)||0;
+
+        document.getElementById('modal-product-img').src = img;
+        document.getElementById('modal-product-title').innerText = p.nombre_prod;
+        document.getElementById('modal-product-price').innerText = `$${precio.toLocaleString('es-CL')}`;
+        document.getElementById('modal-product-type').innerText = p.tipo || '—';
+        document.getElementById('modal-product-measures').innerText = p.medidas || '—';
+        document.getElementById('modal-product-dims').innerText = p.dimensiones || '—';
+        document.getElementById('modal-product-stock').innerText = p.disponibilidad ?? '—';
+        document.getElementById('modal-product-description').innerText = p.descripcion || 'Sin descripción disponible por el momento.';
+
+        const actionsDiv = document.getElementById('modal-product-actions');
+        const quantityInCart = getProductQuantityInCart(p.id_producto);
+
+        if (quantityInCart > 0) {
+            actionsDiv.innerHTML = `
+                <div class="quantity-control" style="width: 100%; justify-content: center; background: #f3f4f6; padding: 10px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                    <button class="qty-btn-minus" data-action="minus" data-id="${p.id_producto}" style="width:45px; height:45px; font-size: 20px;">−</button>
+                    <div class="qty-display" style="font-size: 1.1rem; font-weight: 700;">
+                        ${quantityInCart}
+                        <span style="font-size: 0.8rem; display: block; font-weight: 400; color: #6b7280;">en carrito</span>
+                    </div>
+                    <button class="qty-btn-plus" data-action="plus" data-id="${p.id_producto}" style="width:45px; height:45px; font-size: 20px;">+</button>
+                </div>
+            `;
+            
+            // Vincular eventos de los botones internos
+            actionsDiv.querySelectorAll('button').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const action = btn.dataset.action;
+                    const cur = getProductQuantityInCart(p.id_producto);
+                    if (action === 'plus') updateProductQuantity(p.id_producto, cur + 1);
+                    else updateProductQuantity(p.id_producto, Math.max(0, cur - 1));
+                    openProductModal(p.id_producto); // Refrescar modal
+                };
+            });
+        } else {
+            actionsDiv.innerHTML = `
+                <button class="cart-action-btn" style="width: 100%; height: 55px; font-size: 1.1rem;" 
+                    onclick="addToCart({id_producto:${p.id_producto}, name:'${p.nombre_prod.replace(/'/g, "\\'")}', precio:${precio}, Linkimg:'${img}', quantity:1}); openProductModal(${p.id_producto});">
+                    Añadir al carrito
+                </button>
+            `;
+        }
+
+        PRODUCT_MODAL.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeProductModal() {
+        PRODUCT_MODAL.classList.remove('is-open');
+        document.body.style.overflow = '';
+    }
+
+    // Cerrar modal al hacer click fuera
+    PRODUCT_MODAL.addEventListener('click', (e) => {
+        if (e.target === PRODUCT_MODAL) closeProductModal();
+    });
+    
+    // ESC para cerrar
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && PRODUCT_MODAL.classList.contains('is-open')) closeProductModal();
+    });
+
     // Cerrar dropdown al hacer click fuera
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.has-dropdown')) {
@@ -4294,5 +4526,47 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
 
         gtag('config', 'G-X63BMSG51V');
     </script>
+    <!-- Modal de Detalle de Producto -->
+    <div id="product-detail-modal" class="product-modal-backdrop" role="dialog" aria-modal="true">
+        <div class="product-modal-content">
+            <button class="product-modal-close" onclick="closeProductModal()" aria-label="Cerrar">&times;</button>
+            <div class="product-modal-grid">
+                <div class="product-modal-left">
+                    <img id="modal-product-img" src="" alt="" class="product-modal-image">
+                </div>
+                <div class="product-modal-info">
+                    <h2 id="modal-product-title"></h2>
+                    <div id="modal-product-price" class="product-modal-price"></div>
+                    
+                    <div class="product-modal-specs">
+                        <div class="spec-item">
+                            <div class="spec-label">Tipo</div>
+                            <div id="modal-product-type" class="spec-value"></div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Medidas</div>
+                            <div id="modal-product-measures" class="spec-value"></div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Dimensiones</div>
+                            <div id="modal-product-dims" class="spec-value"></div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Disponibilidad</div>
+                            <div id="modal-product-stock" class="spec-value"></div>
+                        </div>
+                    </div>
+
+                    <div class="product-modal-desc">
+                        <p id="modal-product-description"></p>
+                    </div>
+
+                    <div id="modal-product-actions" class="product-modal-actions">
+                        <!-- Se poblará dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
