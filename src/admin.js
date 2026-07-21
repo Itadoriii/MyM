@@ -39,6 +39,10 @@ document.addEventListener("DOMContentLoaded", function() {
     enlacesMenu.forEach(enlace => {
         enlace.addEventListener("click", () => {
             const content = enlace.getAttribute("data-content");
+            if (content) {
+                enlacesMenu.forEach(e => e.classList.remove("active"));
+                enlace.classList.add("active");
+            }
             loadContent(content);
         });
     });
@@ -109,29 +113,30 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Generamos tabla
         const tableHTML = `
-        <h1>Usuarios</h1>
+        <h1 class="titulotable">Usuarios</h1>
         <p>Total de usuarios: ${usuarios.length}</p>
-        <div style="max-height:400px; overflow-y:auto; border:1px solid #ccc; border-radius:6px;">
-            <table style="width:100%; border-collapse:collapse;">
-            <thead style="position:sticky; top:0; background:#f5f5f5; z-index:1;">
+        <div class="table-container" style="margin-top:12px;">
+            <table>
+            <thead>
                 <tr>
-                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">ID</th>
-                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Usuario</th>
-                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Correo</th>
-                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Teléfono</th>
-                <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">Acciones</th>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Teléfono</th>
+                <th>Rol</th>
+                <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 ${usuarios.map(u => `
                 <tr>
-                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.id_usuarios || '-'}</td>
-                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.user}</td>
-                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.email}</td>
-                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.number || 'No disponible'}</td>
-                    <td style="padding:6px; border-bottom:1px solid #eee;">${u.role || 'user'}</td>
-                    <td style="padding:6px; border-bottom:1px solid #eee;">
-                        <button class="resetPassBtn" data-id="${u.id_usuarios}" style="padding:4px 8px; cursor:pointer;">Restablecer Pass</button>
+                    <td>${u.id_usuarios || '-'}</td>
+                    <td>${u.user}</td>
+                    <td>${u.email}</td>
+                    <td>${u.number || 'No disponible'}</td>
+                    <td>${u.role || 'user'}</td>
+                    <td>
+                        <button class="resetPassBtn" data-id="${u.id_usuarios}">Restablecer Pass</button>
                     </td>
                 </tr>
                 `).join('')}
@@ -1050,7 +1055,7 @@ function renderAdelantosTable(adelantos, trabajadores, total, page) {
 
     <!-- Filtros -->
     <div class="filters" style="margin-bottom: 1rem;">
-        <button id="nuevoAdelantoBtn" style="padding: 0.5rem 1rem; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button id="nuevoAdelantoBtn" class="buttonenlace">
         + Nuevo Adelanto
         </button>
         <select id="filtroTrabajador">
@@ -1843,60 +1848,62 @@ function renderInformeGeneral(data, mes, anio) {
 
     main.innerHTML = `
         <style>
-            .informe-container {
-                font-family: Arial, sans-serif;
-            }
             .informe-container h2 {
                 margin-bottom: 15px;
-                color: #333;
+                color: var(--ink);
             }
             .informe-container table {
                 width: 100%;
                 border-collapse: collapse;
                 margin-top: 10px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                background: var(--panel);
+                border-radius: var(--radius-sm);
+                overflow: hidden;
+                box-shadow: var(--shadow-sm);
             }
             .informe-container th, .informe-container td {
                 padding: 10px 12px;
                 text-align: left;
-                border-bottom: 1px solid #ddd;
+                border-bottom: 1px solid #f0e8dd;
             }
             .informe-container thead {
-                background-color: #007BFF;
+                background-color: var(--tabla-header);
                 color: white;
             }
             .informe-container tfoot {
-                background-color: #f5f5f5;
+                background-color: var(--tabla-total);
                 font-weight: bold;
             }
-            .informe-container tr:hover {
-                background-color: #f9f9f9;
+            .informe-container tbody tr:hover {
+                background-color: #f3ede3;
             }
             .informe-container .saldo-negativo {
-                color: red;
+                color: var(--danger-text);
                 font-weight: bold;
             }
             .informe-container .saldo-positivo {
-                color: green;
+                color: var(--success-text);
                 font-weight: bold;
             }
             .filtros {
                 margin-bottom: 15px;
             }
             .filtros select, .filtros input, .filtros button {
-                padding: 5px 8px;
+                padding: 8px 10px;
                 margin-right: 5px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
+                border-radius: var(--radius-sm);
+                border: 1px solid var(--line);
+                font-family: inherit;
             }
             .filtros button {
-                background: #007BFF;
+                background: var(--accent);
                 color: white;
                 cursor: pointer;
                 border: none;
+                font-weight: 600;
             }
             .filtros button:hover {
-                background: #0056b3;
+                background: var(--accent-dark);
             }
         </style>
 

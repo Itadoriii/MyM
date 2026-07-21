@@ -9,19 +9,25 @@
 <body>
   <main>
     <div class="form-container">
-      <img src="/assets/mymlog.png" alt="Maderas MyM" class="auth-logo">
+      <a href="/" class="auth-logo-link" aria-label="Volver al inicio">
+        <img src="/assets/mymlog.png" alt="Maderas MyM" class="auth-logo">
+      </a>
       <h1>Revisa tu correo ✉️</h1>
       <p>Te enviamos un enlace para activar tu cuenta. Revisa spam/promociones si no lo ves.</p>
 
       <form id="resend" method="post" action="/api/verify/resend">
-        <label for="email" class="sr-only">Correo electrónico</label>
-        <input type="email" name="email" id="email" placeholder="tu@correo.com" required>
+        <div class="field">
+          <label for="email">Correo electrónico</label>
+          <input type="email" name="email" id="email" placeholder="tu@correo.com" required>
+        </div>
         <button type="submit">Reenviar verificación</button>
       </form>
       <p id="msg" class="hint"></p>
 
       <p><a href="/login">Volver a iniciar sesión</a></p>
     </div>
+
+    <p class="back-link"><a href="/">← Volver a la tienda</a></p>
   </main>
   <script>
     const p = new URLSearchParams(location.search);
