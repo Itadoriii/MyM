@@ -1,3 +1,8 @@
+/* ============================================================
+   MyM · Auth (login / registro / verificación)
+   Usa los tokens de theme.css — cargar después de theme.css.
+   ============================================================ */
+
 * {
     box-sizing: border-box;
 }
@@ -25,36 +30,64 @@ main {
     max-width: 440px;
 }
 
+/* Logo: mymlog.png es horizontal (879×300); se muestra a un ancho
+   legible y conserva su proporción. Enlaza de vuelta a la tienda. */
+.auth-logo-link {
+    display: inline-block;
+    line-height: 0;
+    border-radius: var(--radius-sm);
+}
+
+.auth-logo-link:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+
 .auth-logo {
-    width: 84px;
-    margin-bottom: 18px;
+    width: min(220px, 70%);
+    height: auto;
+    margin-bottom: 14px;
 }
 
 .form-container {
+    position: relative;
+    overflow: hidden;
     width: 100%;
     background-color: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    padding: 40px;
+    padding: 38px 40px 32px;
     box-shadow: var(--shadow-lg);
     text-align: center;
+}
+
+/* Filete superior con los dos colores de marca (letrero rojo + pinos) */
+.form-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--brick) 0%, var(--brick) 46%, var(--green) 54%, var(--green) 100%);
 }
 
 .form-container h1 {
     color: var(--ink);
     font-size: 1.6rem;
-    margin-bottom: 4px;
+    margin: 0 0 4px;
 }
 
 .form-container > p:first-of-type {
     color: var(--muted);
+    margin-top: 0;
     margin-bottom: 24px;
 }
 
 form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 15px;
     text-align: left;
 }
 
@@ -69,6 +102,7 @@ button {
     font-family: inherit;
     font-size: 1rem;
     width: 100%;
+    margin-top: 4px;
     background-color: var(--brick);
     color: white;
     font-weight: 600;
@@ -89,6 +123,13 @@ button:focus-visible {
 
 button:active {
     transform: translateY(0);
+}
+
+button:disabled {
+    opacity: .55;
+    cursor: progress;
+    transform: none;
+    box-shadow: none;
 }
 
 .error, .err {
@@ -113,15 +154,17 @@ button:active {
     border-color: var(--brick) !important;
 }
 
-.escondido {
-    display: none;
-}
-
 .inline-actions {
     margin-top: 4px;
     display: flex;
     gap: 8px;
     justify-content: center;
+}
+
+/* !important: gana siempre sobre display de .inline-actions y afines,
+   independiente del orden de las reglas. */
+.escondido {
+    display: none !important;
 }
 
 .linklike {
@@ -144,6 +187,24 @@ a {
     font-weight: 600;
 }
 
+/* Enlace de regreso bajo la tarjeta */
+.back-link {
+    margin: 18px 0 0;
+    font-size: .9rem;
+    text-align: center;
+}
+
+.back-link a {
+    color: var(--muted);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.back-link a:hover {
+    color: var(--brick);
+    text-decoration: underline;
+}
+
 .sr-only {
     position: absolute;
     left: -10000px;
@@ -159,8 +220,12 @@ a {
         padding: 15px;
     }
 
+    .auth-logo {
+        width: min(180px, 64%);
+    }
+
     .form-container {
-        padding: 25px 20px;
+        padding: 28px 20px 24px;
         border-radius: var(--radius);
     }
 
@@ -172,6 +237,6 @@ a {
 
 @media (max-width: 360px) {
     .form-container {
-        padding: 20px 15px;
+        padding: 24px 15px 20px;
     }
 }
