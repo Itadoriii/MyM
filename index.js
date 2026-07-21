@@ -241,11 +241,6 @@ app.put('/api/usuarios/:id/password', requireAuth, requireRole('admin'), async (
     res.status(500).json({ status: 'Error', message: 'Error interno del servidor' });
   }
 });
-app.get('/checkout', (req, res) => {
-  res.sendFile(__dirname + '/src/checkout.html'); // Asegúrate de ajustar la ruta correctamente
-});
-
-
 // Actualizar la ruta POST para crear productos
 // Ruta POST para crear productos (ahora permite definir id_producto)
 app.post('/api/productos', async (req, res) => {

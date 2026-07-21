@@ -5,172 +5,32 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sobre Nosotros | Maderas M&M</title>
+    <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://kit.fontawesome.com/43804ad595.js" crossorigin="anonymous"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        /* ===== VARIABLES - COLORES DEL SITIO ===== */
+        /* ===== VARIABLES - alias hacia los tokens de marca de theme.css =====
+           --green-light y --cream ya existen en theme.css con el mismo nombre
+           y valores casi idénticos, por eso no se redeclaran acá. */
         :root {
-            --primary-red: #8B1A1A;
-            --primary-red-dark: #6d1515;
-            --primary-red-light: #a52222;
-            --green-pine: #2d5a27;
-            --green-light: #3d7a35;
+            --primary-red: var(--brick);
+            --primary-red-dark: var(--brick-dark);
+            --primary-red-light: var(--terra);
+            --green-pine: var(--green);
             --wood-brown: #5c4033;
-            --wood-light: #8b6914;
-            --cream: #f9f7f4;
+            --wood-light: var(--gold);
             --cream-dark: #f0ebe3;
             --white: #ffffff;
-            --text-dark: #2c2c2c;
-            --text-muted: #5a5a5a;
-            --border-light: #e5e0d8;
+            --text-dark: var(--ink);
+            --text-muted: var(--muted);
+            --border-light: var(--line);
         }
 
-        /* ===== NAVBAR FIX - FONDO BLANCO ===== */
-        .menu {
-            background: var(--white) !important;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: relative;
-            z-index: 1000;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-        
-        .menu__container {
-            background: var(--white) !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            max-width: 1400px;
-            margin: 0 auto !important;
-            padding: 10px 30px !important;
-            height: auto !important;
-            min-height: 70px;
-        }
-        
-        .menu__container img.image,
-        .menu__container.image {
-            max-height: 60px !important;
-            width: auto !important;
-            object-fit: contain;
-        }
-        
-        .menu__links {
-            display: flex !important;
-            align-items: center !important;
-            gap: 30px !important;
-            list-style: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        
-        .menu__item {
-            list-style: none !important;
-        }
-        
-        .menu__link {
-            color: var(--text-dark) !important;
-            text-decoration: none;
-            font-family: 'Source Sans 3', sans-serif;
-            font-size: 1rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: color 0.3s ease;
-        }
-        
-        .menu__link:hover {
-            color: var(--primary-red) !important;
-        }
-        
-        .menu__link i {
-            font-size: 1.2rem;
-        }
-        
-        .menu__arrow {
-            width: 12px;
-            height: 12px;
-            margin-left: 4px;
-        }
-        
-        .menu__nesting {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: var(--white);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            padding: 10px 0;
-            min-width: 200px;
-            display: none;
-            z-index: 1001;
-        }
-        
-        .menu__item--show {
-            position: relative;
-        }
-        
-        .menu__item--show:hover .menu__nesting {
-            display: block;
-        }
-        
-        .menu__inside {
-            list-style: none;
-        }
-        
-        .menu__link--inside {
-            padding: 10px 20px !important;
-            display: block !important;
-        }
-        
-        .menu__link--inside:hover {
-            background: var(--cream) !important;
-        }
-        
-        .menu__hamburguer {
-            display: none;
-        }
-        
-        /* Responsive navbar */
-        @media (max-width: 900px) {
-            .menu__container {
-                padding: 10px 15px !important;
-            }
-            
-            .menu__links {
-                gap: 15px !important;
-            }
-            
-            .menu__link {
-                font-size: 0.9rem;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .menu__container {
-                flex-wrap: wrap;
-                justify-content: center !important;
-                gap: 10px;
-            }
-            
-            .menu__container img.image,
-            .menu__container.image {
-                max-height: 50px !important;
-            }
-            
-            .menu__links {
-                gap: 10px !important;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            
-            .menu__link {
-                font-size: 0.85rem;
-            }
-        }
+        /* El nav/menu ahora usa el mismo componente de marca (ladrillo, sticky)
+           que el resto del sitio — ver theme.css. */
 
         /* ===== ABOUT PAGE STYLES ===== */
         .about-hero {

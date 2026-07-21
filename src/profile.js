@@ -1,3 +1,19 @@
+const ESTADO_LABELS = {
+  generado: 'Generado',
+  aceptado_espera_pago: 'Aceptado · espera pago',
+  pagado_espera_envio: 'Pagado · espera envío',
+  enviado: 'Enviado',
+  retirado: 'Retirado',
+  finalizado: 'Finalizado',
+  rechazado: 'Rechazado'
+};
+
+function estadoBadge(estado) {
+  const slug = String(estado || '').toLowerCase().trim();
+  const label = ESTADO_LABELS[slug] || estado || 'Sin estado';
+  return `<span class="badge badge--${slug}">${label}</span>`;
+}
+
 async function cargarMisPedidos(username) {
   try {
     if (!username) throw new Error('Falta nombre de usuario para cargar pedidos');
@@ -10,15 +26,22 @@ async function cargarMisPedidos(username) {
     const container = document.getElementById('pedidos-container');
     container.innerHTML = '';
 
+    if (!pedidos.length) {
+      container.innerHTML = '<p>Todavía no tienes pedidos.</p>';
+      return;
+    }
+
     pedidos.forEach(pedido => {
       const div = document.createElement('div');
-      div.classList.add('pedido');
+      div.classList.add('pedido', 'card');
 
       div.innerHTML = `
-        <h3>Pedido ID: ${pedido.id_pedido}</h3>
+        <div class="pedido-header">
+          <h3>Pedido #${pedido.id_pedido}</h3>
+          ${estadoBadge(pedido.estado)}
+        </div>
         <p>Fecha: ${new Date(pedido.fecha_pedido).toLocaleString()}</p>
         <p>Total: $${pedido.precio_total.toFixed(2)}</p>
-        <p>Estado: ${pedido.estado}</p>
         <p>Tipo de Entrega: ${pedido.delivery || 'No especificado'}</p>
         <p>Comentario: ${pedido.descripcion || 'Sin comentario'}</p>
         <h4>Productos:</h4>
