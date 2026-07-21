@@ -3,18 +3,26 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Verifica tu correo - Maderas MyM</title>
-  <style>body{font-family:sans-serif} .wrap{max-width:520px;margin:40px auto;text-align:center}</style>
+  <link rel="stylesheet" href="/theme.css" />
+  <link rel="stylesheet" href="/stylelr.css" />
 </head>
 <body>
-  <div class="wrap">
-    <h1>Revisa tu correo ✉️</h1>
-    <p>Te enviamos un enlace para activar tu cuenta. Revisa spam/promociones si no lo ves.</p>
-    <form id="resend" method="post" action="/api/verify/resend">
-      <input type="email" name="email" id="email" placeholder="tu@correo.com" required>
-      <button type="submit">Reenviar verificación</button>
-    </form>
-    <p id="msg"></p>
-  </div>
+  <main>
+    <div class="form-container">
+      <img src="/assets/mymlog.png" alt="Maderas MyM" class="auth-logo">
+      <h1>Revisa tu correo ✉️</h1>
+      <p>Te enviamos un enlace para activar tu cuenta. Revisa spam/promociones si no lo ves.</p>
+
+      <form id="resend" method="post" action="/api/verify/resend">
+        <label for="email" class="sr-only">Correo electrónico</label>
+        <input type="email" name="email" id="email" placeholder="tu@correo.com" required>
+        <button type="submit">Reenviar verificación</button>
+      </form>
+      <p id="msg" class="hint"></p>
+
+      <p><a href="/login">Volver a iniciar sesión</a></p>
+    </div>
+  </main>
   <script>
     const p = new URLSearchParams(location.search);
     const e = p.get('email'); if (e) document.getElementById('email').value = e;

@@ -5,96 +5,38 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Maderas M&M</title>
+    <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="style.css" />
     <script src="https://kit.fontawesome.com/43804ad595.js" crossorigin="anonymous"></script>
     <style>
-        /* Contenedor general del perfil */
-        #user-profile {
-            max-width: 700px;
-            margin: 20px auto;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
-        }
-        /* Estilo para los datos del usuario */
-        #user-profile p {
-            margin: 8px 0;
-            font-size: 1rem;
-        }
-        #user-profile p strong {
-            color: #007BFF;
-        }
+        .profile-title{ text-align:center; color:var(--ink); margin:32px 0 24px; }
 
-        /* Contenedor para pedidos */
-        #pedidos-container {
-            max-width: 700px;
-            margin: 30px auto 50px;
-            padding: 10px 20px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
-        }
+        #user-profile{ max-width:700px; margin:0 auto 32px; padding:28px 32px; }
+        #user-profile p{ margin:10px 0; font-size:1rem; }
+        #user-profile p strong{ color:var(--brick); font-weight:600; }
 
-        /* Cada caja de pedido */
-        .pedido {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 5px rgb(0 0 0 / 0.05);
-        }
+        #pedidos-container{ max-width:700px; margin:0 auto 50px; padding:0 20px; display:flex; flex-direction:column; gap:18px; }
 
-        /* Títulos de cada pedido */
-        .pedido h3 {
-            margin-top: 0;
-            color: #0056b3;
-            font-weight: 600;
-        }
+        .pedido{ padding:20px 24px; }
+        .pedido-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+        .pedido h3{ margin:0; color:var(--ink); font-weight:600; font-size:1.05rem; }
+        .pedido h4{ margin:14px 0 6px; color:var(--ink); font-size:.92rem; }
+        .pedido p{ margin:6px 0; font-size:.92rem; color:var(--muted); }
+        .pedido ul{ list-style:disc; margin-left:20px; padding-left:0; }
+        .pedido ul li{ margin:4px 0; font-size:.92rem; color:var(--ink); }
+        .pedido hr{ border:none; border-top:1px solid var(--line); margin:14px 0 0; }
+        #pedidos-container > p{ text-align:center; color:var(--muted); }
 
-        /* Detalles del pedido */
-        .pedido p {
-            margin: 6px 0;
-            font-size: 0.9rem;
+        .button{
+            display:block; margin:8px auto 48px;
+            background-color:var(--brick); color:#fff; border:none;
+            padding:13px 32px; font-size:1rem; border-radius:var(--pill);
+            cursor:pointer; font-family:inherit; font-weight:600;
+            box-shadow:var(--shadow-sm);
+            transition:background-color .18s ease, box-shadow .18s ease, transform .18s ease;
         }
-
-        /* Lista de productos en el pedido */
-        .pedido ul {
-            list-style-type: disc;
-            margin-left: 20px;
-            padding-left: 0;
-        }
-
-        .pedido ul li {
-            margin: 4px 0;
-            font-size: 0.9rem;
-        }
-
-        /* Separador entre pedidos */
-        .pedido hr {
-            border: none;
-            border-top: 1px solid #eee;
-            margin: 15px 0 0;
-        }
-
-        /* Botón cerrar sesión */
-        .button {
-            display: block;
-            margin: 20px auto;
-            background-color: #007BFF;
-            color: white;
-            padding: 10px 25px;
-            font-size: 1rem;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .button:hover {
-            background-color: #0056b3;
-        }
+        .button:hover{ background-color:var(--brick-dark); box-shadow:var(--shadow-md); transform:translateY(-2px); }
+        .button:focus-visible{ outline:none; box-shadow:var(--ring); }
     </style>
 </head>
 <body>
@@ -147,9 +89,9 @@
         </section>
     </nav>
 
-    <h1 style="text-align: center;">Bienvenido a tu perfil</h1>
+    <h1 class="profile-title">Bienvenido a tu perfil</h1>
 
-    <div id="user-profile">
+    <div id="user-profile" class="card">
         <p><strong>Nombre de usuario:</strong> <span id="user-name"></span></p>
         <p><strong>Email:</strong> <span id="user-email"></span></p>
         <p><strong>Rol:</strong> <span id="user-role"></span></p>

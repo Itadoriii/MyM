@@ -1,79 +1,147 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-
 * {
     box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    font-family: 'Poppins', sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100svh;
-    font-size: larger;
-    background-image: url('assets/Vectorlogin.svg');
-    background-color: #fab1a0;
+    background-image:
+        radial-gradient(circle at 15% 15%, rgba(47,107,63,.10), transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(160,53,47,.08), transparent 45%),
+        url('assets/Vectorlogin.svg');
+    background-color: var(--cream);
     background-size: cover;
     padding: 16px;
-    box-sizing: border-box;
 }
 
 main {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 500px;
+    max-width: 440px;
+}
+
+.auth-logo {
+    width: 84px;
+    margin-bottom: 18px;
 }
 
 .form-container {
     width: 100%;
-    background-color: white;
-    border-radius: 10px;
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
     padding: 40px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.form-container h1 {
+    color: var(--ink);
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+}
+
+.form-container > p:first-of-type {
+    color: var(--muted);
+    margin-bottom: 24px;
 }
 
 form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
+    text-align: left;
 }
 
-form+p, form p {
+form + p, form p {
     text-align: center;
 }
 
-input, button {
-    border-radius: 4px;
-    border: unset;
-    padding: 15px 30px;
-    font-size: larger;
-    width: 100%;
-}
-
 button {
-    background-color: #d63031;
+    border-radius: var(--pill);
+    border: unset;
+    padding: 14px 30px;
+    font-family: inherit;
+    font-size: 1rem;
+    width: 100%;
+    background-color: var(--brick);
     color: white;
-    font-weight: bold;
+    font-weight: 600;
     cursor: pointer;
+    transition: background-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
-.error {
-    color: #b00020;
-    font-weight: bold;
-    margin-top: 10px;
+button:hover {
+    background-color: var(--brick-dark);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+button:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.error, .err {
+    color: var(--brick);
+    font-weight: 600;
+    margin-top: 6px;
 }
 
 .ok {
-    color: #0a7a28;
-    font-weight: bold;
-    margin-top: 10px;
+    color: var(--green-dark);
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.invalid {
+    border-color: var(--brick) !important;
 }
 
 .escondido {
     display: none;
+}
+
+.inline-actions {
+    margin-top: 4px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.linklike {
+    background: none;
+    border: none;
+    color: var(--green-dark);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font-family: inherit;
+    font-size: .9rem;
+}
+
+.linklike:hover {
+    color: var(--green);
+}
+
+a {
+    color: var(--brick);
+    font-weight: 600;
 }
 
 .sr-only {
@@ -88,33 +156,22 @@ button {
 /* ===== RESPONSIVE MÓVIL ===== */
 @media (max-width: 540px) {
     body {
-        font-size: 1rem;
         padding: 15px;
     }
 
     .form-container {
         padding: 25px 20px;
-        border-radius: 12px;
+        border-radius: var(--radius);
     }
 
     .form-container h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         margin-bottom: 5px;
-    }
-
-    input, button {
-        padding: 12px 15px;
-        font-size: 1rem;
     }
 }
 
 @media (max-width: 360px) {
     .form-container {
         padding: 20px 15px;
-    }
-
-    input, button {
-        padding: 10px 12px;
-        font-size: 0.95rem;
     }
 }
