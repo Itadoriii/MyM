@@ -17,8 +17,9 @@ import cors from 'cors';
 // import mailRouter from './routes/pedidosMail.js';
 import nodemailer from 'nodemailer';
 import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
-import { register, login, resendVerification } from './controllers/authentication.controller.js';
+import { register, login, resendVerification, forgotPassword, checkResetToken, resetPassword } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
+import { ensurePasswordResetColumns } from './utils/ensure-schema.js';
 import { requireAuth, requireRole, soloAdmin, soloPublico } from './middlewares/authorization.js';
 import bcrypt from 'bcrypt';
 
@@ -34,6 +35,9 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
+
+// Crea las columnas de recuperación de contraseña si aún no existen.
+ensurePasswordResetColumns();
  
 
 // CONFIGURACION
@@ -95,9 +99,20 @@ app.get('/register/check-email', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'check_email.html'));
 });
 
+// Recuperación de contraseña
+app.get('/forgot-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'forgot_password.html'));
+});
+app.get('/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'reset_password.html'));
+});
+
 app.post('/api/register', register);
 app.post('/api/login', login);
 app.post('/api/verify/resend', resendVerification);
+app.post('/api/password/forgot', forgotPassword);
+app.get('/api/password/reset/check', checkResetToken);
+app.post('/api/password/reset', resetPassword);
 
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] }));

@@ -150,6 +150,22 @@ button:disabled {
     margin-top: 4px;
 }
 
+/* "¿Olvidaste tu contraseña?" bajo el campo de clave */
+.forgot-link {
+    margin: 2px 0 0;
+    text-align: right !important;
+    font-size: .85rem;
+}
+
+.forgot-link a {
+    color: var(--green-dark);
+    font-weight: 500;
+}
+
+.forgot-link a:hover {
+    color: var(--brick);
+}
+
 .invalid {
     border-color: var(--brick) !important;
 }

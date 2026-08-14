@@ -8,6 +8,13 @@ import { transporter } from '../utils/mailer.js';
 dotenv.config();
 const BASE_URL = (process.env.BASE_URL || 'http://maderasmym.cl').replace(/\/+$/, '');
 
+// Política de contraseña: mín. 8, mayúscula, minúscula y número.
+const STRONG_PWD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+const PWD_RULE_MSG = 'La contraseña debe tener mínimo 8 caracteres e incluir mayúscula, minúscula y número.';
+
+// Vigencia del enlace de recuperación.
+const RESET_TTL_MIN = 60;
+
 
 
 // 👇 Asegúrate de tener este util (tal cual te lo pasé)
@@ -85,12 +92,11 @@ export async function register(req, res) {
 
   // --- validadores extra ---
   // contraseña fuerte: min 8, mayúscula, minúscula, número
-    const strongPwd = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!strongPwd.test(password)) {
+    if (!STRONG_PWD.test(password)) {
     console.warn('[REGISTER] contraseña débil');
     return res.status(400).send({
         status: 'Error',
-        message: 'La contraseña debe tener mínimo 8 caracteres e incluir mayúscula, minúscula y número.'
+        message: PWD_RULE_MSG
     });
     }
 
@@ -186,6 +192,187 @@ export const methods = {
     register,
     logout
 };
+
+/* ============================================================
+   Recuperación de contraseña
+   ============================================================ */
+
+// Anti-spam simple en memoria: un envío por identificador cada 60 s.
+const ultimoEnvio = new Map();
+const THROTTLE_MS = 60 * 1000;
+
+function estaThrottleado(clave) {
+  const previo = ultimoEnvio.get(clave);
+  const ahora = Date.now();
+  if (previo && ahora - previo < THROTTLE_MS) return true;
+  ultimoEnvio.set(clave, ahora);
+  // Limpieza perezosa para que el Map no crezca sin control.
+  if (ultimoEnvio.size > 500) {
+    for (const [k, t] of ultimoEnvio) {
+      if (ahora - t > THROTTLE_MS) ultimoEnvio.delete(k);
+    }
+  }
+  return false;
+}
+
+// Busca la cuenta con un token de reseteo vigente. Devuelve null si no aplica.
+async function buscarCuentaPorToken(uid, token) {
+  if (!uid || !token) return null;
+
+  const [rows] = await pool.query(
+    'SELECT id_usuarios, `user`, reset_expires FROM usuarios WHERE id_usuarios=? AND reset_token=? LIMIT 1',
+    [uid, sha256(token)]
+  );
+  if (!rows.length) return null;
+
+  const cuenta = rows[0];
+  if (!cuenta.reset_expires || new Date(cuenta.reset_expires) < new Date()) return null;
+  return cuenta;
+}
+
+// POST /api/password/forgot  → siempre responde ok (no revela si la cuenta existe)
+export async function forgotPassword(req, res) {
+  const identificador = (req.body.identificador || req.body.email || req.body.user || '').trim();
+  console.log('[FORGOT] intento', { identificador });
+
+  if (!identificador) {
+    return res.status(400).json({ status: 'Error', message: 'Ingresa tu correo o nombre de usuario' });
+  }
+
+  // Respuesta genérica: no confirma ni desmiente que la cuenta exista.
+  const respuestaGenerica = () => res.json({
+    ok: true,
+    message: 'Si la cuenta existe, te enviamos un enlace para restablecer tu contraseña.'
+  });
+
+  if (estaThrottleado(identificador.toLowerCase())) {
+    console.warn('[FORGOT] throttle', identificador);
+    return respuestaGenerica();
+  }
+
+  try {
+    const [cuentas] = await pool.query(
+      'SELECT id_usuarios, `user`, email FROM usuarios WHERE email=? OR `user`=? LIMIT 5',
+      [identificador.toLowerCase(), identificador]
+    );
+
+    if (!cuentas.length) {
+      console.warn('[FORGOT] sin coincidencias', identificador);
+      return respuestaGenerica();
+    }
+
+    // Un mismo correo puede tener más de una cuenta: se envía un enlace por cuenta.
+    for (const cuenta of cuentas) {
+      if (!cuenta.email || !cuenta.email.includes('@')) {
+        console.warn('[FORGOT] cuenta sin correo válido', { id: cuenta.id_usuarios });
+        continue;
+      }
+
+      const raw = crypto.randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + RESET_TTL_MIN * 60 * 1000);
+
+      await pool.query(
+        'UPDATE usuarios SET reset_token=?, reset_expires=? WHERE id_usuarios=?',
+        [sha256(raw), expires, cuenta.id_usuarios]
+      );
+
+      const resetUrl = `${BASE_URL}/reset-password?uid=${cuenta.id_usuarios}&token=${raw}`;
+      try {
+        await transporter.sendMail({
+          from: `"Maderas MyM" <${process.env.GMAIL_USER}>`,
+          to: cuenta.email,
+          subject: 'Restablece tu contraseña - Maderas MyM',
+          html: `
+            <p>Hola ${cuenta.user || ''},</p>
+            <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta
+               <strong>${cuenta.user || ''}</strong> en Maderas MyM.</p>
+            <p><a href="${resetUrl}">Restablecer mi contraseña</a></p>
+            <p>El enlace expira en ${RESET_TTL_MIN} minutos y solo puede usarse una vez.</p>
+            <p>Si no pediste este cambio, ignora este correo: tu contraseña actual sigue funcionando.</p>
+          `
+        });
+        console.log('[FORGOT] correo enviado', { id: cuenta.id_usuarios, expira: expires.toISOString() });
+      } catch (mailErr) {
+        console.error('[FORGOT] fallo enviando correo:', mailErr?.message || mailErr);
+      }
+    }
+
+    return respuestaGenerica();
+  } catch (e) {
+    console.error('[FORGOT] error inesperado:', e);
+    return res.status(500).json({ status: 'Error', message: 'Error del servidor' });
+  }
+}
+
+// GET /api/password/reset/check?uid=&token=  → valida el enlace antes de mostrar el formulario
+export async function checkResetToken(req, res) {
+  try {
+    const uid   = Number(req.query.uid || 0);
+    const token = req.query.token || '';
+
+    const cuenta = await buscarCuentaPorToken(uid, token);
+    if (!cuenta) {
+      console.warn('[RESET] token inválido o expirado', { uid });
+      return res.status(400).json({ ok: false, code: 'INVALID_TOKEN' });
+    }
+
+    return res.json({ ok: true, user: cuenta.user });
+  } catch (e) {
+    console.error('[RESET] error validando token:', e);
+    return res.status(500).json({ ok: false, code: 'SERVER_ERROR' });
+  }
+}
+
+// POST /api/password/reset  → aplica la nueva contraseña
+export async function resetPassword(req, res) {
+  const uid      = Number(req.body.uid || 0);
+  const token    = req.body.token || '';
+  const password = req.body.password || '';
+
+  console.log('[RESET] intento', { uid });
+
+  if (!uid || !token || !password) {
+    return res.status(400).json({ status: 'Error', message: 'Solicitud incompleta' });
+  }
+
+  if (!STRONG_PWD.test(password)) {
+    console.warn('[RESET] contraseña débil', { uid });
+    return res.status(400).json({ status: 'Error', message: PWD_RULE_MSG });
+  }
+
+  try {
+    const cuenta = await buscarCuentaPorToken(uid, token);
+    if (!cuenta) {
+      console.warn('[RESET] token inválido o expirado', { uid });
+      return res.status(400).json({
+        status: 'Error',
+        code: 'INVALID_TOKEN',
+        message: 'El enlace no es válido o ya expiró. Solicita uno nuevo.'
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    // Quien abre el enlace demostró tener acceso al correo: se marca verificado
+    // si aún no lo estaba, para que pueda iniciar sesión de inmediato.
+    await pool.query(
+      `UPDATE usuarios
+          SET \`password\`=?,
+              reset_token=NULL,
+              reset_expires=NULL,
+              email_verificado_at=COALESCE(email_verificado_at, NOW())
+        WHERE id_usuarios=?`,
+      [hashPassword, cuenta.id_usuarios]
+    );
+
+    console.log('[RESET] contraseña actualizada', { uid: cuenta.id_usuarios, user: cuenta.user });
+    return res.json({ status: 'ok', redirect: '/login?reset=1' });
+  } catch (e) {
+    console.error('[RESET] error inesperado:', e);
+    return res.status(500).json({ status: 'Error', message: 'Error del servidor' });
+  }
+}
 
 export async function resendVerification(req, res) {
   const email = (req.body.email || '').trim().toLowerCase();
