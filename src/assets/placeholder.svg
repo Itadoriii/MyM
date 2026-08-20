@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Foto no disponible">
+  <rect width="400" height="300" fill="#faf6f1"/>
+  <rect x="0.5" y="0.5" width="399" height="299" fill="none" stroke="#ece3d8"/>
+
+  <!-- Tablas apiladas, guiño a la madera -->
+  <g transform="translate(200 132)">
+    <rect x="-72" y="-26" width="144" height="20" rx="3" fill="#ece3d8"/>
+    <rect x="-72" y="-2"  width="144" height="20" rx="3" fill="#e3d7c6"/>
+    <rect x="-72" y="22"  width="144" height="20" rx="3" fill="#ece3d8"/>
+    <circle cx="-46" cy="-16" r="2.5" fill="#d6c7b2"/>
+    <circle cx="38"  cy="8"   r="2.5" fill="#d6c7b2"/>
+    <circle cx="-10" cy="32"  r="2.5" fill="#d6c7b2"/>
+  </g>
+
+  <text x="200" y="222" text-anchor="middle"
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="19" font-weight="600" fill="#2F6B3F">Foto en camino</text>
+  <text x="200" y="248" text-anchor="middle"
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+        font-size="14" fill="#5a6473">Consúltanos por este producto</text>
+</svg>
