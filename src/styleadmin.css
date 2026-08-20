@@ -451,3 +451,32 @@ td.inactivo, td.saldo-negativo{ color:var(--danger-text); font-weight:600; }
     .adm-table td::before{ content:attr(data-label); color:var(--muted); font-weight:600; }
     .table-actions{ justify-content:flex-end; }
 }
+
+/* ----- Barra de búsqueda del historial de registros ----- */
+.reg-toolbar{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0 18px;
+}
+.reg-toolbar input{
+    height:42px; min-width:300px; flex:0 1 360px;
+    border:1.5px solid var(--line); background:var(--panel);
+    border-radius:var(--radius-sm); padding:0 14px; font-family:inherit; font-size:.95rem;
+}
+.reg-toolbar input:focus{ outline:none; border-color:var(--green); box-shadow:var(--ring); }
+.reg-toolbar button{
+    height:42px; padding:0 18px; background:var(--accent); color:#fff;
+    border:none; border-radius:var(--radius-sm); cursor:pointer;
+    font-weight:600; font-family:inherit; font-size:.95rem;
+}
+.reg-toolbar button:hover{ background:var(--accent-dark); }
+.reg-toolbar button.secundario{
+    background:transparent; color:var(--muted); border:1.5px solid var(--line);
+}
+.reg-toolbar button.secundario:hover{ background:#f3ede3; color:var(--ink); }
+
+/* Botones de IP frecuente */
+button.reg-ip{
+    background:#f3ede3; border:1.5px solid var(--line); color:var(--ink);
+    padding:6px 12px; border-radius:999px; cursor:pointer;
+    font-family:inherit; font-size:.85rem; font-weight:600;
+}
+button.reg-ip:hover{ background:var(--accent); color:#fff; border-color:var(--accent); }
