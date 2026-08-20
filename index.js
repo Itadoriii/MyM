@@ -1165,7 +1165,11 @@ app.get('/api/registros', requireApiAdmin, async (req, res) => {
         LIMIT 10`
     );
 
-    return res.json({ success: true, registros: filas, ipsFrecuentes: porIp });
+    const [[{ totalGlobal }]] = await pool.query(
+      'SELECT COUNT(*) AS totalGlobal FROM registros_auditoria'
+    );
+
+    return res.json({ success: true, registros: filas, ipsFrecuentes: porIp, totalGlobal });
   } catch (e) {
     console.error('GET /api/registros error:', e);
     return res.status(500).json({ success: false, error: 'No se pudo cargar el historial de registros' });

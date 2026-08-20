@@ -209,10 +209,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     <button class="orders-tab ${resultado==='rechazado'?'active':''}" data-res="rechazado">Rechazadas</button>
                 </nav>
             </div>
-            <div style="margin:10px 0;display:flex;gap:8px;align-items:center;">
-                <input type="text" id="reg-buscar" placeholder="Buscar por usuario, correo o IP…"
-                       value="${q}" style="padding:6px 10px;min-width:280px;">
+            <div class="reg-toolbar">
+                <input type="text" id="reg-buscar" placeholder="Buscar por usuario, correo o IP…" value="${esc(q)}">
                 <button id="reg-buscar-btn" type="button">Buscar</button>
+                ${q ? '<button id="reg-limpiar" type="button" class="secundario">Limpiar</button>' : ''}
             </div>
             <div id="reg-resumen"></div>
             <div class="table-wrap" id="reg-wrap"><p>Cargando…</p></div>
@@ -225,6 +225,8 @@ document.addEventListener("DOMContentLoaded", function() {
         const lanzarBusqueda = () =>
             fetchRegistros({ resultado, q: document.getElementById('reg-buscar').value.trim() });
         document.getElementById('reg-buscar-btn').onclick = lanzarBusqueda;
+        const btnLimpiar = document.getElementById('reg-limpiar');
+        if (btnLimpiar) btnLimpiar.onclick = () => fetchRegistros({ resultado, q: '' });
         document.getElementById('reg-buscar').onkeydown = (e) => {
             if (e.key === 'Enter') lanzarBusqueda();
         };
@@ -259,7 +261,20 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             if (!data.registros.length) {
-                wrap.innerHTML = '<p>No hay intentos de registro que coincidan.</p>';
+                const hayFiltro = Boolean(q) || resultado !== 'todos';
+
+                wrap.innerHTML = data.totalGlobal
+                    ? `<p>Ningún intento coincide con este filtro. Hay ${data.totalGlobal} registrado(s) en total.</p>`
+                    : `<p><b>Todavía no hay intentos registrados.</b></p>
+                       <p style="opacity:.75;max-width:60ch;">El historial empieza a grabar desde que se
+                       desplegó el cambio: en cuanto alguien intente crear una cuenta aparecerá aquí, tanto
+                       si se acepta como si se rechaza. Para comprobar que funciona, abre
+                       <a href="/register" target="_blank">/register</a> e intenta crear una cuenta con un
+                       correo <code>@duocuc.cl</code>: debe rechazarse y salir en esta lista al recargar.</p>`;
+
+                if (!data.totalGlobal && hayFiltro) {
+                    console.log('[registros] la tabla está vacía; el filtro no influye.');
+                }
                 return;
             }
 
