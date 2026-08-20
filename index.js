@@ -599,7 +599,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
       `;
 
       // Datos que recibiste (no necesariamente guardados en DB, pero los incluimos en el correo)
-      const deliveryTxt = delivery === 'retiro' ? 'Retiro en tienda' : 'Envío a domicilio';
+      const deliveryTxt = delivery === 'retiro' ? 'Retiro en tienda' : 'Flete externo';
       const comentariosTxt = (comentarios || '').trim() ? comentarios.trim() : '—';
 
       // HTML para el cliente

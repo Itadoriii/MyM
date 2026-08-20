@@ -38,7 +38,7 @@ function stepIndexFromEstado(estado) {
 
 const CLP = n => '$' + Number(n || 0).toLocaleString('es-CL');
 const fechaCL = d => new Date(d).toLocaleDateString('es-CL');
-const entregaLabel = v => v === 'retiro' ? 'Retiro en tienda' : 'Envío a domicilio';
+const entregaLabel = v => v === 'retiro' ? 'Retiro en tienda' : 'Flete externo';
 
 async function buildPdf(pedido, detalles) {
   const plantillaPath = path.join(process.cwd(), 'templates', 'Detalles de pedido-1.pdf');
@@ -379,7 +379,7 @@ export async function notificarPedidoGenerado(idPedido) {
     const { pedido, detalles } = await fetchPedidoCompleto(idPedido);
 
     const htmlTabla = detallesHTML(detalles);
-    const entrega = pedido.delivery === 'retiro' ? 'Retiro en tienda' : 'Envío a domicilio (flete a coordinar)';
+    const entrega = pedido.delivery === 'retiro' ? 'Retiro en tienda' : 'Flete externo (a coordinar)';
 
     const htmlCliente = `
       <div style="font-family:system-ui,Segoe UI,Arial;line-height:1.45;">
