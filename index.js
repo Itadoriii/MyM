@@ -19,8 +19,12 @@ import nodemailer from 'nodemailer';
 import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification, forgotPassword, checkResetToken, resetPassword } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
-import { ensurePasswordResetColumns } from './utils/ensure-schema.js';
+import { ensureSchema } from './utils/ensure-schema.js';
 import { requireAuth, requireRole, soloAdmin, soloPublico } from './middlewares/authorization.js';
+import { requireApiAuth, requireApiAdmin } from './middlewares/api-auth.js';
+import { crearLimitador } from './middlewares/rate-limit.js';
+import { captchaActivo } from './utils/turnstile.js';
+import { registrarIntento } from './utils/audit.js';
 import bcrypt from 'bcrypt';
 
 
@@ -36,12 +40,38 @@ app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
 });
 
-// Crea las columnas de recuperación de contraseña si aún no existen.
-ensurePasswordResetColumns();
+// Crea las columnas que falten (recuperación de contraseña y antiabuso).
+ensureSchema();
  
 
 // CONFIGURACION
-app.use(cors());
+
+// Detrás de un proxy inverso (nginx, Apache, Cloudflare) req.ip trae la IP del
+// proxy, no la del visitante, y el rate limit dejaría de servir. Se activa con
+// TRUST_PROXY=1 en el .env. No lo actives si Node recibe el tráfico directo:
+// permitiría falsear la IP con una cabecera X-Forwarded-For.
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
+  console.log('[CONFIG] trust proxy activado:', app.get('trust proxy'));
+}
+
+// Solo nuestro propio sitio puede llamar a la API desde un navegador.
+const ORIGENES_PERMITIDOS = (
+  process.env.ALLOWED_ORIGINS ||
+  'https://maderasmym.cl,https://www.maderasmym.cl,http://localhost:3000'
+).split(',').map(o => o.trim()).filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    // Sin cabecera Origin = misma página, app móvil o curl: no es un caso
+    // que CORS pueda proteger, así que no lo bloqueamos aquí.
+    if (!origin) return callback(null, true);
+    if (ORIGENES_PERMITIDOS.includes(origin)) return callback(null, true);
+    console.warn('[CORS] origen rechazado:', origin);
+    return callback(null, false);
+  },
+  credentials: true
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
@@ -73,6 +103,54 @@ const verifyToken = async (req, res, next) => {
     return res.redirect('/login');
   }
 };
+
+/* =========================
+   LÍMITES DE PETICIONES
+   Frenan el registro masivo de cuentas y la generación de pedidos en cadena.
+   ========================= */
+
+// Registro: 5 cuentas por IP cada hora.
+const limiteRegistro = crearLimitador({
+  nombre: 'registro',
+  ventanaMs: 60 * 60 * 1000,
+  max: 5,
+  mensaje: 'Demasiadas cuentas creadas desde esta conexión. Inténtalo más tarde.',
+  // Estos intentos no llegan al controlador, así que se auditan aquí: una
+  // ráfaga de RATE_LIMIT desde una misma IP es la señal más clara de abuso.
+  alBloquear: (req) => registrarIntento({
+    req,
+    usuario: req.body?.user,
+    email: req.body?.email,
+    telefono: req.body?.number,
+    resultado: 'rechazado',
+    motivo: 'RATE_LIMIT'
+  })
+});
+
+// Login: 10 intentos por IP cada 15 min, contra fuerza bruta.
+const limiteLogin = crearLimitador({
+  nombre: 'login',
+  ventanaMs: 15 * 60 * 1000,
+  max: 10,
+  mensaje: 'Demasiados intentos de inicio de sesión. Espera unos minutos.'
+});
+
+// Correos salientes (verificación y recuperación): 5 por IP cada 15 min.
+const limiteCorreo = crearLimitador({
+  nombre: 'correo',
+  ventanaMs: 15 * 60 * 1000,
+  max: 5,
+  mensaje: 'Demasiadas solicitudes de correo. Espera unos minutos.'
+});
+
+// Pedidos: 10 por IP cada hora. El tope por usuario (3 pendientes) sigue vigente
+// dentro del endpoint; este límite ataca al que rota cuentas desde una misma IP.
+const limitePedidos = crearLimitador({
+  nombre: 'pedidos',
+  ventanaMs: 60 * 60 * 1000,
+  max: 10,
+  mensaje: 'Demasiados pedidos generados desde esta conexión. Contáctanos por WhatsApp si necesitas más.'
+});
 
 // Reglas de transición de estado (PEGAR ARRIBA DEL ARCHIVO DE RUTAS)
 const NEXTS = {
@@ -107,10 +185,17 @@ app.get('/reset-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'reset_password.html'));
 });
 
-app.post('/api/register', register);
-app.post('/api/login', login);
-app.post('/api/verify/resend', resendVerification);
-app.post('/api/password/forgot', forgotPassword);
+app.get('/api/captcha-config', (req, res) => {
+  res.json({
+    activo: captchaActivo(),
+    siteKey: process.env.TURNSTILE_SITE_KEY || null
+  });
+});
+
+app.post('/api/register', limiteRegistro, register);
+app.post('/api/login', limiteLogin, login);
+app.post('/api/verify/resend', limiteCorreo, resendVerification);
+app.post('/api/password/forgot', limiteCorreo, forgotPassword);
 app.get('/api/password/reset/check', checkResetToken);
 app.post('/api/password/reset', resetPassword);
 
@@ -212,11 +297,17 @@ app.get('/api/user', verifyToken, (req, res) => {
   });
 });
 
-app.get('/api/usuarios', async (req, res) => {
+app.get('/api/usuarios', requireApiAdmin, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM usuarios');
+    // Nunca SELECT *: esta tabla guarda el hash de la contraseña y los tokens
+    // de verificación y recuperación. Solo salen las columnas que usa el panel.
+    const [rows] = await pool.query(
+      `SELECT id_usuarios, \`user\`, email, \`number\`, \`role\`,
+              email_verificado_at, bloqueado, motivo_bloqueo, ip_registro
+         FROM usuarios
+        ORDER BY id_usuarios DESC`
+    );
     console.log('Número de usuarios encontrados:', rows.length);
-    console.log('Usuarios:', rows);
     res.json(rows);
   } catch (err) {
     console.error('Error al obtener usuarios:', err);
@@ -258,7 +349,7 @@ app.put('/api/usuarios/:id/password', requireAuth, requireRole('admin'), async (
 });
 // Actualizar la ruta POST para crear productos
 // Ruta POST para crear productos (ahora permite definir id_producto)
-app.post('/api/productos', async (req, res) => {
+app.post('/api/productos', requireApiAdmin, async (req, res) => {
   const { id_producto, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
 
   console.log('Creando nuevo producto:', req.body);
@@ -292,7 +383,7 @@ app.post('/api/productos', async (req, res) => {
   }
 });
 
-app.post('/api/generar-pedido', async (req, res) => {
+app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) => {
     const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
     const cart = Array.isArray(bodyCart) ? bodyCart : [];
     if (!cart.length) return res.status(400).json({ success:false, error:'Carrito vacío' });
@@ -301,75 +392,134 @@ app.post('/api/generar-pedido', async (req, res) => {
     const MAX_RETRY = 3;
     for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
       const connection = await pool.getConnection();
+      let liberada = false;
+      let pedidoConfirmado = false;   // true en cuanto el commit tiene éxito
+      let idPedido = null;
       try {
-        const user = await revisarCookie(req);
-        if (!user) { connection.release(); return res.status(401).json({ success:false, error:'Usuario no autenticado' }); }
+        // La identidad ya la validó requireApiAuth: no hace falta releer la cookie.
+        const u = { id_usuarios: req.cuenta.id_usuarios };
+        const ipCliente = req.ip || req.socket?.remoteAddress || null;
+
+        // --- Normaliza y valida el carrito antes de abrir la transacción ---
+        // Se agrupan las líneas repetidas del mismo producto: antes, dos líneas
+        // de 5 unidades se comparaban por separado contra el stock y un producto
+        // con 6 en bodega dejaba pasar un pedido de 10.
+        const MAX_UNIDADES_POR_PRODUCTO = 100;
+        const MAX_PRODUCTOS_DISTINTOS = 30;
+        const cantidades = new Map();
+        let carritoInvalido = null;
+
+        if (cart.length > MAX_PRODUCTOS_DISTINTOS) {
+          carritoInvalido = 'El carrito tiene demasiados productos distintos.';
+        }
+
+        for (const item of cart) {
+          if (carritoInvalido) break;
+          const pid  = Number(item.id_producto);
+          const cant = Number(item.quantity);
+
+          if (!Number.isInteger(pid) || pid <= 0) {
+            carritoInvalido = 'Hay un producto inválido en el carrito.';
+            break;
+          }
+          if (!Number.isInteger(cant) || cant <= 0) {
+            carritoInvalido = 'Las cantidades deben ser números enteros positivos.';
+            break;
+          }
+
+          const acumulado = (cantidades.get(pid) || 0) + cant;
+          if (acumulado > MAX_UNIDADES_POR_PRODUCTO) {
+            carritoInvalido = `No puedes pedir más de ${MAX_UNIDADES_POR_PRODUCTO} unidades del mismo producto. Escríbenos por WhatsApp para pedidos mayores.`;
+            break;
+          }
+          cantidades.set(pid, acumulado);
+        }
+
+        if (carritoInvalido) {
+          connection.release();
+          liberada = true;
+          return res.status(400).json({ success: false, error: carritoInvalido });
+        }
 
         await connection.beginTransaction();
 
-        const [[u]] = await connection.query('SELECT id_usuarios FROM usuarios WHERE user = ?', [user.user]);
-        if (!u) throw new Error('Usuario no encontrado');
-        // ✅ AGREGAR: Limitar pedidos pendientes por usuario
+        // Limitar pedidos pendientes por usuario
         const [[countPendientes]] = await connection.query(
-          `SELECT COUNT(*) as total 
-          FROM pedidos 
-          WHERE id_usuario = ? 
-          AND estado IN ('generado', 'pendiente')`,
+          `SELECT COUNT(*) as total
+             FROM pedidos
+            WHERE id_usuario = ?
+              AND estado IN ('generado', 'pendiente')`,
           [u.id_usuarios]
         );
 
         if (countPendientes.total >= 3) {
+          await connection.rollback();
           connection.release();
-          return res.status(400).json({ 
-            success: false, 
-            error: 'Tienes demasiados pedidos pendientes. Espera a que se procesen antes de crear uno nuevo.' 
+          liberada = true;
+          return res.status(400).json({
+            success: false,
+            error: 'Tienes demasiados pedidos pendientes. Espera a que se procesen antes de crear uno nuevo.'
           });
         }
 
         // Ordena ids para bloquear SIEMPRE en el mismo orden
-        const ids = [...new Set(cart.map(i => Number(i.id_producto)))].sort((a,b)=>a-b);
+        const ids = [...cantidades.keys()].sort((a, b) => a - b);
 
         // Bloquea filas de productos en orden
         const [rows] = await connection.query(
-          `SELECT id_producto, disponibilidad
-            FROM productos
+          `SELECT id_producto, disponibilidad, precio_unidad
+             FROM productos
             WHERE id_producto IN (?)
             FOR UPDATE`,
           [ids]
         );
 
-        // Mapa de disponibilidades
-        const stockMap = new Map(rows.map(r => [Number(r.id_producto), Number(r.disponibilidad) || 0]));
+        const productosBD = new Map(rows.map(r => [Number(r.id_producto), r]));
 
-        // Verifica stock
-        for (const item of cart) {
-          const need = Number(item.quantity)||0;
-          const have = stockMap.get(Number(item.id_producto)) ?? 0;
-          if (have < need) throw new Error(`Stock insuficiente para producto ${item.id_producto}`);
+        // Verifica stock y calcula el total CON EL PRECIO DE LA BASE DE DATOS.
+        // El precio que manda el navegador se ignora: era manipulable y permitía
+        // generar pedidos a $0.
+        let precioTotal = 0;
+        for (const pid of ids) {
+          const prod = productosBD.get(pid);
+          if (!prod) throw new Error(`El producto ${pid} ya no está disponible`);
+
+          const need = cantidades.get(pid);
+          const have = Number(prod.disponibilidad) || 0;
+          if (have < need) throw new Error(`Stock insuficiente para producto ${pid}`);
+
+          precioTotal += (Number(prod.precio_unidad) || 0) * need;
         }
 
-        // Precio total
-        const precioTotal = cart.reduce((t,i)=> t + (Number(i.precio)||0)*(Number(i.quantity)||0), 0);
-
-        // Inserta pedido (ajusta columnas si tienes más)
+        // Inserta pedido
         const [pedidoResult] = await connection.query(
           'INSERT INTO pedidos (id_usuario, precio_total, fecha_pedido, estado) VALUES (?, ?, NOW(), ?)',
           [u.id_usuarios, precioTotal, 'generado']
         );
-        const idPedido = pedidoResult.insertId;
+        idPedido = pedidoResult.insertId;
 
-        // Inserta detalle y descuenta stock en el MISMO orden
+        // Inserta detalle en el MISMO orden de bloqueo
         for (const pid of ids) {
-          const itemsDeEste = cart.filter(i => Number(i.id_producto) === pid);
-          for (const it of itemsDeEste) {
-            await connection.query(
-              'INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_detalle) VALUES (?, ?, ?, ?)',
-              [idPedido, pid, Number(it.quantity)||0, Number(it.precio)||0]
-            );
-          }
+          await connection.query(
+            'INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_detalle) VALUES (?, ?, ?, ?)',
+            [idPedido, pid, cantidades.get(pid), Number(productosBD.get(pid).precio_unidad) || 0]
+          );
         }
 
         await connection.commit();
+        pedidoConfirmado = true;
+        // La conexión se devuelve al pool aquí. Antes no se devolvía nunca en el
+        // camino de éxito y, con connectionLimit=10, el sitio se colgaba entero
+        // tras una decena de pedidos.
+        connection.release();
+        liberada = true;
+
+        // Registro de la IP, sin bloquear el pedido si la columna aún no existe.
+        try {
+          await pool.query('UPDATE pedidos SET ip_pedido = ? WHERE id_pedido = ?', [ipCliente, idPedido]);
+        } catch (e) {
+          console.warn('[PEDIDO] no se pudo guardar la IP:', e?.message || e);
+        }
     const [[pedidoInfo]] = await pool.query(
       `SELECT p.id_pedido AS id,
               p.precio_total AS total,
@@ -521,7 +671,30 @@ app.post('/api/generar-pedido', async (req, res) => {
     // Respuesta final al frontend
      return res.json({ success: true, id_pedido: idPedido });
     } catch (err) {
-      await connection.rollback(); connection.release();
+      // Si el fallo ocurrió después del commit (por ejemplo al enviar el correo)
+      // la conexión ya se devolvió: hacerle rollback lanzaría otro error.
+      if (!liberada) {
+        try {
+          await connection.rollback();
+        } catch (e) {
+          console.warn('[PEDIDO] rollback falló:', e?.message || e);
+        }
+        connection.release();
+        liberada = true;
+      }
+
+      // El pedido ya está guardado: lo que falló fue el correo o el resumen
+      // posterior. Reintentar aquí crearía un pedido duplicado, y devolver un
+      // error haría que el cliente lo pidiera otra vez.
+      if (pedidoConfirmado) {
+        console.error('[PEDIDO] guardado, pero falló un paso posterior:', err);
+        return res.json({
+          success: true,
+          id_pedido: idPedido,
+          aviso: 'El pedido se registró, pero no pudimos enviar el correo de confirmación.'
+        });
+      }
+
       // Si es deadlock y quedan reintentos, espera un poco y reintenta
       if ((err.code === 'ER_LOCK_DEADLOCK' || err.sqlState === '40001') && attempt < MAX_RETRY) {
         await new Promise(r => setTimeout(r, 200 + Math.random()*400));
@@ -550,7 +723,7 @@ app.get('/api/verificar-usuario', async (req, res) => {
 // GET /api/pedidos?scope=generados|espera_pago|espera_despacho|despacho|finalizados|rechazados
 // (Opcional: también acepta ?estado=... o múltiples ?estado=a&estado=b)
 // GET /api/pedidos?scope=...
-app.get('/api/pedidos', async (req, res) => {
+app.get('/api/pedidos', requireApiAdmin, async (req, res) => {
   try {
     const scopeRaw = String(req.query.scope || 'generados').toLowerCase();
 
@@ -632,7 +805,7 @@ app.get('/api/pedidos', async (req, res) => {
 
 
 // Ruta PUT para actualizar productos (ahora permite cambiar id_producto)
-app.put('/api/productos/:id', async (req, res) => {
+app.put('/api/productos/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   const { id_producto: nuevoId, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
 
@@ -729,7 +902,7 @@ const ALLOWED_ESTADOS = new Set([
 ]);
 
 // ----- RUTA: PUT /api/pedidos/:id/estado -----
-app.put('/api/pedidos/:id/estado', async (req, res) => {
+app.put('/api/pedidos/:id/estado', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   const raw = (req.body && (req.body.estado ?? req.body.to)) || '';
   const estadoCanon = canonEstado(raw);
@@ -805,6 +978,219 @@ app.put('/api/pedidos/:id/estado', async (req, res) => {
 
 // La lógica de confirmar-mail ahora está integrada en /api/pedidos/:id/estado
 // enviando el estado 'aceptado_espera_pago'
+
+/* ============================================================
+   HERRAMIENTAS ANTIABUSO (solo admin)
+   ============================================================ */
+
+// Estados en los que el stock YA se descontó de la bodega. Si un pedido en
+// alguno de ellos se cancela, hay que devolver las unidades.
+const ESTADOS_CON_STOCK_DESCONTADO = new Set([
+  'aceptado_espera_pago', 'pagado_espera_despacho', 'enviado', 'retirado', 'finalizado'
+]);
+
+// Suspender o reactivar una cuenta.
+// Body: { bloqueado: true|false, motivo?: string, cancelarPedidos?: boolean }
+app.put('/api/usuarios/:id/bloqueo', requireApiAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const bloquear = Boolean(req.body?.bloqueado);
+  const motivo = (req.body?.motivo || '').trim().slice(0, 255) || null;
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ success: false, error: 'Id de usuario inválido' });
+  }
+  if (id === req.cuenta.id_usuarios) {
+    return res.status(400).json({ success: false, error: 'No puedes bloquear tu propia cuenta' });
+  }
+
+  try {
+    const [[objetivo]] = await pool.query(
+      'SELECT id_usuarios, `user`, `role` FROM usuarios WHERE id_usuarios = ? LIMIT 1',
+      [id]
+    );
+    if (!objetivo) return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+    if (objetivo.role === 'admin') {
+      return res.status(400).json({ success: false, error: 'No se puede bloquear a otro administrador' });
+    }
+
+    await pool.query(
+      `UPDATE usuarios
+          SET bloqueado = ?,
+              motivo_bloqueo = ?,
+              bloqueado_at = ?
+        WHERE id_usuarios = ?`,
+      [bloquear ? 1 : 0, bloquear ? motivo : null, bloquear ? new Date() : null, id]
+    );
+
+    console.log('[ANTIABUSO] cuenta', bloquear ? 'bloqueada' : 'reactivada', {
+      id, user: objetivo.user, por: req.cuenta.user, motivo
+    });
+
+    // Opcionalmente cancela de una vez los pedidos que dejó abiertos.
+    let pedidosCancelados = 0;
+    if (bloquear && req.body?.cancelarPedidos) {
+      const [pendientes] = await pool.query(
+        `SELECT id_pedido FROM pedidos
+          WHERE id_usuario = ? AND estado NOT IN ('rechazado', 'finalizado')`,
+        [id]
+      );
+      const resultado = await cancelarPedidos(pendientes.map(p => p.id_pedido), req.cuenta.user);
+      pedidosCancelados = resultado.cancelados;
+    }
+
+    return res.json({
+      success: true,
+      id,
+      user: objetivo.user,
+      bloqueado: bloquear,
+      pedidosCancelados
+    });
+  } catch (e) {
+    console.error('PUT /api/usuarios/:id/bloqueo error:', e);
+    return res.status(500).json({ success: false, error: 'No se pudo actualizar el estado de la cuenta' });
+  }
+});
+
+// Cancela varios pedidos de una vez y devuelve a bodega el stock que se hubiera
+// descontado. Pensado para limpiar una tanda de pedidos falsos.
+async function cancelarPedidos(ids, quien) {
+  const limpios = [...new Set((ids || []).map(Number).filter(n => Number.isInteger(n) && n > 0))];
+  if (!limpios.length) return { cancelados: 0, stockDevuelto: 0, omitidos: [] };
+
+  const connection = await pool.getConnection();
+  let liberada = false;
+
+  try {
+    await connection.beginTransaction();
+
+    let cancelados = 0;
+    let stockDevuelto = 0;
+    const omitidos = [];
+
+    // De uno en uno y en orden ascendente, para no cruzarse con otra operación.
+    for (const idPedido of limpios.sort((a, b) => a - b)) {
+      const [[pedido]] = await connection.query(
+        'SELECT id_pedido, estado FROM pedidos WHERE id_pedido = ? FOR UPDATE',
+        [idPedido]
+      );
+
+      if (!pedido) { omitidos.push({ id: idPedido, motivo: 'no existe' }); continue; }
+
+      const estadoActual = String(pedido.estado || '').toLowerCase();
+      if (estadoActual === 'rechazado') { omitidos.push({ id: idPedido, motivo: 'ya estaba rechazado' }); continue; }
+
+      // Solo se devuelve stock si de verdad se había descontado.
+      if (ESTADOS_CON_STOCK_DESCONTADO.has(estadoActual)) {
+        const [detalles] = await connection.query(
+          'SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ? ORDER BY id_producto',
+          [idPedido]
+        );
+        for (const det of detalles) {
+          await connection.query(
+            'UPDATE productos SET disponibilidad = disponibilidad + ? WHERE id_producto = ?',
+            [Number(det.cantidad) || 0, det.id_producto]
+          );
+          stockDevuelto += Number(det.cantidad) || 0;
+        }
+      }
+
+      await connection.query('UPDATE pedidos SET estado = ? WHERE id_pedido = ?', ['rechazado', idPedido]);
+      cancelados += 1;
+    }
+
+    await connection.commit();
+    connection.release();
+    liberada = true;
+
+    console.log('[ANTIABUSO] pedidos cancelados', { cancelados, stockDevuelto, por: quien });
+    return { cancelados, stockDevuelto, omitidos };
+  } catch (e) {
+    if (!liberada) {
+      try { await connection.rollback(); } catch (_) {}
+      connection.release();
+    }
+    throw e;
+  }
+}
+
+// Historial de intentos de registro.
+// Query: ?resultado=todos|creado|rechazado  &q=texto  &limite=100
+app.get('/api/registros', requireApiAdmin, async (req, res) => {
+  const resultado = String(req.query.resultado || 'todos').toLowerCase();
+  const q = (req.query.q || '').trim();
+  const limite = Math.min(Math.max(Number(req.query.limite) || 100, 1), 500);
+
+  const condiciones = [];
+  const params = [];
+
+  if (resultado === 'creado' || resultado === 'rechazado') {
+    condiciones.push('r.resultado = ?');
+    params.push(resultado);
+  }
+
+  // Búsqueda libre por usuario, correo o IP: sirve para seguirle la pista a
+  // una IP concreta y ver todas las cuentas que intentó crear.
+  if (q) {
+    condiciones.push('(r.usuario LIKE ? OR r.email LIKE ? OR r.ip LIKE ?)');
+    const patron = `%${q}%`;
+    params.push(patron, patron, patron);
+  }
+
+  const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
+  try {
+    // El LEFT JOIN dice si la cuenta sigue existiendo y si ya está bloqueada,
+    // para poder banear directamente desde esta misma vista.
+    const [filas] = await pool.query(
+      `SELECT r.id, r.fecha, r.usuario, r.email, r.telefono, r.ip,
+              r.user_agent, r.resultado, r.motivo,
+              u.id_usuarios, u.bloqueado, u.role
+         FROM registros_auditoria r
+         LEFT JOIN usuarios u ON u.id_usuarios = r.id_usuario
+         ${where}
+        ORDER BY r.fecha DESC, r.id DESC
+        LIMIT ?`,
+      [...params, limite]
+    );
+
+    // Cuántos intentos acumula cada IP en las últimas 24 h: delata al que rota
+    // correos desde una misma conexión.
+    const [porIp] = await pool.query(
+      `SELECT ip, COUNT(*) AS intentos
+         FROM registros_auditoria
+        WHERE fecha >= DATE_SUB(NOW(), INTERVAL 1 DAY) AND ip IS NOT NULL
+        GROUP BY ip
+       HAVING intentos > 1
+        ORDER BY intentos DESC
+        LIMIT 10`
+    );
+
+    return res.json({ success: true, registros: filas, ipsFrecuentes: porIp });
+  } catch (e) {
+    console.error('GET /api/registros error:', e);
+    return res.status(500).json({ success: false, error: 'No se pudo cargar el historial de registros' });
+  }
+});
+
+// Body: { ids: [1,2,3] }
+app.post('/api/pedidos/cancelar-lote', requireApiAdmin, async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+
+  if (!ids.length) {
+    return res.status(400).json({ success: false, error: 'No indicaste ningún pedido' });
+  }
+  if (ids.length > 200) {
+    return res.status(400).json({ success: false, error: 'Máximo 200 pedidos por operación' });
+  }
+
+  try {
+    const resultado = await cancelarPedidos(ids, req.cuenta.user);
+    return res.json({ success: true, ...resultado });
+  } catch (e) {
+    console.error('POST /api/pedidos/cancelar-lote error:', e);
+    return res.status(500).json({ success: false, error: 'No se pudieron cancelar los pedidos' });
+  }
+});
 
 // Obtener todos los trabajadores
 app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
@@ -1138,22 +1524,28 @@ try {
 
 });
 
-app.get('/api/mis-pedidos', async (req, res) => {
+app.get('/api/mis-pedidos', requireApiAuth, async (req, res) => {
   try {
-    const username = req.query.user;
-    if (!username) return res.status(400).json({ error: 'Falta nombre de usuario' });
+    // La identidad sale de la cookie, no del ?user= de la URL: antes bastaba
+    // con saber el nombre de alguien para leer todos sus pedidos.
+    // Un admin sí puede consultar los de otra persona pasando ?user=.
+    let userId = req.cuenta.id_usuarios;
 
-    // Buscar el id del usuario por username
-    const [users] = await pool.query(
-      'SELECT id_usuarios FROM usuarios WHERE user = ?',
-      [username]
-    );
-
-    if (users.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+    const solicitado = (req.query.user || '').trim();
+    if (solicitado && solicitado !== req.cuenta.user) {
+      if (req.cuenta.role !== 'admin') {
+        console.warn('[MIS-PEDIDOS] intento de leer pedidos ajenos', {
+          quien: req.cuenta.user, pedido: solicitado, ip: req.ip
+        });
+        return res.status(403).json({ error: 'No autorizado' });
+      }
+      const [users] = await pool.query(
+        'SELECT id_usuarios FROM usuarios WHERE `user` = ? LIMIT 1',
+        [solicitado]
+      );
+      if (!users.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+      userId = users[0].id_usuarios;
     }
-
-    const userId = users[0].id_usuarios;
 
     const [pedidos] = await pool.query(`
       SELECT p.id_pedido, p.precio_total, p.fecha_pedido, p.estado, p.delivery, p.descripcion

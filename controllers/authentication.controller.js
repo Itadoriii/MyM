@@ -5,6 +5,9 @@ import pool from './../db.js'; // Asegúrate de importar tu configuración de ba
 import crypto from 'crypto';
 import { sha256 } from '../utils/hash.js';
 import { transporter } from '../utils/mailer.js';
+import { validarEmailRegistro } from '../utils/email-guard.js';
+import { verificarCaptcha, captchaActivo } from '../utils/turnstile.js';
+import { registrarIntento } from '../utils/audit.js';
 dotenv.config();
 const BASE_URL = (process.env.BASE_URL || 'http://maderasmym.cl').replace(/\/+$/, '');
 
@@ -33,7 +36,7 @@ export async function login(req, res) {
 
   try {
     const [rows] = await pool.query(
-      'SELECT id_usuarios, `password` AS pass, email_verificado_at, `role` FROM usuarios WHERE `user`=? LIMIT 1',
+      'SELECT id_usuarios, `password` AS pass, email_verificado_at, `role`, bloqueado FROM usuarios WHERE `user`=? LIMIT 1',
       [user]
     );
 
@@ -48,6 +51,16 @@ export async function login(req, res) {
     if (!ok) {
       console.warn('[LOGIN] password incorrecta', user);
       return res.status(400).json({ status: 'Error', message: 'Credenciales inválidas' });
+    }
+
+    // 🚫 Cuentas suspendidas por abuso: no entran, aunque la clave sea correcta.
+    if (u.bloqueado) {
+      console.warn('[LOGIN] cuenta bloqueada', { user, id: u.id_usuarios });
+      return res.status(403).json({
+        status: 'Error',
+        code: 'ACCOUNT_BLOCKED',
+        message: 'Esta cuenta está suspendida. Escríbenos si crees que es un error.'
+      });
     }
 
     // ✅ Solo usuarios con email verificado
@@ -82,18 +95,54 @@ export async function register(req, res) {
   const email    = (req.body.email || '').trim().toLowerCase();
   const password = req.body.password || '';
   const number   = (req.body.number || '').trim() || null;
+  const captcha  = req.body['cf-turnstile-response'] || req.body.captcha || '';
+  const ip       = req.ip || req.socket?.remoteAddress || null;
 
-  console.log('[REGISTER] intento', { user, email, number: Boolean(number) ? 'present' : 'null' });
+  console.log('[REGISTER] intento', { user, email, ip, number: Boolean(number) ? 'present' : 'null' });
+
+  // Deja constancia del intento pase lo que pase, para poder revisarlo después
+  // desde el panel y banear a quien esté creando cuentas en cadena.
+  const auditar = (resultado, motivo, idUsuario = null) =>
+    registrarIntento({ req, usuario: user, email, telefono: number, resultado, motivo, idUsuario });
 
   if (!user || !email || !password) {
     console.warn('[REGISTER] faltan campos', { user: !!user, email: !!email, password: !!password });
+    await auditar('rechazado', 'CAMPOS_VACIOS');
     return res.status(400).send({ status: 'Error', message: 'Los campos están vacíos' });
   }
 
   // --- validadores extra ---
+
+  // captcha: descarta el registro automatizado en masa
+  if (captchaActivo()) {
+    const resultado = await verificarCaptcha(captcha, ip);
+    if (!resultado.ok) {
+      console.warn('[REGISTER] captcha rechazado', { user, email, motivo: resultado.motivo, ip });
+      await auditar('rechazado', 'CAPTCHA');
+      return res.status(400).send({
+        status: 'Error',
+        code: 'CAPTCHA_FAILED',
+        message: 'No pudimos verificar que seas una persona. Recarga la página e inténtalo de nuevo.'
+      });
+    }
+  }
+
+  // correo: sin buzones temporales ni dominios inexistentes
+  const revisionEmail = await validarEmailRegistro(email);
+  if (!revisionEmail.ok) {
+    console.warn('[REGISTER] correo rechazado', { email, motivo: revisionEmail.motivo, ip });
+    await auditar('rechazado', revisionEmail.motivo);
+    return res.status(400).send({
+      status: 'Error',
+      code: revisionEmail.motivo,
+      message: revisionEmail.mensaje
+    });
+  }
+
   // contraseña fuerte: min 8, mayúscula, minúscula, número
     if (!STRONG_PWD.test(password)) {
     console.warn('[REGISTER] contraseña débil');
+    await auditar('rechazado', 'PASSWORD_DEBIL');
     return res.status(400).send({
         status: 'Error',
         message: PWD_RULE_MSG
@@ -107,6 +156,7 @@ export async function register(req, res) {
     // 🇨🇱 si solo quieres celulares Chile: const phoneRe = /^(\+?56)?\s?9\d{8}$/;
     if (!phoneRe.test(number)) {
       console.warn('[REGISTER] número inválido', number);
+      await auditar('rechazado', 'TELEFONO_INVALIDO');
       return res.status(400).send({
         status: 'Error',
         message: 'El número de teléfono no es válido.'
@@ -120,10 +170,12 @@ export async function register(req, res) {
     const [duMail] = await pool.query('SELECT 1 FROM usuarios WHERE email=? LIMIT 1', [email]);
     if (duUser.length) {
       console.warn('[REGISTER] user duplicado', user);
+      await auditar('rechazado', 'USUARIO_DUPLICADO');
       return res.status(400).send({ status: 'Error', message: 'Este usuario ya existe' });
     }
     if (duMail.length) {
       console.warn('[REGISTER] email duplicado', email);
+      await auditar('rechazado', 'EMAIL_DUPLICADO');
       return res.status(400).send({ status: 'Error', message: 'Este correo ya está usado' });
     }
 
@@ -135,7 +187,15 @@ export async function register(req, res) {
       [user, email, number, hashPassword, 'user']
     );
     const userId = ins.insertId;
-    console.log('[REGISTER] usuario creado (pendiente)', { userId, user, email });
+    console.log('[REGISTER] usuario creado (pendiente)', { userId, user, email, ip });
+    await auditar('creado', null, userId);
+
+    // Deja rastro de la IP para poder identificar registros en cadena.
+    try {
+      await pool.query('UPDATE usuarios SET ip_registro = ? WHERE id_usuarios = ?', [ip, userId]);
+    } catch (e) {
+      console.warn('[REGISTER] no se pudo guardar ip_registro:', e?.message || e);
+    }
 
     const raw = crypto.randomBytes(32).toString('hex');
     const tokenHash = sha256(raw);
@@ -178,6 +238,7 @@ export async function register(req, res) {
 
   } catch (err) {
     console.error('[REGISTER] error inesperado:', err);
+    await auditar('rechazado', 'ERROR_SERVIDOR');
     return res.status(500).send({ status: 'Error', message: err.message });
   }
 }

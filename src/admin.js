@@ -1,3 +1,13 @@
+// Escapa texto antes de meterlo en HTML. Las tablas del panel muestran datos
+// que escribe el propio visitante (usuario, correo, comentarios del pedido);
+// sin esto, alguien puede registrarse como <img src=x onerror=...> y ejecutar
+// código en el navegador del administrador al abrir la tabla.
+function esc(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 // Evita cualquier envío de formulario accidental
 document.addEventListener('submit', e => {
   e.preventDefault();
@@ -64,6 +74,9 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'adelantos':
                 fetchAdelantos();
                 break;
+            case 'registros':
+                fetchRegistros();
+                break;
             case 'informe general':
                 fetchInformeGeneral();
                 break
@@ -124,6 +137,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <th>Correo</th>
                 <th>Teléfono</th>
                 <th>Rol</th>
+                <th>Estado</th>
                 <th>Acciones</th>
                 </tr>
             </thead>
@@ -131,12 +145,24 @@ document.addEventListener("DOMContentLoaded", function() {
                 ${usuarios.map(u => `
                 <tr>
                     <td>${u.id_usuarios || '-'}</td>
-                    <td>${u.user}</td>
-                    <td>${u.email}</td>
-                    <td>${u.number || 'No disponible'}</td>
-                    <td>${u.role || 'user'}</td>
+                    <td>${esc(u.user)}</td>
+                    <td>${esc(u.email)}</td>
+                    <td>${esc(u.number) || 'No disponible'}</td>
+                    <td>${esc(u.role) || 'user'}</td>
+                    <td>
+                        ${u.bloqueado
+                            ? `<span class="badge rej" title="${esc(u.motivo_bloqueo)}">Bloqueado</span>`
+                            : (u.email_verificado_at
+                                ? '<span class="badge fin">Activa</span>'
+                                : '<span class="badge esp">Sin verificar</span>')}
+                        ${u.ip_registro ? `<br><small style="opacity:.6">IP: ${esc(u.ip_registro)}</small>` : ''}
+                    </td>
                     <td>
                         <button class="resetPassBtn" data-id="${u.id_usuarios}">Restablecer Pass</button>
+                        ${u.role === 'admin' ? '' : `
+                        <button class="bloqueoBtn" data-id="${u.id_usuarios}" data-user="${esc(u.user)}" data-bloqueado="${u.bloqueado ? 1 : 0}">
+                            ${u.bloqueado ? 'Desbloquear' : 'Bloquear'}
+                        </button>`}
                     </td>
                 </tr>
                 `).join('')}
@@ -155,10 +181,191 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         });
 
+        document.querySelectorAll('.bloqueoBtn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const { id, user, bloqueado } = e.target.dataset;
+                cambiarBloqueo(id, user, bloqueado === '1');
+            });
+        });
+
     } catch (error) {
         console.error('Error fetching usuarios:', error);
         mainContent.innerHTML = '<p>Error loading usuarios.</p>';
     }
+    }
+
+    // Historial de intentos de registro: quién intentó crear cuenta, con qué
+    // correo e IP, y si se le aceptó o por qué se le rechazó.
+    async function fetchRegistros(filtros = {}) {
+        const resultado = filtros.resultado || 'todos';
+        const q = filtros.q || '';
+
+        mainContent.innerHTML = `
+            <div class="pedidos-header">
+                <h1>Registros de cuentas</h1>
+                <nav class="pill-tabs" id="reg-tabs">
+                    <button class="orders-tab ${resultado==='todos'?'active':''}" data-res="todos">Todos</button>
+                    <button class="orders-tab ${resultado==='creado'?'active':''}" data-res="creado">Creadas</button>
+                    <button class="orders-tab ${resultado==='rechazado'?'active':''}" data-res="rechazado">Rechazadas</button>
+                </nav>
+            </div>
+            <div style="margin:10px 0;display:flex;gap:8px;align-items:center;">
+                <input type="text" id="reg-buscar" placeholder="Buscar por usuario, correo o IP…"
+                       value="${q}" style="padding:6px 10px;min-width:280px;">
+                <button id="reg-buscar-btn" type="button">Buscar</button>
+            </div>
+            <div id="reg-resumen"></div>
+            <div class="table-wrap" id="reg-wrap"><p>Cargando…</p></div>
+        `;
+
+        document.getElementById('reg-tabs').onclick = (e) => {
+            const btn = e.target.closest('.orders-tab');
+            if (btn) fetchRegistros({ resultado: btn.dataset.res, q });
+        };
+        const lanzarBusqueda = () =>
+            fetchRegistros({ resultado, q: document.getElementById('reg-buscar').value.trim() });
+        document.getElementById('reg-buscar-btn').onclick = lanzarBusqueda;
+        document.getElementById('reg-buscar').onkeydown = (e) => {
+            if (e.key === 'Enter') lanzarBusqueda();
+        };
+
+        const wrap = document.getElementById('reg-wrap');
+        try {
+            const params = new URLSearchParams({ resultado, q, limite: '200' });
+            const res = await fetch(`/api/registros?${params}`, { credentials: 'include' });
+            const data = await res.json();
+
+            if (!res.ok || data.success === false) {
+                wrap.innerHTML = `<p>Error: ${data.error || res.statusText}</p>`;
+                return;
+            }
+
+            // IPs con más de un intento en 24 h: lo primero que hay que mirar.
+            const resumen = document.getElementById('reg-resumen');
+            if (data.ipsFrecuentes?.length) {
+                resumen.innerHTML = `
+                    <p style="margin:6px 0;"><b>IPs con varios intentos en las últimas 24 h:</b></p>
+                    <p style="margin:0 0 12px;">
+                    ${data.ipsFrecuentes.map(i =>
+                        `<button class="reg-ip" data-ip="${esc(i.ip)}" style="margin:2px;">${esc(i.ip)} (${Number(i.intentos)})</button>`
+                    ).join('')}
+                    </p>`;
+                resumen.onclick = (e) => {
+                    const btn = e.target.closest('.reg-ip');
+                    if (btn) fetchRegistros({ resultado, q: btn.dataset.ip });
+                };
+            } else {
+                resumen.innerHTML = '';
+            }
+
+            if (!data.registros.length) {
+                wrap.innerHTML = '<p>No hay intentos de registro que coincidan.</p>';
+                return;
+            }
+
+            const etiquetaMotivo = (m) => ({
+                INSTITUCIONAL:     'Correo institucional',
+                DESECHABLE:        'Correo desechable',
+                SIN_MX:            'Dominio inexistente',
+                FORMATO:           'Correo mal formado',
+                CAPTCHA:           'Captcha fallido',
+                RATE_LIMIT:        'Demasiados intentos',
+                PASSWORD_DEBIL:    'Contraseña débil',
+                TELEFONO_INVALIDO: 'Teléfono inválido',
+                USUARIO_DUPLICADO: 'Usuario ya existe',
+                EMAIL_DUPLICADO:   'Correo ya usado',
+                CAMPOS_VACIOS:     'Campos vacíos',
+                ERROR_SERVIDOR:    'Error del servidor'
+            }[m] || m || '—');
+
+            wrap.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>IP</th>
+                        <th>Resultado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                ${data.registros.map(r => `
+                    <tr>
+                        <td>${new Date(r.fecha).toLocaleString('es-CL')}</td>
+                        <td>${esc(r.usuario) || '—'}</td>
+                        <td>${esc(r.email) || '—'}</td>
+                        <td>${esc(r.telefono) || '—'}</td>
+                        <td><code>${esc(r.ip) || '—'}</code></td>
+                        <td>${r.resultado === 'creado'
+                            ? '<span class="badge fin">Creada</span>'
+                            : `<span class="badge rej">Rechazada</span><br><small>${esc(etiquetaMotivo(r.motivo))}</small>`}</td>
+                        <td>
+                            ${r.id_usuarios && r.role !== 'admin'
+                                ? (r.bloqueado
+                                    ? `<span class="badge rej">Bloqueado</span>`
+                                    : `<button class="bloqueoBtn" data-id="${r.id_usuarios}" data-user="${esc(r.usuario)}" data-bloqueado="0">Bloquear</button>`)
+                                : '<small style="opacity:.6">—</small>'}
+                        </td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table>`;
+
+            wrap.querySelectorAll('.bloqueoBtn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const { id, user } = e.target.dataset;
+                    cambiarBloqueo(id, user, false, () => fetchRegistros({ resultado, q }));
+                });
+            });
+        } catch (err) {
+            console.error('Error al cargar registros:', err);
+            wrap.innerHTML = '<p>Error de red al cargar el historial.</p>';
+        }
+    }
+
+    // Suspende o reactiva una cuenta. Al bloquear, ofrece cancelar de una vez
+    // los pedidos que la cuenta dejó abiertos y devolver el stock a bodega.
+    async function cambiarBloqueo(id, user, estaBloqueado, alTerminar = fetchUsuarios) {
+        if (estaBloqueado) {
+            if (!confirm(`¿Reactivar la cuenta "${user}"?`)) return;
+        } else {
+            if (!confirm(`¿Bloquear la cuenta "${user}"?\n\nNo podrá iniciar sesión ni generar pedidos.`)) return;
+        }
+
+        let motivo = '';
+        let cancelarPedidos = false;
+
+        if (!estaBloqueado) {
+            motivo = prompt('Motivo del bloqueo (opcional):', 'Pedidos falsos') || '';
+            cancelarPedidos = confirm('¿Cancelar también sus pedidos abiertos y devolver el stock?');
+        }
+
+        try {
+            const res = await fetch(`/api/usuarios/${id}/bloqueo`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ bloqueado: !estaBloqueado, motivo, cancelarPedidos })
+            });
+            const data = await res.json();
+
+            if (!res.ok || data.success === false) {
+                alert('No se pudo actualizar la cuenta: ' + (data.error || res.statusText));
+                return;
+            }
+
+            const extra = data.pedidosCancelados
+                ? `\nPedidos cancelados: ${data.pedidosCancelados}`
+                : '';
+            alert(`Cuenta "${user}" ${data.bloqueado ? 'bloqueada' : 'reactivada'}.${extra}`);
+            alTerminar();
+        } catch (err) {
+            console.error('Error al cambiar el bloqueo:', err);
+            alert('Error de red al actualizar la cuenta.');
+        }
     }
         // ----- PEDIDOS con pestañas y scroll -----
         async function fetchPedidos(scope = 'generados') {
@@ -207,6 +414,7 @@ document.addEventListener("DOMContentLoaded", function() {
             wrap.innerHTML = buildPedidosTable(pedidos);
             // Atacha acciones
             wirePedidoActions(wrap);
+            wireCancelacionLote(wrap, scope);
         } catch (err) {
             console.error(err);
             wrap.innerHTML = `<p>Error al cargar pedidos.</p>`;
@@ -234,9 +442,14 @@ document.addEventListener("DOMContentLoaded", function() {
         };
 
         return `
+        <div class="bulk-bar" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <button id="cancelar-lote" type="button">Cancelar seleccionados</button>
+            <span id="bulk-count" style="opacity:.7;font-size:.9em;">0 seleccionados</span>
+        </div>
         <table>
             <thead>
             <tr>
+                <th><input type="checkbox" id="chk-todos" title="Seleccionar todos"></th>
                 <th>ID</th>
                 <th>Usuario</th>
                 <th>Contacto</th>
@@ -252,18 +465,19 @@ document.addEventListener("DOMContentLoaded", function() {
             <tbody>
             ${pedidos.map(p => `
                 <tr>
+                <td><input type="checkbox" class="chk-pedido" value="${p.id_pedido}"></td>
                 <td>${p.id_pedido}</td>
-                <td>${p.user}</td>
-                <td>${p.email}<br>${p.number || '-'}</td>
+                <td>${esc(p.user)}</td>
+                <td>${esc(p.email)}<br>${esc(p.number) || '-'}</td>
                 <td>$ ${fmt(p.precio_total)}</td>
                 <td>${new Date(p.fecha_pedido).toLocaleString('es-CL')}</td>
                 <td>${badge(p.estado)}</td>
-                <td>${p.delivery || '-'}</td>
-                <td>${p.descripcion || '-'}</td>
+                <td>${esc(p.delivery) || '-'}</td>
+                <td>${esc(p.descripcion) || '-'}</td>
                 <td>
                     <ul style="margin-left:16px">
                     ${p.detalles.map(d => `
-                        <li>${d.nombre_prod} — ${d.cantidad} x $${fmt(d.precio_detalle)}</li>
+                        <li>${esc(d.nombre_prod)} — ${Number(d.cantidad)} x $${fmt(d.precio_detalle)}</li>
                     `).join('')}
                     </ul>
                 </td>
@@ -274,6 +488,70 @@ document.addEventListener("DOMContentLoaded", function() {
             `).join('')}
             </tbody>
         </table>`;
+        }
+
+        // Selección múltiple para limpiar tandas de pedidos falsos de una vez.
+        function wireCancelacionLote(wrap, scope){
+        const chkTodos  = wrap.querySelector('#chk-todos');
+        const contador  = wrap.querySelector('#bulk-count');
+        const botón     = wrap.querySelector('#cancelar-lote');
+        if (!botón) return;
+
+        const seleccionados = () =>
+            [...wrap.querySelectorAll('.chk-pedido:checked')].map(c => Number(c.value));
+
+        const refrescarContador = () => {
+            const n = seleccionados().length;
+            contador.textContent = `${n} seleccionado${n === 1 ? '' : 's'}`;
+        };
+
+        wrap.addEventListener('change', (e) => {
+            if (e.target.id === 'chk-todos') {
+            wrap.querySelectorAll('.chk-pedido').forEach(c => { c.checked = chkTodos.checked; });
+            }
+            if (e.target.classList.contains('chk-pedido') || e.target.id === 'chk-todos') {
+            refrescarContador();
+            }
+        });
+
+        botón.addEventListener('click', async () => {
+            const ids = seleccionados();
+            if (!ids.length) { alert('No seleccionaste ningún pedido.'); return; }
+
+            if (!confirm(
+            `¿Cancelar ${ids.length} pedido(s)?\n\n` +
+            'Pasarán a "Rechazado" y, si ya se les había descontado stock, ' +
+            'las unidades vuelven a bodega.'
+            )) return;
+
+            botón.disabled = true;
+            try {
+            const res = await fetch('/api/pedidos/cancelar-lote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ ids })
+            });
+            const data = await res.json();
+
+            if (!res.ok || data.success === false) {
+                alert('No se pudieron cancelar: ' + (data.error || res.statusText));
+                return;
+            }
+
+            alert(
+                `Pedidos cancelados: ${data.cancelados}\n` +
+                `Unidades devueltas a stock: ${data.stockDevuelto}` +
+                (data.omitidos?.length ? `\nOmitidos: ${data.omitidos.length}` : '')
+            );
+            fetchPedidos(scope);
+            } catch (err) {
+            console.error('Error al cancelar en lote:', err);
+            alert('Error de red al cancelar los pedidos.');
+            } finally {
+            botón.disabled = false;
+            }
+        });
         }
 
         function buildActionButtons(estado, id){

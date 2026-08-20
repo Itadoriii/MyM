@@ -58,6 +58,11 @@
                  pattern="^(\+?56)?\s?9\d{8}$" />
         </div>
 
+        <!-- El captcha se inyecta solo si hay clave configurada en el servidor -->
+        <div class="field" id="captcha-field" hidden>
+          <div id="captcha-widget"></div>
+        </div>
+
         <button type="submit">Crear cuenta</button>
 
         <p class="err escondido" id="err-msg"></p>
@@ -135,13 +140,51 @@
       }
     });
 
+    /* ---- Captcha (Cloudflare Turnstile) ----
+       Se activa solo si el servidor tiene TURNSTILE_SITE_KEY configurada,
+       así el formulario sigue funcionando mientras se da de alta. */
+    let captchaRequerido = false;
+
+    fetch('/api/captcha-config')
+      .then(r => r.json())
+      .then(cfg => {
+        if (!cfg.activo || !cfg.siteKey) return;
+
+        captchaRequerido = true;
+
+        const widget = document.getElementById('captcha-widget');
+        widget.className = 'cf-turnstile';
+        widget.setAttribute('data-sitekey', cfg.siteKey);
+        widget.setAttribute('data-language', 'es');
+        document.getElementById('captcha-field').hidden = false;
+
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      })
+      .catch(err => console.warn('[captcha] no se pudo cargar la configuración:', err));
+
+    function captchaResuelto() {
+      const campo = form.querySelector('[name="cf-turnstile-response"]');
+      return Boolean(campo && campo.value);
+    }
+
     form.addEventListener('submit', (e) => {
       if (!validateFields()) {
         e.preventDefault();
-      } else {
-        // opcional: mostrar mensaje mientras envía
-        showOk('Enviando… revisa tu correo para verificar la cuenta.');
+        return;
       }
+
+      if (captchaRequerido && !captchaResuelto()) {
+        e.preventDefault();
+        showErr('Completa la verificación "No soy un robot" antes de continuar.');
+        return;
+      }
+
+      // opcional: mostrar mensaje mientras envía
+      showOk('Enviando… revisa tu correo para verificar la cuenta.');
     });
   </script>
   <!-- Google tag (gtag.js) -->
