@@ -1,13 +1,33 @@
 // middlewares/authorization.js
 import jsonwebtoken from 'jsonwebtoken';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import pool from './../db.js';
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '7d';
 const isProd = process.env.NODE_ENV === 'production';
+
+// El secreto NUNCA puede tener un valor por defecto conocido: quien lo sepa
+// se firma un token {role:'admin'} y entra al panel sin contraseña. Como este
+// código está publicado, un literal en el fuente equivale a no tener clave.
+// Si falta en producción se genera uno aleatorio: el sitio sigue en pie y
+// nadie puede falsificar tokens, pero cada reinicio cierra las sesiones. El
+// log lo grita para que se configure de verdad.
+const JWT_SECRET = (() => {
+  const configurado = process.env.JWT_SECRET;
+  if (configurado && configurado.length >= 24) return configurado;
+
+  if (configurado) {
+    console.error('[FATAL] JWT_SECRET es demasiado corto (mínimo 24 caracteres). Genera uno con: openssl rand -hex 32');
+  } else {
+    console.error('[FATAL] falta JWT_SECRET en el .env. Genera uno con: openssl rand -hex 32');
+  }
+  console.error('[FATAL] se usa un secreto aleatorio temporal: las sesiones se cerrarán en cada reinicio.');
+  return crypto.randomBytes(48).toString('hex');
+})();
+
+const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '7d';
 
 // Renovación automática si quedan < 15 min
 const RENEW_THRESHOLD_SECONDS = 15 * 60;
@@ -15,6 +35,14 @@ const RENEW_THRESHOLD_SECONDS = 15 * 60;
 // --------- Utils de JWT/Cookie ----------
 export function signJWT(payload) {
   return jsonwebtoken.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
+}
+
+// Único verificador del proyecto. Antes cada archivo llamaba a
+// jsonwebtoken.verify(token, process.env.JWT_SECRET) por su cuenta, así que
+// bastaba con que la variable no estuviera puesta para que unos módulos
+// firmaran con un secreto y otros validaran con otro.
+export function verifyJWT(token) {
+  return jsonwebtoken.verify(token, JWT_SECRET);
 }
 
 export function setAuthCookie(res, token) {
@@ -46,17 +74,38 @@ export async function revisarCookie(req, res = null) {
     console.log('[AUTH] JWT Cookie:', cookieJWT ? '[present]' : '[missing]');
     if (!cookieJWT) return false;
 
-    const decoded = jsonwebtoken.verify(cookieJWT, JWT_SECRET); // { uid?, user, role, iat, exp }
+    const decoded = verifyJWT(cookieJWT); // { uid?, user, role, iat, exp }
     console.log('[AUTH] JWT Decoded:', decoded);
 
-    // Verifica existencia del usuario en BD (prefiere uid)
+    // La cuenta se relee en cada petición: el token dura 7 días y en ese plazo
+    // se puede haber bloqueado la cuenta o quitado el rol de admin. Lo que diga
+    // el token sobre el rol no vale nada; manda la base de datos.
+    let cuenta = null;
     if (decoded.uid) {
-      const [rows] = await pool.query('SELECT 1 FROM usuarios WHERE id_usuarios = ? LIMIT 1', [decoded.uid]);
-      if (!rows.length) return false;
+      const [rows] = await pool.query(
+        'SELECT id_usuarios, `user`, `role`, bloqueado FROM usuarios WHERE id_usuarios = ? LIMIT 1',
+        [decoded.uid]
+      );
+      cuenta = rows[0] || null;
     } else if (decoded.user) {
-      const [rows] = await pool.query('SELECT 1 FROM usuarios WHERE `user` = ? LIMIT 1', [decoded.user]);
-      if (!rows.length) return false;
+      const [rows] = await pool.query(
+        'SELECT id_usuarios, `user`, `role`, bloqueado FROM usuarios WHERE `user` = ? LIMIT 1',
+        [decoded.user]
+      );
+      cuenta = rows[0] || null;
     }
+
+    if (!cuenta) return false;
+
+    if (cuenta.bloqueado) {
+      console.warn('[AUTH] cuenta bloqueada intentó usar su sesión', { id: cuenta.id_usuarios, user: cuenta.user });
+      if (res) clearAuthCookie(res);
+      return false;
+    }
+
+    decoded.role = cuenta.role;      // el rol real, no el que venga firmado
+    decoded.uid  = cuenta.id_usuarios;
+    decoded.user = cuenta.user;
 
     // Renovación deslizante si queda poco
     const now = Math.floor(Date.now() / 1000);

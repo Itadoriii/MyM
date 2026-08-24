@@ -146,11 +146,8 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          if (data.alreadyVerified) {
-            showMsg('Tu correo ya estaba verificado. Intenta iniciar sesión.', 'ok');
-          } else {
-            showMsg('Listo. Revisa tu correo (o carpeta de spam).', 'ok');
-          }
+          // Mensaje único: el servidor ya no dice si la cuenta existe.
+          showMsg(data.message || 'Listo. Revisa tu correo (o carpeta de spam).', 'ok');
         } else {
           showMsg('No se pudo reenviar. Intenta más tarde.');
         }

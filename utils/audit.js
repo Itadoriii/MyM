@@ -3,11 +3,13 @@
 // Los rechazos son la señal más útil: veinte intentos seguidos desde la misma
 // IP con correos distintos delatan a quien está creando cuentas en cadena.
 import pool from '../db.js';
+import { obtenerIp } from './client-ip.js';
 
 // Nunca lanza: un fallo al auditar no puede tumbar un registro legítimo.
 export async function registrarIntento({ req, usuario, email, telefono, resultado, motivo, idUsuario }) {
   try {
-    const ip = req?.ip || req?.socket?.remoteAddress || null;
+    const ip = obtenerIp(req);
+    if (!ip) console.warn('[AUDIT] intento sin IP identificable', { email, resultado, motivo });
     const userAgent = (req?.headers?.['user-agent'] || '').slice(0, 255) || null;
 
     await pool.query(

@@ -1,2 +1,7 @@
 node_modules
 .env
+
+# Volcados de la base de datos: contienen correos, teléfonos y hashes de
+# contraseña de clientes reales. Nunca deben subirse a un repositorio.
+*.sql
+!migrations/*.sql
