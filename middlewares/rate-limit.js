@@ -3,6 +3,8 @@
 // Suficiente para un solo proceso Node; si algún día levantas varias instancias,
 // habría que moverlo a Redis para que compartan el contador.
 
+import { obtenerIp } from '../utils/client-ip.js';
+
 const registros = new Map(); // clave -> { conteo, reinicioEn }
 
 // Evita que el Map crezca sin control en un proceso de larga vida.
@@ -25,7 +27,7 @@ const INTERVALO_LIMPIEZA = 5 * 60 * 1000;
  * @param {(req)=>void} [opts.alBloquear]  Se llama al rechazar, para auditar.
  */
 export function crearLimitador({ ventanaMs, max, nombre, clave, mensaje, alBloquear }) {
-  const obtenerClave = clave || ((req) => req.ip || req.socket?.remoteAddress || 'desconocida');
+  const obtenerClave = clave || ((req) => obtenerIp(req) || 'desconocida');
   const texto = mensaje || 'Demasiadas peticiones. Espera un momento antes de reintentar.';
 
   return function limitador(req, res, next) {

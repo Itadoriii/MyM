@@ -4,6 +4,7 @@ import path from 'path';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import nodemailer from 'nodemailer';
 import pool from '../db.js';
+import { escaparHtml, textoSeguro } from '../utils/html.js';
 
 
 // === Utils de formato ===
@@ -196,7 +197,7 @@ function detallesHTML(detalles = []) {
   const rows = detalles.map(d => {
     // Combinar medidas y dimensiones si existen
     const medidaCompleta = d.medidas || d.dimensiones || '—';
-    const nombreCompleto = `${d.nombre_prod} ${medidaCompleta}`;
+    const nombreCompleto = escaparHtml(`${d.nombre_prod} ${medidaCompleta}`);
     
     return `
     <tr>
@@ -355,7 +356,7 @@ export async function enviarMailCambioEstado(idPedido, nuevoEstado) {
       <div style="font-family:system-ui,Segoe UI,Arial;line-height:1.5;">
         <h2>Estado actualizado: #${pedido.id} → ${LABELS[nuevoEstado] || nuevoEstado}</h2>
         ${bar}
-        <p>Cliente: ${pedido.nombre} — ${pedido.email} — ${pedido.telefono || 'Sin número'}</p>
+        <p>Cliente: ${escaparHtml(pedido.nombre)} — ${escaparHtml(pedido.email)} — ${escaparHtml(pedido.telefono) || 'Sin número'}</p>
       </div>
     `;
 
@@ -389,7 +390,7 @@ export async function notificarPedidoGenerado(idPedido) {
         <p><strong>Fecha:</strong> ${fechaCL(pedido.fecha)}<br>
            <strong>Entrega:</strong> ${entrega}<br>
            <strong>Total:</strong> ${CLP(pedido.total)}<br>
-           <strong>Comentario:</strong> ${pedido.descripcion || '—'}</p>
+           <strong>Comentario:</strong> ${textoSeguro(pedido.descripcion, 500) || '—'}</p>
         <h3 style="margin:16px 0 8px;">Detalle</h3>
         ${htmlTabla}
         <p style="margin-top:12px;text-align:right;font-weight:700;">Total: ${CLP(pedido.total)}</p>
@@ -400,7 +401,7 @@ export async function notificarPedidoGenerado(idPedido) {
       <div style="font-family:system-ui,Segoe UI,Arial;line-height:1.45;">
         <h2 style="margin:0 0 8px;">Nuevo pedido generado #${pedido.id}</h2>
         ${progressBarEmailHTML('generado')}
-        <p><strong>Cliente:</strong> ${pedido.nombre} — ${pedido.email} — ${pedido.telefono || 'Sin número'}</p>
+        <p><strong>Cliente:</strong> ${escaparHtml(pedido.nombre)} — ${escaparHtml(pedido.email)} — ${escaparHtml(pedido.telefono) || 'Sin número'}</p>
         <p><strong>Entrega:</strong> ${entrega} — <strong>Total:</strong> ${CLP(pedido.total)}</p>
       </div>`;
 

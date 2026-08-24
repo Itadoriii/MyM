@@ -7,9 +7,8 @@ import session from 'express-session';
 import { methods as metodos } from './controllers/authentication.controller.js';
 import { methods as authorization } from './middlewares/authorization.js';
 import isAuthenticated from './middlewares/isAuthenticated.js'; // Importa el nuevo middleware
-import './middlewares/passport-setup.js'; // Importa la configuración de passport
+import { googleActivo } from './middlewares/passport-setup.js';
 import pool from './db.js';
-import jsonwebtoken from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { revisarCookie } from './middlewares/authorization.js';
 // enviarConfirmacion ha sido eliminada, la lógica está en el controlador de estados
@@ -20,12 +19,15 @@ import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification, forgotPassword, checkResetToken, resetPassword } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
 import { ensureSchema } from './utils/ensure-schema.js';
-import { requireAuth, requireRole, soloAdmin, soloPublico } from './middlewares/authorization.js';
+import { requireAuth, requireRole, soloAdmin, soloPublico, verifyJWT, setAuthCookie, signJWT } from './middlewares/authorization.js';
 import { requireApiAuth, requireApiAdmin } from './middlewares/api-auth.js';
 import { crearLimitador } from './middlewares/rate-limit.js';
 import { captchaActivo } from './utils/turnstile.js';
 import { registrarIntento } from './utils/audit.js';
+import { obtenerIp, diagnosticoIp } from './utils/client-ip.js';
+import { escaparHtml, textoSeguro } from './utils/html.js';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 
 
@@ -42,6 +44,14 @@ app.listen(port, () => {
 
 // Crea las columnas que falten (recuperación de contraseña y antiabuso).
 ensureSchema();
+
+// El captcha es lo único que frena el registro automatizado. Si la clave no
+// está puesta queda desactivado en silencio, así que aquí se avisa fuerte.
+if (captchaActivo()) {
+  console.log('[CONFIG] captcha Turnstile ACTIVO en el registro.');
+} else {
+  console.warn('[CONFIG] captcha Turnstile DESACTIVADO: el registro está abierto a bots. Configura TURNSTILE_SITE_KEY y TURNSTILE_SECRET_KEY.');
+}
  
 
 // CONFIGURACION
@@ -53,6 +63,10 @@ ensureSchema();
 if (process.env.TRUST_PROXY) {
   app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
   console.log('[CONFIG] trust proxy activado:', app.get('trust proxy'));
+} else {
+  // Si en producción hay nginx/Apache/Cloudflare delante y falta esta variable,
+  // todas las IP que se guarden serán 127.0.0.1 y no servirán de nada.
+  console.log('[CONFIG] trust proxy DESACTIVADO: si Node está detrás de un proxy, define TRUST_PROXY=1 o las IP registradas serán las del proxy.');
 }
 
 // Solo nuestro propio sitio puede llamar a la API desde un navegador.
@@ -72,14 +86,38 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+// Cabeceras de seguridad. Sin dependencias nuevas: son cuatro líneas y evitan
+// que el sitio se pueda enmarcar (clickjacking sobre el panel), que el
+// navegador adivine tipos de contenido y que las URL internas se filtren por
+// el Referer al salir a otro dominio.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  if (process.env.NODE_ENV === 'production') {
+    // Un año de HTTPS obligatorio. Solo en producción: en local no hay TLS.
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// Tope al tamaño del cuerpo: un carrito o un formulario no pesan más de esto,
+// y así un POST de varios MB no ocupa memoria del proceso.
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(cookieParser());
+// Sin secreto por defecto: 'your_secret_key' está en el código y firmaría
+// sesiones que cualquiera puede falsificar. Si falta, se usa uno aleatorio.
+if (!process.env.SESSION_SECRET) {
+  console.error('[FATAL] falta SESSION_SECRET en el .env. Se usa uno aleatorio (las sesiones se pierden al reiniciar). Genera uno con: openssl rand -hex 32');
+}
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_secret_key',
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex'),
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false,   // no crea sesión para cada visitante anónimo
+  cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -92,12 +130,22 @@ const verifyToken = async (req, res, next) => {
     return res.redirect('/login');
   }
   try {
-    const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
-    const [rows] = await pool.query('SELECT * FROM usuarios WHERE user = ?', [decoded.user]);
+    const decoded = verifyJWT(token);
+    // Solo las columnas que se usan: este SELECT * traía el hash de la
+    // contraseña y los tokens de verificación a la memoria de cada petición.
+    const [rows] = await pool.query(
+      'SELECT id_usuarios, `user`, email, `number`, `role`, google_id, bloqueado FROM usuarios WHERE `user` = ? LIMIT 1',
+      [decoded.user]
+    );
     if (rows.length === 0) {
       return res.redirect('/login');
     }
-    req.user = rows[0]; // Asignamos los datos completos del usuario a `req.user`
+    if (rows[0].bloqueado) {
+      console.warn('[AUTH] cuenta bloqueada intentó entrar', { user: rows[0].user });
+      res.clearCookie('jwt', { path: '/' });
+      return res.redirect('/login');
+    }
+    req.user = rows[0];
     next();
   } catch (err) {
     return res.redirect('/login');
@@ -135,6 +183,17 @@ const limiteLogin = crearLimitador({
   mensaje: 'Demasiados intentos de inicio de sesión. Espera unos minutos.'
 });
 
+// El límite por IP no sirve contra una botnet: cada intento llega de una
+// dirección distinta. Este segundo límite cuenta por cuenta atacada, así que
+// da igual desde cuántas IP prueben la contraseña del admin.
+const limiteLoginCuenta = crearLimitador({
+  nombre: 'login-cuenta',
+  ventanaMs: 15 * 60 * 1000,
+  max: 15,
+  clave: (req) => String(req.body?.user || '').trim().toLowerCase() || 'sin-usuario',
+  mensaje: 'Demasiados intentos con esta cuenta. Espera unos minutos.'
+});
+
 // Correos salientes (verificación y recuperación): 5 por IP cada 15 min.
 const limiteCorreo = crearLimitador({
   nombre: 'correo',
@@ -155,8 +214,8 @@ const limitePedidos = crearLimitador({
 // Reglas de transición de estado (PEGAR ARRIBA DEL ARCHIVO DE RUTAS)
 const NEXTS = {
   generado: ['aceptado_espera_pago', 'rechazado'],
-  aceptado_espera_pago: ['pagado_espera_despacho'],
-  pagado_espera_despacho: ['enviado', 'retirado'],
+  aceptado_espera_pago: ['pagado_espera_envio'],
+  pagado_espera_envio: ['enviado', 'retirado'],
   enviado: ['finalizado'],
   retirado: ['finalizado'],
   rechazado: [],
@@ -193,22 +252,37 @@ app.get('/api/captcha-config', (req, res) => {
 });
 
 app.post('/api/register', limiteRegistro, register);
-app.post('/api/login', limiteLogin, login);
+app.post('/api/login', limiteLogin, limiteLoginCuenta, login);
 app.post('/api/verify/resend', limiteCorreo, resendVerification);
 app.post('/api/password/forgot', limiteCorreo, forgotPassword);
 app.get('/api/password/reset/check', checkResetToken);
 app.post('/api/password/reset', resetPassword);
 
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] }));
+// Login con Google: solo se monta si está configurado de verdad. Estaba
+// creando cuentas sin captcha, sin filtro de dominio, sin límite por IP y sin
+// rastro, y entregaba la sesión sin comprobar si la cuenta estaba bloqueada.
+if (googleActivo) {
+  app.get('/auth/google', limiteRegistro,
+    passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    const token = jsonwebtoken.sign({ user: req.user.user, role: req.user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('jwt', token, { httpOnly: true, secure: false, sameSite: 'lax' }); // sameSite:lax necesario para móviles
-    res.redirect('/profile');
+  app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login?google=rechazado' }),
+    (req, res) => {
+      // La cookie se emite con las mismas garantías que el login normal
+      // (secure en producción, httpOnly, expiración común). Antes iba con
+      // secure:false, así que viajaba también por HTTP.
+      const token = signJWT({ uid: req.user.id_usuarios, user: req.user.user, role: req.user.role });
+      setAuthCookie(res, token);
+      console.log('[GOOGLE] sesión iniciada', { id: req.user.id_usuarios, user: req.user.user });
+      res.redirect(req.user.role === 'admin' ? '/admin' : '/profile');
+    });
+} else {
+  // Deja constancia si alguien tantea la ruta con la integración apagada.
+  app.get(['/auth/google', '/auth/google/callback'], (req, res) => {
+    console.warn('[GOOGLE] ruta solicitada con la integración desactivada', { ip: obtenerIp(req) });
+    res.redirect('/login');
   });
+}
 
 app.get('/admin', requireAuth, requireRole('admin'), (req, res) => {
   res.sendFile(path.join(__dirname, 'nostatic', 'admin.html'));
@@ -227,7 +301,8 @@ app.get('/aboutus', (req, res) => {
 app.get('/productos', async (req, res) => {
   const q = (req.query.q || '').trim();
   const page = Math.max(parseInt(req.query.page || '1', 10), 1);
-  const limit = Math.max(parseInt(req.query.limit || '12', 10), 1);
+  // Tope de 100: sin él, ?limit=999999 vuelca el catálogo entero en una llamada.
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '12', 10) || 12, 1), 100);
   const offset = (page - 1) * limit;
 
   try {
@@ -315,7 +390,7 @@ app.get('/api/usuarios', requireApiAdmin, async (req, res) => {
   }
 });
 
-app.put('/api/usuarios/:id/password', requireAuth, requireRole('admin'), async (req, res) => {
+app.put('/api/usuarios/:id/password', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   const { newPassword } = req.body;
 
@@ -398,7 +473,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
       try {
         // La identidad ya la validó requireApiAuth: no hace falta releer la cookie.
         const u = { id_usuarios: req.cuenta.id_usuarios };
-        const ipCliente = req.ip || req.socket?.remoteAddress || null;
+        const ipCliente = obtenerIp(req);
 
         // --- Normaliza y valida el carrito antes de abrir la transacción ---
         // Se agrupan las líneas repetidas del mismo producto: antes, dos líneas
@@ -569,8 +644,8 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         return `
           <tr>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.id_producto}</td>
-            <td style="padding:8px;border:1px solid #eee;">${d.nombre}</td>
-            <td style="padding:8px;border:1px solid #eee;">${d.tipo || '—'}</td>
+            <td style="padding:8px;border:1px solid #eee;">${escaparHtml(d.nombre)}</td>
+            <td style="padding:8px;border:1px solid #eee;">${escaparHtml(d.tipo) || '—'}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.cantidad}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(d.precio)}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(subtotal)}</td>
@@ -599,14 +674,20 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
       `;
 
       // Datos que recibiste (no necesariamente guardados en DB, pero los incluimos en el correo)
+      // Todo lo que escribe el cliente se escapa antes de entrar en el HTML del
+      // correo. El comentario iba tal cual: se podían colar enlaces y formato
+      // en el correo que le llega al administrador.
       const deliveryTxt = delivery === 'retiro' ? 'Retiro en tienda' : 'Flete externo';
-      const comentariosTxt = (comentarios || '').trim() ? comentarios.trim() : '—';
+      const comentariosTxt = textoSeguro(comentarios, 500) || '—';
+      const nombreCliente = escaparHtml(pedidoInfo.nombre || '');
+      const emailCliente  = escaparHtml(pedidoInfo.email || '');
+      const telCliente    = escaparHtml(pedidoInfo.telefono || '') || '—';
 
       // HTML para el cliente
       const htmlCliente = `
         <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#333;max-width:720px;margin:auto;">
           <h2>¡Pedido recibido con éxito!</h2>
-          <p>Hola <b>${pedidoInfo.nombre || ''}</b>,</p>
+          <p>Hola <b>${nombreCliente}</b>,</p>
           <p>Tu pedido <b>#${pedidoInfo.id}</b> fue generado correctamente el <b>${fechaStr}</b>.</p>
           <p>La tienda se pondrá en contacto contigo a la brevedad para <b>confirmar/aceptar</b> el pedido.
              Ante cualquier duda, escríbenos por WhatsApp:
@@ -628,7 +709,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#333;max-width:720px;margin:auto;">
           <h2>Nuevo pedido recibido</h2>
           <p><b>Pedido #${pedidoInfo.id}</b> — ${fechaStr}</p>
-          <p><b>Cliente:</b> ${pedidoInfo.nombre} — <b>Email:</b> ${pedidoInfo.email} — <b>Tel:</b> ${pedidoInfo.telefono || '—'}</p>
+          <p><b>Cliente:</b> ${nombreCliente} — <b>Email:</b> ${emailCliente} — <b>Tel:</b> ${telCliente}</p>
           <p><b>Método de entrega:</b> ${deliveryTxt}</p>
           <p><b>Comentarios del cliente:</b> ${comentariosTxt}</p>
 
@@ -656,7 +737,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         await transporter.sendMail({
           from: `"Maderas MyM" <${process.env.GMAIL_USER}>`,
           to: process.env.GMAIL_USER,
-          subject: `Nuevo pedido #${pedidoInfo.id} — ${pedidoInfo.nombre}`,
+          subject: `Nuevo pedido #${pedidoInfo.id} — ${String(pedidoInfo.nombre || '').slice(0, 60)}`,
           html: htmlTienda
         });
         console.log('[MAIL] Copia a tienda enviada');
@@ -713,7 +794,7 @@ app.get('/api/verificar-usuario', async (req, res) => {
       const cookieJWT = req.cookies.jwt;
       if (!cookieJWT) return res.status(401).send({ loggedIn: false });
       
-      const decoded = jsonwebtoken.verify(cookieJWT, process.env.JWT_SECRET);
+      const decoded = verifyJWT(cookieJWT);
       return res.status(200).send({ loggedIn: true, user: decoded.user });
   } catch (error) {
       return res.status(401).send({ loggedIn: false });
@@ -985,8 +1066,11 @@ app.put('/api/pedidos/:id/estado', requireApiAdmin, async (req, res) => {
 
 // Estados en los que el stock YA se descontó de la bodega. Si un pedido en
 // alguno de ellos se cancela, hay que devolver las unidades.
+// Ojo con el nombre: el estado canónico es 'pagado_espera_envio'. Aquí decía
+// 'pagado_espera_despacho', que no existe en ningún sitio, así que cancelar un
+// pedido ya pagado NO devolvía las unidades a bodega.
 const ESTADOS_CON_STOCK_DESCONTADO = new Set([
-  'aceptado_espera_pago', 'pagado_espera_despacho', 'enviado', 'retirado', 'finalizado'
+  'aceptado_espera_pago', 'pagado_espera_envio', 'enviado', 'retirado', 'finalizado'
 ]);
 
 // Suspender o reactivar una cuenta.
@@ -1113,6 +1197,12 @@ async function cancelarPedidos(ids, quien) {
   }
 }
 
+// Diagnóstico: qué IP ve el servidor en esta misma petición. Sirve para saber
+// si falta TRUST_PROXY cuando las IP guardadas salen todas iguales o vacías.
+app.get('/api/diag/ip', requireApiAdmin, (req, res) => {
+  res.json({ success: true, ...diagnosticoIp(req), trustProxyExpress: app.get('trust proxy') ?? false });
+});
+
 // Historial de intentos de registro.
 // Query: ?resultado=todos|creado|rechazado  &q=texto  &limite=100
 app.get('/api/registros', requireApiAdmin, async (req, res) => {
@@ -1197,7 +1287,7 @@ app.post('/api/pedidos/cancelar-lote', requireApiAdmin, async (req, res) => {
 });
 
 // Obtener todos los trabajadores
-app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/trabajadores', requireApiAdmin, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
     res.json(rows);
@@ -1208,7 +1298,7 @@ app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, r
 });
 
 // Obtener un trabajador específico
-app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   
   try {
@@ -1226,7 +1316,7 @@ app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (re
 });
 
 // Crear nuevo trabajador
-app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.post('/api/trabajadores', requireApiAdmin, async (req, res) => {
   const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
   console.log('Creando nuevo trabajador:', req.body);
@@ -1254,7 +1344,7 @@ app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, 
 });
 
 // Actualizar trabajador
-app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.put('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
@@ -1292,7 +1382,7 @@ app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (re
 });
 
 // Eliminar trabajador
-app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.delete('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -1314,7 +1404,7 @@ app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async 
 
 // Obtener todos los adelantos
 
-app.get('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/adelantos', requireApiAdmin, async (req, res) => {
   try {
     const { trabajador, mes, año, page = 1, limit = 50 } = req.query;
 
@@ -1370,7 +1460,7 @@ app.get('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res)
 
 
 // Obtener un adelanto específico
-app.get('/api/adelantos/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/adelantos/:id', requireApiAdmin, async (req, res) => {
 const { id } = req.params;
 
 try {
@@ -1394,7 +1484,7 @@ try {
 });
 
 // Crear nuevo adelanto
-app.post('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.post('/api/adelantos', requireApiAdmin, async (req, res) => {
 const { id_trabajador, bono, motivos, monto, fecha } = req.body;
 
 console.log('Creando nuevo adelanto:', req.body);
@@ -1441,7 +1531,7 @@ try {
 });
 
 // Actualizar adelanto
-app.put('/api/adelantos/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.put('/api/adelantos/:id', requireApiAdmin, async (req, res) => {
 const { id } = req.params;
 const { id_trabajador, bono, motivos, monto, fecha } = req.body;
 
@@ -1504,7 +1594,7 @@ try {
 });
 
 // Eliminar adelanto
-app.delete('/api/adelantos/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.delete('/api/adelantos/:id', requireApiAdmin, async (req, res) => {
 const { id } = req.params;
 
 try {

@@ -137,6 +137,176 @@ SELECT id_usuarios, `user`, email, ip_registro, email_verificado_at
 Con esos ids, el botón **Bloquear** de la tabla de usuarios ofrece cancelar de
 paso sus pedidos abiertos y devolver el stock a bodega.
 
+## Cuando una cuenta aparece sin IP
+
+Caso real: la cuenta `pavlov-9ao9i@rambler.ua` (22 de agosto) quedó sin
+`ip_registro`. Hay tres explicaciones posibles y se distinguen con dos consultas.
+
+```sql
+-- 1) ¿Quedó constancia del intento en el historial?
+SELECT id, fecha, usuario, email, ip, user_agent, resultado, motivo
+  FROM registros_auditoria
+ WHERE email = 'pavlov-9ao9i@rambler.ua';
+
+-- 2) ¿Cómo se ven las IP del resto de cuentas y pedidos?
+SELECT ip_registro, COUNT(*) FROM usuarios  GROUP BY ip_registro ORDER BY 2 DESC;
+SELECT ip_pedido,   COUNT(*) FROM pedidos   GROUP BY ip_pedido   ORDER BY 2 DESC;
+```
+
+- **No hay ninguna fila en `registros_auditoria`** → cuando se creó esa cuenta
+  el código nuevo todavía no estaba corriendo. El `git pull` no basta: hay que
+  reiniciar el proceso Node. Se confirma en el log de arranque, que debe traer
+  `[SCHEMA]` y `[CONFIG]`.
+- **Hay fila, pero con `ip` vacía o repetida en todas las cuentas**
+  (`127.0.0.1`, `::1`, o siempre la misma dirección) → Node está detrás de
+  nginx/Apache/Cloudflare y falta `TRUST_PROXY=1` en el `.env`. Sin eso se
+  guarda la IP del proxy, no la del visitante.
+- **Hay fila con una IP real** → el rastro sí está; lo que faltó fue copiarlo a
+  la tabla de usuarios (ver el backfill de abajo).
+
+Para ver qué IP está viendo el servidor ahora mismo, con la sesión de admin
+abierta: `GET /api/diag/ip`. Devuelve `req.ip`, la dirección del socket, el
+valor de `TRUST_PROXY` y las cabeceras `X-Forwarded-For`, `CF-Connecting-IP` y
+`X-Real-IP`. Si `ipGuardada` sale `127.0.0.1` pero `x-forwarded-for` trae una IP
+pública, el diagnóstico es el proxy.
+
+### Recuperar las IP que sí quedaron auditadas
+
+El historial de `registros_auditoria` conserva la IP aunque `usuarios` la tenga
+vacía. Este backfill la copia:
+
+```sql
+UPDATE usuarios u
+  JOIN registros_auditoria r
+    ON r.id_usuario = u.id_usuarios AND r.resultado = 'creado'
+   SET u.ip_registro = r.ip
+ WHERE u.ip_registro IS NULL AND r.ip IS NOT NULL;
+```
+
+### Qué se corrigió en el código
+
+- `utils/client-ip.js` (nuevo): un solo sitio decide cuál es la IP del
+  visitante. Normaliza las IPv6 mapeadas (`::ffff:190.1.2.3` se guardaba
+  distinto de `190.1.2.3`, así que la misma persona parecían dos) y, **solo si
+  `TRUST_PROXY` está definido**, prefiere `CF-Connecting-IP` / `X-Real-IP`, que
+  es donde Cloudflare pone la IP real y que Express no mira por su cuenta. Sin
+  esa variable las cabeceras se ignoran, porque cualquiera puede falsificarlas.
+- El registro guarda la IP **en el propio `INSERT`**. Antes se hacía con un
+  `UPDATE` posterior dentro de un `try/catch` que se tragaba el error: si la
+  columna no existía, la cuenta se creaba sin rastro y en silencio. Ahora, si
+  falta la columna, queda un `console.error` explícito en el log.
+- El arranque avisa por consola cuando `TRUST_PROXY` no está configurado.
+
+## Auditoría completa (24 de agosto de 2026)
+
+Revisión de las 50 rutas del backend, los middlewares de sesión, el filtro de
+correos y el panel, a raíz de los registros automatizados desde dominios rusos.
+
+### 🔴 La brecha principal no está en el código: el repositorio es público
+
+`github.com/Itadoriii/MyM` es **público** y tiene versionados siete volcados de
+la base de datos (`back8oct.sql`, `bd0807.sql`, `bd11sep.sql`, `bd1sep.sql`,
+`mymconphp.sql`, `sebasti9_mym2 (1).sql`). Dentro va la tabla `usuarios`
+completa: nombres, correos, teléfonos y **261 hashes de contraseña**, de los
+cuales **139 son bcrypt de coste 5** — un coste tan bajo que se prueban miles
+de millones de contraseñas por hora en una tarjeta gráfica corriente. Entre
+esos hashes están las **dos cuentas de administrador** (`a@a.cl` y
+`maderas.mym@gmail.com`).
+
+Además, `reset_admin_password.js` trae escrita en el fuente la contraseña
+temporal del usuario `admin`: `Admin123!`. Si alguna vez se ejecutó y no se
+cambió después, la clave del panel está publicada en internet.
+
+Nadie necesitó encontrar un fallo: el repositorio entrega los correos a los que
+apuntar, los hashes que romper y el mapa completo de la API. Mientras siga
+público, cualquier arreglo de código es secundario.
+
+**Qué hacer, en este orden:**
+
+1. Poner el repositorio en **privado** (Settings → General → Danger Zone →
+   Change visibility).
+2. Cambiar la contraseña de **las dos cuentas admin** y rotar `JWT_SECRET`
+   (esto último cierra cualquier sesión que un atacante tuviera abierta).
+3. Sacar los volcados del repositorio:
+   ```bash
+   git rm --cached back8oct.sql bd0807.sql bd11sep.sql bd1sep.sql \
+                   mymconphp.sql "sebasti9_mym2 (1).sql"
+   git commit -m "Saca los volcados de la base de datos del repositorio"
+   ```
+   El `.gitignore` ya los excluye a futuro (`*.sql`, salvo `migrations/`).
+4. Borrarlos también del **historial**, o seguirán descargables:
+   ```bash
+   pip install git-filter-repo
+   git filter-repo --path-glob '*.sql' --invert-paths --force
+   git push --force
+   ```
+   Reescribe el historial: avisa a quien tenga una copia del repositorio antes.
+5. Borrar `reset_admin_password.js` o quitarle la contraseña fija.
+6. Volver a hashear las contraseñas de coste 5. Como no se pueden descifrar,
+   lo práctico es forzar el cambio: vaciar la contraseña de esas cuentas y
+   avisarles que usen "olvidé mi contraseña". Los registros nuevos ya salen
+   con coste 10.
+
+### 🟠 Agujeros de código corregidos
+
+| Qué | Por qué importaba |
+|---|---|
+| `JWT_SECRET` tenía el valor por defecto `'dev-secret'`, visible en el repo | Con ese secreto cualquiera se firma un token `{role:'admin'}` y entra al panel sin contraseña. Ahora, si falta la variable, se genera uno aleatorio al arrancar y el log lo avisa: nadie puede falsificar tokens |
+| `SESSION_SECRET` tenía por defecto `'your_secret_key'` | Igual que el anterior, para las sesiones de Passport |
+| Cada archivo verificaba el JWT por su cuenta con `process.env.JWT_SECRET` | Si la variable faltaba, unos módulos firmaban con un secreto y otros validaban con otro. Ahora todos pasan por `verifyJWT()` |
+| **El rol salía del token**, que dura 7 días | Quitarle el rol de admin a alguien, o bloquearlo, no le cerraba el panel hasta que expirase su cookie. Ahora `revisarCookie()` relee rol y bloqueo de la base en cada petición, y una cuenta bloqueada pierde la sesión al instante |
+| `/auth/google` creaba cuentas **saltándose todo el antiabuso** | Sin captcha, sin filtro de dominios, sin límite por IP, sin registrar la IP y sin dejar rastro en el historial; y el callback entregaba la sesión sin mirar si la cuenta estaba bloqueada, así que un bloqueado volvía a entrar por ahí. Además emitía la cookie con `secure:false`, que viaja también por HTTP. Ahora la ruta **no se monta** salvo que estén las tres variables de Google, y cuando se monta pasa por el mismo filtro de correo, deja auditoría con IP y respeta el bloqueo |
+| `/api/trabajadores` y `/api/adelantos` (10 rutas) leían el rol del token | Sueldos y adelantos del personal. Migradas a `requireApiAdmin`, que consulta la base |
+| El nombre de usuario admitía cualquier carácter | Registrarse como `<img src=x onerror=...>` metía código en el panel y en los correos. Ahora solo letras, números, espacio, punto, guion y guion bajo, de 3 a 50 |
+| Los correos de pedido metían el comentario del cliente **sin escapar** | Se podían colar enlaces con formato en el correo que llega al administrador: un "paga aquí" que apunta a otro sitio y parece de la tienda. Ahora todo campo libre se escapa y se corta a 500 caracteres |
+| `/api/verify/resend` respondía `404 USER_NOT_FOUND` | Servía para averiguar qué correos están registrados, y para reenviar correos a una dirección ajena en bucle. Ahora la respuesta es idéntica exista o no la cuenta |
+| El límite de login era solo por IP | Una botnet prueba contraseñas desde miles de direcciones distintas y ninguna llega al tope. Se añadió un segundo límite **por cuenta atacada**: 15 intentos cada 15 min sobre el mismo usuario, vengan de donde vengan |
+| Sin cabeceras de seguridad | Se añadieron `X-Frame-Options` (el panel no se puede enmarcar en otra página), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS en producción |
+| `express.json()` sin tope de tamaño | Un POST de varios MB ocupaba memoria del proceso. Tope de 100 kB |
+| `/productos?limit=` sin tope | `?limit=999999` volcaba el catálogo entero. Tope de 100 |
+| `verifyToken` hacía `SELECT *` de usuarios | Traía el hash y los tokens de recuperación a memoria en cada petición. Ahora solo las columnas que se usan, y comprueba `bloqueado` |
+| `ESTADOS_CON_STOCK_DESCONTADO` decía `pagado_espera_despacho` | Ese estado no existe: el canónico es `pagado_espera_envio`. Al cancelar un pedido ya pagado **el stock no volvía a bodega**. Mismo error en la tabla `NEXTS` |
+
+### 🟡 Lo que hay que configurar en el `.env` (si no, no sirve de nada)
+
+Tres variables deciden si la mitad de las defensas funciona. Al arrancar, el
+log dice ahora el estado de cada una:
+
+```
+[CONFIG] captcha Turnstile DESACTIVADO: el registro está abierto a bots.
+[CONFIG] trust proxy DESACTIVADO: ... las IP registradas serán las del proxy.
+[FATAL]  falta JWT_SECRET en el .env.
+```
+
+Si aparece cualquiera de esas líneas, esa defensa **no está puesta**. Sin
+`TURNSTILE_SECRET_KEY` el registro no tiene captcha, que es exactamente lo que
+permite crear cuentas en cadena.
+
+### Filtro de correo ampliado
+
+`rambler.ua` no era un buzón desechable: es un proveedor ruso real, con MX
+válidos, así que pasaba todos los filtros. Se añadió a `email-guard.js` la
+lista de proveedores gratuitos de Rusia y Ucrania que usan las granjas de
+cuentas (`mail.ru`, `rambler.*`, `yandex.*`, `ukr.net`, `bk.ru`, `list.ru`,
+`i.ua`, `tut.by`…). Para una maderera que vende en Chile no hay cliente
+legítimo detrás de esos dominios; aun así se revierte con
+`EMAIL_PERMITIR_EXTRANJEROS=1` en el `.env`, sin tocar código.
+
+### Lo que se revisó y está bien
+
+- **Inyección SQL**: todas las consultas usan parámetros `?`. No hay
+  concatenación de entrada del usuario en ningún `WHERE`.
+- **Control de acceso**: las 50 rutas tienen middleware. No queda ninguna
+  ruta de administración abierta.
+- **Contraseñas**: bcrypt con coste 10 en registro y recuperación; el login
+  responde el mismo mensaje exista o no el usuario.
+- **Tokens de verificación y recuperación**: aleatorios de 32 bytes, guardados
+  hasheados con SHA-256, de un solo uso y con caducidad.
+- **Precio de los pedidos**: se toma de la base, nunca del navegador.
+- **Secretos**: el `.env` nunca se subió al repositorio (comprobado en todo el
+  historial) y no hay credenciales escritas en el código, salvo la de
+  `reset_admin_password.js`.
+
 ## Pendiente / conocido
 
 - `src/register.js` no lo carga ningún HTML: el formulario envía de forma
@@ -148,5 +318,12 @@ paso sus pedidos abiertos y devolver el stock a bodega.
 - `admin.js` llama a `DELETE /api/productos/:id`, que tampoco existe (404).
 - El rate limit vive en memoria del proceso. Si algún día levantas varias
   instancias de Node, hay que moverlo a Redis para que compartan el contador.
-- Los volcados `.sql` están versionados en el repo de GitHub. Conviene sacarlos
-  del control de versiones si contienen datos de clientes.
+- Los volcados `.sql` siguen en el **historial** de un repositorio público
+  hasta que se haga la limpieza descrita arriba. Es el punto abierto más grave.
+- El captcha de Turnstile falla abierto: si Cloudflare no responde en 6 s, el
+  registro pasa igual. Es deliberado (no dejar de vender por una caída ajena),
+  pero un atacante que sepa provocar el timeout se lo salta.
+- El límite de peticiones vive en memoria: reiniciar el proceso pone los
+  contadores a cero.
+- No hay Content-Security-Policy. Las páginas usan `<script>` en línea, así que
+  activarla exige moverlos a archivos antes.
