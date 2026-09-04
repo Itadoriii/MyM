@@ -3086,8 +3086,8 @@
         <button class="holiday-close" aria-label="Cerrar aviso" id="holiday-x">×</button>
         </div>
         <div class="holiday-body">
-        <p><strong>No atenderemos del 15 al 22 de septiembre</strong> por Fiestas Patrias.</p>
-        <p class="holiday-note">Los pedidos realizados durante este período se procesarán a partir del 23 de septiembre.</p>
+        <p><strong>No atenderemos del 17 al 20 de septiembre</strong> por Fiestas Patrias.</p>
+        <p class="holiday-note">Nuestro último día de atención será el 16 de septiembre y retomamos el 21. Los pedidos realizados durante este período se procesarán a partir del 21 de septiembre.</p>
 
         <div class="holiday-row" style="margin-top:10px;">
             <label class="holiday-checkbox">
@@ -4562,10 +4562,10 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
     const now  = new Date();
     const y    = now.getFullYear();
     const startShow = new Date(`${y}-09-01T00:00:00`);
-    const endShow   = new Date(`${y}-09-22T23:59:59`);
+    const endShow   = new Date(`${y}-09-20T23:59:59`);
     const KEY = `holiday_fiestas_patrias_${y}`;
 
-    // Solo mostrar entre el 1 y el 22 de septiembre y si el usuario no lo desactivó
+    // Solo mostrar entre el 1 y el 20 de septiembre y si el usuario no lo desactivó
     if (now >= startShow && now <= endShow && localStorage.getItem(KEY) !== 'hide') {
         const root = document.getElementById('holiday-pop');
         const ok   = document.getElementById('holiday-ok');
