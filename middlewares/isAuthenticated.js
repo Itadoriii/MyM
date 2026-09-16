@@ -1,13 +1,10 @@
-import jsonwebtoken from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { verifyJWT } from './authorization.js';
 
 const isAuthenticated = (req, res, next) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
+      const decoded = verifyJWT(token);
       if (decoded) {
         return res.redirect('/profile');
       }

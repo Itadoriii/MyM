@@ -7,11 +7,10 @@ import session from 'express-session';
 import { methods as metodos } from './controllers/authentication.controller.js';
 import { methods as authorization } from './middlewares/authorization.js';
 import isAuthenticated from './middlewares/isAuthenticated.js'; // Importa el nuevo middleware
-import './middlewares/passport-setup.js'; // Importa la configuración de passport
+import { googleActivo } from './middlewares/passport-setup.js';
 import pool from './db.js';
-import jsonwebtoken from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { revisarCookie, signJWT, setAuthCookie } from './middlewares/authorization.js';
+import { revisarCookie } from './middlewares/authorization.js';
 // enviarConfirmacion ha sido eliminada, la lógica está en el controlador de estados
 import cors from 'cors';
 // import mailRouter from './routes/pedidosMail.js';
@@ -20,14 +19,16 @@ import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification, forgotPassword, checkResetToken, resetPassword } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
 import { ensureSchema } from './utils/ensure-schema.js';
-import { requireAuth, requireRole, soloAdmin, soloPublico } from './middlewares/authorization.js';
+import { requireAuth, requireRole, soloAdmin, soloPublico, verifyJWT, setAuthCookie, signJWT } from './middlewares/authorization.js';
 import { requireApiAuth, requireApiAdmin } from './middlewares/api-auth.js';
 import { crearLimitador } from './middlewares/rate-limit.js';
 import { captchaActivo } from './utils/turnstile.js';
 import { registrarIntento } from './utils/audit.js';
-import { ipDe } from './utils/client-ip.js';
+import { obtenerIp, diagnosticoIp } from './utils/client-ip.js';
+import { escaparHtml, textoSeguro } from './utils/html.js';
 import { cabecerasSeguridad } from './middlewares/security-headers.js';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 
 
@@ -44,6 +45,14 @@ app.listen(port, () => {
 
 // Crea las columnas que falten (recuperación de contraseña y antiabuso).
 ensureSchema();
+
+// El captcha es lo único que frena el registro automatizado. Si la clave no
+// está puesta queda desactivado en silencio, así que aquí se avisa fuerte.
+if (captchaActivo()) {
+  console.log('[CONFIG] captcha Turnstile ACTIVO en el registro.');
+} else {
+  console.warn('[CONFIG] captcha Turnstile DESACTIVADO: el registro está abierto a bots. Configura TURNSTILE_SITE_KEY y TURNSTILE_SECRET_KEY.');
+}
  
 
 // CONFIGURACION
@@ -88,15 +97,27 @@ app.use(cors({
   },
   credentials: true
 }));
+// Cabeceras de seguridad (middlewares/security-headers.js): sin dependencias
+// nuevas, evitan el clickjacking sobre el panel, que el navegador adivine tipos
+// de contenido y que las URL internas se filtren por el Referer al salir.
 app.use(cabecerasSeguridad());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+
+// Tope al tamaño del cuerpo: un carrito o un formulario no pesan más de esto,
+// y así un POST de varios MB no ocupa memoria del proceso.
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(cookieParser());
+// Sin secreto por defecto: 'your_secret_key' está en el código y firmaría
+// sesiones que cualquiera puede falsificar. Si falta, se usa uno aleatorio.
+if (!process.env.SESSION_SECRET) {
+  console.error('[FATAL] falta SESSION_SECRET en el .env. Se usa uno aleatorio (las sesiones se pierden al reiniciar). Genera uno con: openssl rand -hex 32');
+}
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_secret_key',
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex'),
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false,   // no crea sesión para cada visitante anónimo
+  cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -109,14 +130,19 @@ const verifyToken = async (req, res, next) => {
     return res.redirect('/login');
   }
   try {
-    const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
-    // Solo las columnas que se devuelven al cliente: nada de hash ni tokens.
+    const decoded = verifyJWT(token);
+    // Solo las columnas que se usan: este SELECT * traía el hash de la
+    // contraseña y los tokens de verificación a la memoria de cada petición.
     const [rows] = await pool.query(
-      `SELECT id_usuarios, \`user\`, email, \`number\`, \`role\`, google_id, bloqueado
-         FROM usuarios WHERE \`user\` = ? LIMIT 1`,
+      'SELECT id_usuarios, `user`, email, `number`, `role`, google_id, bloqueado FROM usuarios WHERE `user` = ? LIMIT 1',
       [decoded.user]
     );
-    if (rows.length === 0 || rows[0].bloqueado) {
+    if (rows.length === 0) {
+      return res.redirect('/login');
+    }
+    if (rows[0].bloqueado) {
+      console.warn('[AUTH] cuenta bloqueada intentó entrar', { user: rows[0].user });
+      res.clearCookie('jwt', { path: '/' });
       return res.redirect('/login');
     }
     req.user = rows[0];
@@ -157,6 +183,17 @@ const limiteLogin = crearLimitador({
   mensaje: 'Demasiados intentos de inicio de sesión. Espera unos minutos.'
 });
 
+// El límite por IP no sirve contra una botnet: cada intento llega de una
+// dirección distinta. Este segundo límite cuenta por cuenta atacada, así que
+// da igual desde cuántas IP prueben la contraseña del admin.
+const limiteLoginCuenta = crearLimitador({
+  nombre: 'login-cuenta',
+  ventanaMs: 15 * 60 * 1000,
+  max: 15,
+  clave: (req) => String(req.body?.user || '').trim().toLowerCase() || 'sin-usuario',
+  mensaje: 'Demasiados intentos con esta cuenta. Espera unos minutos.'
+});
+
 // Correos salientes (verificación y recuperación): 5 por IP cada 15 min.
 const limiteCorreo = crearLimitador({
   nombre: 'correo',
@@ -177,8 +214,8 @@ const limitePedidos = crearLimitador({
 // Reglas de transición de estado (PEGAR ARRIBA DEL ARCHIVO DE RUTAS)
 const NEXTS = {
   generado: ['aceptado_espera_pago', 'rechazado'],
-  aceptado_espera_pago: ['pagado_espera_despacho'],
-  pagado_espera_despacho: ['enviado', 'retirado'],
+  aceptado_espera_pago: ['pagado_espera_envio'],
+  pagado_espera_envio: ['enviado', 'retirado'],
   enviado: ['finalizado'],
   retirado: ['finalizado'],
   rechazado: [],
@@ -215,7 +252,7 @@ app.get('/api/captcha-config', (req, res) => {
 });
 
 app.post('/api/register', limiteRegistro, register);
-app.post('/api/login', limiteLogin, login);
+app.post('/api/login', limiteLogin, limiteLoginCuenta, login);
 app.post('/api/verify/resend', limiteCorreo, resendVerification);
 app.post('/api/password/forgot', limiteCorreo, forgotPassword);
 app.get('/api/password/reset/check', checkResetToken);
@@ -224,7 +261,7 @@ app.post('/api/password/reset', resetPassword);
 // URL de retorno del login con Google, elegida según el dominio por el que entró
 // la petición. Así funciona igual en local (localhost) y en el dominio real.
 // Se pueden declarar varios dominios separados por coma en GOOGLE_CALLBACK_URLS;
-// todos deben estar registrados en Google Cloud Console (Credenciales → URI de
+// todos deben estar registrados en Google Cloud Console (Clientes → URI de
 // redireccionamiento autorizados).
 function urlCallbackGoogle(req) {
   const candidatas = [
@@ -259,28 +296,42 @@ function urlCallbackGoogle(req) {
   }
 
   // 4. Sin host utilizable: la primera URL configurada.
-  if (candidatas.length) return candidatas[0];
-
-  return 'http://localhost:3000/auth/google/callback';
+  return candidatas[0] || 'http://localhost:3000/auth/google/callback';
 }
 
-app.get('/auth/google', (req, res, next) =>
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    callbackURL: urlCallbackGoogle(req)
-  })(req, res, next));
+// Login con Google: solo se monta si está configurado de verdad (Client ID y
+// Secret). Esta puerta estaba creando cuentas sin captcha, sin filtro de
+// dominio, sin límite por IP y sin rastro, y entregaba la sesión sin comprobar
+// si la cuenta estaba bloqueada.
+if (googleActivo) {
+  // Mismo límite por IP que el registro normal.
+  app.get('/auth/google', limiteRegistro, (req, res, next) =>
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      callbackURL: urlCallbackGoogle(req)
+    })(req, res, next));
 
-app.get('/auth/google/callback',
-  (req, res, next) =>
+  app.get('/auth/google/callback', (req, res, next) =>
     passport.authenticate('google', {
       failureRedirect: '/login?google=error',
       callbackURL: urlCallbackGoogle(req)
     })(req, res, next),
-  (req, res) => {
-    const token = signJWT({ uid: req.user.id_usuarios, user: req.user.user, role: req.user.role });
-    setAuthCookie(res, token, req);
-    res.redirect('/profile');
+    (req, res) => {
+      // La cookie se emite con las mismas garantías que el login normal
+      // (secure cuando corresponde, httpOnly, expiración común). Antes iba con
+      // secure:false, así que viajaba también por HTTP.
+      const token = signJWT({ uid: req.user.id_usuarios, user: req.user.user, role: req.user.role });
+      setAuthCookie(res, token, req);
+      console.log('[GOOGLE] sesión iniciada', { id: req.user.id_usuarios, user: req.user.user });
+      res.redirect(req.user.role === 'admin' ? '/admin' : '/profile');
+    });
+} else {
+  // Deja constancia si alguien tantea la ruta con la integración apagada.
+  app.get(['/auth/google', '/auth/google/callback'], (req, res) => {
+    console.warn('[GOOGLE] ruta solicitada con la integración desactivada', { ip: obtenerIp(req) });
+    res.redirect('/login');
   });
+}
 
 app.get('/admin', requireAuth, requireRole('admin'), (req, res) => {
   res.sendFile(path.join(__dirname, 'nostatic', 'admin.html'));
@@ -299,7 +350,8 @@ app.get('/aboutus', (req, res) => {
 app.get('/productos', async (req, res) => {
   const q = (req.query.q || '').trim();
   const page = Math.max(parseInt(req.query.page || '1', 10), 1);
-  const limit = Math.max(parseInt(req.query.limit || '12', 10), 1);
+  // Tope de 100: sin él, ?limit=999999 vuelca el catálogo entero en una llamada.
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '12', 10) || 12, 1), 100);
   const offset = (page - 1) * limit;
 
   try {
@@ -387,7 +439,7 @@ app.get('/api/usuarios', requireApiAdmin, async (req, res) => {
   }
 });
 
-app.put('/api/usuarios/:id/password', requireAuth, requireRole('admin'), async (req, res) => {
+app.put('/api/usuarios/:id/password', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   const { newPassword } = req.body;
 
@@ -455,16 +507,8 @@ app.post('/api/productos', requireApiAdmin, async (req, res) => {
   }
 });
 
-// Escapa texto que se inserta dentro del HTML de un correo. El nombre, el
-// correo y los comentarios los escribe el visitante: sin esto, un comentario con
-// etiquetas rompe el correo o inyecta contenido.
-function escaparHtml(valor) {
-  return String(valor ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
-app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) => {    const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
+app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) => {
+    const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
     const cart = Array.isArray(bodyCart) ? bodyCart : [];
     if (!cart.length) return res.status(400).json({ success:false, error:'Carrito vacío' });
 
@@ -478,7 +522,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
       try {
         // La identidad ya la validó requireApiAuth: no hace falta releer la cookie.
         const u = { id_usuarios: req.cuenta.id_usuarios };
-        const ipCliente = ipDe(req);
+        const ipCliente = obtenerIp(req);
 
         // --- Normaliza y valida el carrito antes de abrir la transacción ---
         // Se agrupan las líneas repetidas del mismo producto: antes, dos líneas
@@ -650,7 +694,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
           <tr>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.id_producto}</td>
             <td style="padding:8px;border:1px solid #eee;">${escaparHtml(d.nombre)}</td>
-            <td style="padding:8px;border:1px solid #eee;">${d.tipo ? escaparHtml(d.tipo) : '—'}</td>
+            <td style="padding:8px;border:1px solid #eee;">${escaparHtml(d.tipo) || '—'}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.cantidad}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(d.precio)}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(subtotal)}</td>
@@ -679,14 +723,20 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
       `;
 
       // Datos que recibiste (no necesariamente guardados en DB, pero los incluimos en el correo)
+      // Todo lo que escribe el cliente se escapa antes de entrar en el HTML del
+      // correo. El comentario iba tal cual: se podían colar enlaces y formato
+      // en el correo que le llega al administrador.
       const deliveryTxt = delivery === 'retiro' ? 'Retiro en tienda' : 'Flete externo';
-      const comentariosTxt = (comentarios || '').trim() ? escaparHtml(comentarios.trim()) : '—';
+      const comentariosTxt = textoSeguro(comentarios, 500) || '—';
+      const nombreCliente = escaparHtml(pedidoInfo.nombre || '');
+      const emailCliente  = escaparHtml(pedidoInfo.email || '');
+      const telCliente    = escaparHtml(pedidoInfo.telefono || '') || '—';
 
       // HTML para el cliente
       const htmlCliente = `
         <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#333;max-width:720px;margin:auto;">
           <h2>¡Pedido recibido con éxito!</h2>
-          <p>Hola <b>${escaparHtml(pedidoInfo.nombre)}</b>,</p>
+          <p>Hola <b>${nombreCliente}</b>,</p>
           <p>Tu pedido <b>#${pedidoInfo.id}</b> fue generado correctamente el <b>${fechaStr}</b>.</p>
           <p>La tienda se pondrá en contacto contigo a la brevedad para <b>confirmar/aceptar</b> el pedido.
              Ante cualquier duda, escríbenos por WhatsApp:
@@ -708,7 +758,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#333;max-width:720px;margin:auto;">
           <h2>Nuevo pedido recibido</h2>
           <p><b>Pedido #${pedidoInfo.id}</b> — ${fechaStr}</p>
-          <p><b>Cliente:</b> ${escaparHtml(pedidoInfo.nombre)} — <b>Email:</b> ${escaparHtml(pedidoInfo.email)} — <b>Tel:</b> ${pedidoInfo.telefono ? escaparHtml(pedidoInfo.telefono) : '—'}</p>
+          <p><b>Cliente:</b> ${nombreCliente} — <b>Email:</b> ${emailCliente} — <b>Tel:</b> ${telCliente}</p>
           <p><b>Método de entrega:</b> ${deliveryTxt}</p>
           <p><b>Comentarios del cliente:</b> ${comentariosTxt}</p>
 
@@ -736,7 +786,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         await transporter.sendMail({
           from: `"Maderas MyM" <${process.env.GMAIL_USER}>`,
           to: process.env.GMAIL_USER,
-          subject: `Nuevo pedido #${pedidoInfo.id} — ${pedidoInfo.nombre}`,
+          subject: `Nuevo pedido #${pedidoInfo.id} — ${String(pedidoInfo.nombre || '').slice(0, 60)}`,
           html: htmlTienda
         });
         console.log('[MAIL] Copia a tienda enviada');
@@ -793,10 +843,10 @@ app.get('/api/verificar-usuario', async (req, res) => {
   try {
       const cookieJWT = req.cookies.jwt;
       if (!cookieJWT) return res.status(401).send({ loggedIn: false });
-
-      const decoded = jsonwebtoken.verify(cookieJWT, process.env.JWT_SECRET);
-      // Antes bastaba con que el JWT fuera válido: una cuenta borrada o
-      // bloqueada seguía apareciendo como conectada. Se comprueba en la base.
+      const decoded = verifyJWT(cookieJWT);
+      // No basta con que el JWT sea válido: una cuenta borrada o bloqueada
+      // seguía apareciendo como conectada. Se comprueba en la base, que es lo
+      // que manda (el token dura hasta 7 días).
       const [rows] = await pool.query(
         'SELECT `user`, `role`, bloqueado FROM usuarios WHERE id_usuarios = ? OR `user` = ? LIMIT 1',
         [decoded.uid || 0, decoded.user || '']
@@ -1075,13 +1125,12 @@ app.put('/api/pedidos/:id/estado', requireApiAdmin, async (req, res) => {
 
 // Estados en los que el stock YA se descontó de la bodega. Si un pedido en
 // alguno de ellos se cancela, hay que devolver las unidades.
+// Ojo con el nombre: el estado canónico es 'pagado_espera_envio'. Aquí decía
+// 'pagado_espera_despacho', que no existe en ningún sitio, así que cancelar un
+// pedido ya pagado NO devolvía las unidades a bodega.
 const ESTADOS_CON_STOCK_DESCONTADO = new Set([
-  'aceptado_espera_pago',
-  // El estado real que escribe canonEstado() es 'pagado_espera_envio'. Aquí
-  // decía 'pagado_espera_despacho', que no existe: cancelar un pedido ya pagado
-  // no devolvía el stock a bodega. Se deja el alias antiguo por si quedaron
-  // filas con ese texto en la base.
-  'pagado_espera_envio',
+  'aceptado_espera_pago', 'pagado_espera_envio',
+  // Alias antiguo: por si quedaron filas guardadas con ese texto.
   'pagado_espera_despacho',
   'enviado', 'retirado', 'finalizado'
 ]);
@@ -1209,6 +1258,12 @@ async function cancelarPedidos(ids, quien) {
     throw e;
   }
 }
+
+// Diagnóstico: qué IP ve el servidor en esta misma petición. Sirve para saber
+// si falta TRUST_PROXY cuando las IP guardadas salen todas iguales o vacías.
+app.get('/api/diag/ip', requireApiAdmin, (req, res) => {
+  res.json({ success: true, ...diagnosticoIp(req), trustProxyExpress: app.get('trust proxy') ?? false });
+});
 
 // Historial de intentos de registro.
 // Query: ?resultado=todos|creado|rechazado  &q=texto  &limite=100
@@ -1636,7 +1691,7 @@ app.get('/api/mis-pedidos', requireApiAuth, async (req, res) => {
     if (solicitado && solicitado !== req.cuenta.user) {
       if (req.cuenta.role !== 'admin') {
         console.warn('[MIS-PEDIDOS] intento de leer pedidos ajenos', {
-          quien: req.cuenta.user, pedido: solicitado, ip: ipDe(req)
+          quien: req.cuenta.user, pedido: solicitado, ip: obtenerIp(req)
         });
         return res.status(403).json({ error: 'No autorizado' });
       }

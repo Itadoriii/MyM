@@ -1,3 +1,12 @@
+// Escapa antes de meter texto en HTML. Aquí se muestran el comentario del
+// pedido y los nombres de producto; aunque cada quien solo ve lo suyo, el
+// mismo descuido en el panel sí era explotable.
+function esc(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 const ESTADO_LABELS = {
   generado: 'Generado',
   aceptado_espera_pago: 'Aceptado · espera pago',
@@ -37,17 +46,17 @@ async function cargarMisPedidos(username) {
 
       div.innerHTML = `
         <div class="pedido-header">
-          <h3>Pedido #${pedido.id_pedido}</h3>
+          <h3>Pedido #${Number(pedido.id_pedido)}</h3>
           ${estadoBadge(pedido.estado)}
         </div>
         <p>Fecha: ${new Date(pedido.fecha_pedido).toLocaleString()}</p>
         <p>Total: $${pedido.precio_total.toFixed(2)}</p>
-        <p>Tipo de Entrega: ${pedido.delivery || 'No especificado'}</p>
-        <p>Comentario: ${pedido.descripcion || 'Sin comentario'}</p>
+        <p>Tipo de Entrega: ${esc(pedido.delivery) || 'No especificado'}</p>
+        <p>Comentario: ${esc(pedido.descripcion) || 'Sin comentario'}</p>
         <h4>Productos:</h4>
         <ul>
           ${pedido.detalles.map(d => `
-            <li>${d.nombre_prod} - ${d.cantidad} x $${d.precio_detalle.toFixed(2)}</li>
+            <li>${esc(d.nombre_prod)} - ${Number(d.cantidad)} x $${Number(d.precio_detalle).toFixed(2)}</li>
           `).join('')}
         </ul>
         <hr>

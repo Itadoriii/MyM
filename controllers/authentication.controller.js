@@ -8,24 +8,22 @@ import { transporter } from '../utils/mailer.js';
 import { validarEmailRegistro } from '../utils/email-guard.js';
 import { verificarCaptcha, captchaActivo } from '../utils/turnstile.js';
 import { registrarIntento } from '../utils/audit.js';
-import { ipDe } from '../utils/client-ip.js';
+import { obtenerIp } from '../utils/client-ip.js';
+import { escaparHtml } from '../utils/html.js';
 dotenv.config();
 const BASE_URL = (process.env.BASE_URL || 'http://maderasmym.cl').replace(/\/+$/, '');
 
 // Política de contraseña: mín. 8, mayúscula, minúscula y número.
 const STRONG_PWD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+// Nombre de usuario: letras (con tildes y ñ), números, espacio, punto, guion y
+// guion bajo. Sin esto se podía registrar alguien llamado
+// `<img src=x onerror=...>` y el nombre acababa en el panel y en los correos.
+const USER_RE = /^[\p{L}\p{N} ._-]{3,50}$/u;
 const PWD_RULE_MSG = 'La contraseña debe tener mínimo 8 caracteres e incluir mayúscula, minúscula y número.';
 
 // Vigencia del enlace de recuperación.
 const RESET_TTL_MIN = 60;
-
-// Escapa texto que va dentro del HTML de un correo: el nombre de usuario lo
-// escribe el visitante y no debe poder inyectar etiquetas.
-function escaparHtml(valor) {
-  return String(valor ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
 
 
 
@@ -105,7 +103,7 @@ export async function register(req, res) {
   const password = req.body.password || '';
   const number   = (req.body.number || '').trim() || null;
   const captcha  = req.body['cf-turnstile-response'] || req.body.captcha || '';
-  const ip       = ipDe(req);
+  const ip       = obtenerIp(req);
 
   console.log('[REGISTER] intento', { user, email, ip, number: Boolean(number) ? 'present' : 'null' });
 
@@ -118,6 +116,15 @@ export async function register(req, res) {
     console.warn('[REGISTER] faltan campos', { user: !!user, email: !!email, password: !!password });
     await auditar('rechazado', 'CAMPOS_VACIOS');
     return res.status(400).send({ status: 'Error', message: 'Los campos están vacíos' });
+  }
+
+  if (!USER_RE.test(user)) {
+    console.warn('[REGISTER] nombre de usuario inválido', { user });
+    await auditar('rechazado', 'USUARIO_INVALIDO');
+    return res.status(400).send({
+      status: 'Error',
+      message: 'El nombre de usuario debe tener entre 3 y 50 caracteres y solo letras, números, espacio, punto, guion o guion bajo.'
+    });
   }
 
   // --- validadores extra ---
@@ -191,20 +198,30 @@ export async function register(req, res) {
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
 
-    const [ins] = await pool.query(
-      'INSERT INTO usuarios (`user`, email, `number`, `password`, `role`, email_verificado_at) VALUES (?,?,?,?,?, NULL)',
-      [user, email, number, hashPassword, 'user']
-    );
+    // La IP va en el propio INSERT: antes se guardaba con un UPDATE posterior
+    // cuyo error se tragaba el catch, así que si la columna no existía la
+    // cuenta se creaba igual y sin rastro, en silencio.
+    let ins;
+    try {
+      const [r] = await pool.query(
+        'INSERT INTO usuarios (`user`, email, `number`, `password`, `role`, email_verificado_at, ip_registro) VALUES (?,?,?,?,?, NULL, ?)',
+        [user, email, number, hashPassword, 'user', ip]
+      );
+      ins = r;
+    } catch (e) {
+      // Falta la columna (el ALTER de arranque no pudo aplicarse): se registra
+      // sin IP antes que dejar a la gente sin poder crear cuenta.
+      if (e?.code !== 'ER_BAD_FIELD_ERROR') throw e;
+      console.error('[REGISTER] falta la columna ip_registro en usuarios: la cuenta se crea SIN rastro de IP. Aplica el ALTER a mano.');
+      const [r] = await pool.query(
+        'INSERT INTO usuarios (`user`, email, `number`, `password`, `role`, email_verificado_at) VALUES (?,?,?,?,?, NULL)',
+        [user, email, number, hashPassword, 'user']
+      );
+      ins = r;
+    }
     const userId = ins.insertId;
     console.log('[REGISTER] usuario creado (pendiente)', { userId, user, email, ip });
     await auditar('creado', null, userId);
-
-    // Deja rastro de la IP para poder identificar registros en cadena.
-    try {
-      await pool.query('UPDATE usuarios SET ip_registro = ? WHERE id_usuarios = ?', [ip, userId]);
-    } catch (e) {
-      console.warn('[REGISTER] no se pudo guardar ip_registro:', e?.message || e);
-    }
 
     const raw = crypto.randomBytes(32).toString('hex');
     const tokenHash = sha256(raw);
@@ -353,9 +370,9 @@ export async function forgotPassword(req, res) {
           to: cuenta.email,
           subject: 'Restablece tu contraseña - Maderas MyM',
           html: `
-            <p>Hola ${escaparHtml(cuenta.user)},</p>
+            <p>Hola ${escaparHtml(cuenta.user || '')},</p>
             <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta
-               <strong>${escaparHtml(cuenta.user)}</strong> en Maderas MyM.</p>
+               <strong>${escaparHtml(cuenta.user || '')}</strong> en Maderas MyM.</p>
             <p><a href="${resetUrl}">Restablecer mi contraseña</a></p>
             <p>El enlace expira en ${RESET_TTL_MIN} minutos y solo puede usarse una vez.</p>
             <p>Si no pediste este cambio, ignora este correo: tu contraseña actual sigue funcionando.</p>
@@ -450,22 +467,28 @@ export async function resendVerification(req, res) {
 
   if (!email) return res.status(400).json({ error: 'EMAIL_REQUIRED' });
 
+  // Respuesta idéntica exista o no la cuenta: antes un 404 'USER_NOT_FOUND'
+  // convertía este endpoint en un comprobador de correos registrados, y en un
+  // modo de reenviar correos a una dirección ajena una y otra vez.
+  const respuestaGenerica = () => res.json({
+    ok: true,
+    message: 'Si la cuenta existe y aún no está verificada, te enviamos el enlace.'
+  });
+
   try {
     const [rows] = await pool.query(
       'SELECT id_usuarios, `user`, email_verificado_at FROM usuarios WHERE email=? LIMIT 1',
       [email]
     );
     if (!rows.length) {
-      // Respuesta genérica: antes devolvía 404 USER_NOT_FOUND y permitía averiguar
-      // qué correos están registrados probando uno por uno.
-      console.warn('[RESEND] email no encontrado');
-      return res.json({ ok: true });
+      console.warn('[RESEND] email no encontrado', email);
+      return respuestaGenerica();
     }
 
     const u = rows[0];
     if (u.email_verificado_at) {
       console.log('[RESEND] ya verificado', { email });
-      return res.json({ ok: true, alreadyVerified: true });
+      return respuestaGenerica();
     }
 
     const raw = crypto.randomBytes(32).toString('hex');
@@ -484,7 +507,7 @@ export async function resendVerification(req, res) {
         from: `"Maderas MyM" <${process.env.GMAIL_USER}>`,
         to: email,
         subject: 'Reenvío de verificación - Maderas MyM',
-        html: `<p>Hola ${escaparHtml(u.user)},</p>
+        html: `<p>Hola ${escaparHtml(u.user || '')},</p>
                <p><a href="${verifyUrl}">Verificar correo</a> (expira en 60 min)</p>`
       });
       console.log('[RESEND] correo enviado', { to: email });
@@ -492,7 +515,7 @@ export async function resendVerification(req, res) {
       console.error('[RESEND] fallo correo:', e?.message || e);
     }
 
-    return res.json({ ok: true });
+    return respuestaGenerica();
   } catch (e) {
     console.error('[RESEND] error inesperado:', e);
     return res.status(500).json({ error: 'SERVER_ERROR' });
