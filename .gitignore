@@ -1,2 +1,16 @@
 node_modules
 .env
+
+# Volcados de base de datos: contienen correos, teléfonos, RUT y hashes de
+# contraseñas de clientes reales. No deben subirse al repositorio.
+*.sql
+*.sql.gz
+*.dump
+
+# Credenciales y certificados
+*.pem
+*.key
+*.p12
+*.pfx
+.env.*
+!.env.example

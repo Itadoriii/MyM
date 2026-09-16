@@ -11,7 +11,7 @@ import './middlewares/passport-setup.js'; // Importa la configuración de passpo
 import pool from './db.js';
 import jsonwebtoken from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { revisarCookie } from './middlewares/authorization.js';
+import { revisarCookie, signJWT, setAuthCookie } from './middlewares/authorization.js';
 // enviarConfirmacion ha sido eliminada, la lógica está en el controlador de estados
 import cors from 'cors';
 // import mailRouter from './routes/pedidosMail.js';
@@ -25,6 +25,8 @@ import { requireApiAuth, requireApiAdmin } from './middlewares/api-auth.js';
 import { crearLimitador } from './middlewares/rate-limit.js';
 import { captchaActivo } from './utils/turnstile.js';
 import { registrarIntento } from './utils/audit.js';
+import { ipDe } from './utils/client-ip.js';
+import { cabecerasSeguridad } from './middlewares/security-headers.js';
 import bcrypt from 'bcrypt';
 
 
@@ -48,11 +50,25 @@ ensureSchema();
 
 // Detrás de un proxy inverso (nginx, Apache, Cloudflare) req.ip trae la IP del
 // proxy, no la del visitante, y el rate limit dejaría de servir. Se activa con
-// TRUST_PROXY=1 en el .env. No lo actives si Node recibe el tráfico directo:
-// permitiría falsear la IP con una cabecera X-Forwarded-For.
-if (process.env.TRUST_PROXY) {
-  app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
+// TRUST_PROXY=1 (una capa de proxy) o TRUST_PROXY=cloudflare. No lo actives si
+// Node recibe el tráfico directo: permitiría falsear la IP con X-Forwarded-For.
+//
+// Aunque NO se configure, utils/client-ip.js resuelve la IP desde las cabeceras
+// cuando la conexión llega de un proxy local (127.0.0.1) o de una red privada,
+// que es como llegaba el tráfico que guardaba 127.0.0.1 en la auditoría.
+const TRUST_PROXY = String(process.env.TRUST_PROXY || '').trim();
+if (TRUST_PROXY) {
+  const valor = TRUST_PROXY.toLowerCase() === 'cloudflare'
+    ? 'loopback, linklocal, uniquelocal'
+    : (Number(TRUST_PROXY) || 1);
+  app.set('trust proxy', valor);
   console.log('[CONFIG] trust proxy activado:', app.get('trust proxy'));
+} else {
+  console.warn(
+    '[CONFIG] TRUST_PROXY no está definido. Si el sitio está detrás de nginx/Cloudflare, ' +
+    'la IP se resolverá por cabeceras solo cuando el proxy sea local o privado. ' +
+    'Define TRUST_PROXY=1 (o TRUST_PROXY=cloudflare) en el .env.'
+  );
 }
 
 // Solo nuestro propio sitio puede llamar a la API desde un navegador.
@@ -72,6 +88,7 @@ app.use(cors({
   },
   credentials: true
 }));
+app.use(cabecerasSeguridad());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
@@ -93,11 +110,16 @@ const verifyToken = async (req, res, next) => {
   }
   try {
     const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
-    const [rows] = await pool.query('SELECT * FROM usuarios WHERE user = ?', [decoded.user]);
-    if (rows.length === 0) {
+    // Solo las columnas que se devuelven al cliente: nada de hash ni tokens.
+    const [rows] = await pool.query(
+      `SELECT id_usuarios, \`user\`, email, \`number\`, \`role\`, google_id, bloqueado
+         FROM usuarios WHERE \`user\` = ? LIMIT 1`,
+      [decoded.user]
+    );
+    if (rows.length === 0 || rows[0].bloqueado) {
       return res.redirect('/login');
     }
-    req.user = rows[0]; // Asignamos los datos completos del usuario a `req.user`
+    req.user = rows[0];
     next();
   } catch (err) {
     return res.redirect('/login');
@@ -199,14 +221,64 @@ app.post('/api/password/forgot', limiteCorreo, forgotPassword);
 app.get('/api/password/reset/check', checkResetToken);
 app.post('/api/password/reset', resetPassword);
 
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] }));
+// URL de retorno del login con Google, elegida según el dominio por el que entró
+// la petición. Así funciona igual en local (localhost) y en el dominio real.
+// Se pueden declarar varios dominios separados por coma en GOOGLE_CALLBACK_URLS;
+// todos deben estar registrados en Google Cloud Console (Credenciales → URI de
+// redireccionamiento autorizados).
+function urlCallbackGoogle(req) {
+  const candidatas = [
+    process.env.GOOGLE_CALLBACK_URL,
+    ...(process.env.GOOGLE_CALLBACK_URLS || '').split(','),
+    process.env.GOOGLE_CALLBACK_URL_PROD
+  ].map(v => (v || '').trim()).filter(Boolean);
 
-app.get('/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
+  const host = String(req.get('host') || '').toLowerCase();
+
+  // 1. El dominio de la petición coincide con una URL configurada.
+  const coincide = candidatas.find(u => {
+    try { return new URL(u).host.toLowerCase() === host; } catch { return false; }
+  });
+  if (coincide) return coincide;
+
+  // 2. Desarrollo local: se arma con el host real (http://localhost:3000...).
+  if (/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host)) {
+    return `${req.secure ? 'https' : 'http'}://${host}/auth/google/callback`;
+  }
+
+  // 3. Otro dominio: se arma con el host de la petición, respetando el esquema
+  //    que anuncia el proxy. Es más fiable que forzar un dominio fijo: funciona
+  //    igual en maderasmym.cl que en cualquier otro que esté registrado en
+  //    Google Cloud Console. Un host falso solo provoca un error de Google, que
+  //    rechaza cualquier URI no registrada.
+  if (host) {
+    const proto = req.secure || String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https'
+      ? 'https'
+      : 'http';
+    return `${proto}://${host}/auth/google/callback`;
+  }
+
+  // 4. Sin host utilizable: la primera URL configurada.
+  if (candidatas.length) return candidatas[0];
+
+  return 'http://localhost:3000/auth/google/callback';
+}
+
+app.get('/auth/google', (req, res, next) =>
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    callbackURL: urlCallbackGoogle(req)
+  })(req, res, next));
+
+app.get('/auth/google/callback',
+  (req, res, next) =>
+    passport.authenticate('google', {
+      failureRedirect: '/login?google=error',
+      callbackURL: urlCallbackGoogle(req)
+    })(req, res, next),
   (req, res) => {
-    const token = jsonwebtoken.sign({ user: req.user.user, role: req.user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.cookie('jwt', token, { httpOnly: true, secure: false, sameSite: 'lax' }); // sameSite:lax necesario para móviles
+    const token = signJWT({ uid: req.user.id_usuarios, user: req.user.user, role: req.user.role });
+    setAuthCookie(res, token, req);
     res.redirect('/profile');
   });
 
@@ -284,7 +356,7 @@ app.get('/productos/:productId', async (req, res) => {
       res.status(404).json({ error: 'Producto no encontrado' });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 app.get('/api/user', verifyToken, (req, res) => {
@@ -311,7 +383,7 @@ app.get('/api/usuarios', requireApiAdmin, async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error('Error al obtener usuarios:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
@@ -379,12 +451,20 @@ app.post('/api/productos', requireApiAdmin, async (req, res) => {
     res.status(201).json({ message: 'Producto creado exitosamente', id: newId });
   } catch (err) {
     console.error('Error al crear producto:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) => {
-    const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
+// Escapa texto que se inserta dentro del HTML de un correo. El nombre, el
+// correo y los comentarios los escribe el visitante: sin esto, un comentario con
+// etiquetas rompe el correo o inyecta contenido.
+function escaparHtml(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) => {    const { cart: bodyCart = [], delivery = null, comentarios = '' } = req.body || {};
     const cart = Array.isArray(bodyCart) ? bodyCart : [];
     if (!cart.length) return res.status(400).json({ success:false, error:'Carrito vacío' });
 
@@ -398,7 +478,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
       try {
         // La identidad ya la validó requireApiAuth: no hace falta releer la cookie.
         const u = { id_usuarios: req.cuenta.id_usuarios };
-        const ipCliente = req.ip || req.socket?.remoteAddress || null;
+        const ipCliente = ipDe(req);
 
         // --- Normaliza y valida el carrito antes de abrir la transacción ---
         // Se agrupan las líneas repetidas del mismo producto: antes, dos líneas
@@ -569,8 +649,8 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         return `
           <tr>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.id_producto}</td>
-            <td style="padding:8px;border:1px solid #eee;">${d.nombre}</td>
-            <td style="padding:8px;border:1px solid #eee;">${d.tipo || '—'}</td>
+            <td style="padding:8px;border:1px solid #eee;">${escaparHtml(d.nombre)}</td>
+            <td style="padding:8px;border:1px solid #eee;">${d.tipo ? escaparHtml(d.tipo) : '—'}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:center;">${d.cantidad}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(d.precio)}</td>
             <td style="padding:8px;border:1px solid #eee;text-align:right;">$${fmt(subtotal)}</td>
@@ -600,13 +680,13 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
 
       // Datos que recibiste (no necesariamente guardados en DB, pero los incluimos en el correo)
       const deliveryTxt = delivery === 'retiro' ? 'Retiro en tienda' : 'Flete externo';
-      const comentariosTxt = (comentarios || '').trim() ? comentarios.trim() : '—';
+      const comentariosTxt = (comentarios || '').trim() ? escaparHtml(comentarios.trim()) : '—';
 
       // HTML para el cliente
       const htmlCliente = `
         <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#333;max-width:720px;margin:auto;">
           <h2>¡Pedido recibido con éxito!</h2>
-          <p>Hola <b>${pedidoInfo.nombre || ''}</b>,</p>
+          <p>Hola <b>${escaparHtml(pedidoInfo.nombre)}</b>,</p>
           <p>Tu pedido <b>#${pedidoInfo.id}</b> fue generado correctamente el <b>${fechaStr}</b>.</p>
           <p>La tienda se pondrá en contacto contigo a la brevedad para <b>confirmar/aceptar</b> el pedido.
              Ante cualquier duda, escríbenos por WhatsApp:
@@ -628,7 +708,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         <div style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#333;max-width:720px;margin:auto;">
           <h2>Nuevo pedido recibido</h2>
           <p><b>Pedido #${pedidoInfo.id}</b> — ${fechaStr}</p>
-          <p><b>Cliente:</b> ${pedidoInfo.nombre} — <b>Email:</b> ${pedidoInfo.email} — <b>Tel:</b> ${pedidoInfo.telefono || '—'}</p>
+          <p><b>Cliente:</b> ${escaparHtml(pedidoInfo.nombre)} — <b>Email:</b> ${escaparHtml(pedidoInfo.email)} — <b>Tel:</b> ${pedidoInfo.telefono ? escaparHtml(pedidoInfo.telefono) : '—'}</p>
           <p><b>Método de entrega:</b> ${deliveryTxt}</p>
           <p><b>Comentarios del cliente:</b> ${comentariosTxt}</p>
 
@@ -701,8 +781,9 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         continue;
       }
       console.error('Error al generar el pedido:', err);
-      const msg = (err && (err.message || err.sqlMessage)) || 'Error interno';
-      return res.status(500).json({ success:false, error: msg });
+      // No se devuelve err.message al cliente: revela nombres de tablas y
+      // columnas de MySQL. El detalle queda en el log del servidor.
+      return res.status(500).json({ success:false, error: 'No se pudo generar el pedido. Inténtalo de nuevo.' });
     }
   }
 });
@@ -712,9 +793,18 @@ app.get('/api/verificar-usuario', async (req, res) => {
   try {
       const cookieJWT = req.cookies.jwt;
       if (!cookieJWT) return res.status(401).send({ loggedIn: false });
-      
+
       const decoded = jsonwebtoken.verify(cookieJWT, process.env.JWT_SECRET);
-      return res.status(200).send({ loggedIn: true, user: decoded.user });
+      // Antes bastaba con que el JWT fuera válido: una cuenta borrada o
+      // bloqueada seguía apareciendo como conectada. Se comprueba en la base.
+      const [rows] = await pool.query(
+        'SELECT `user`, `role`, bloqueado FROM usuarios WHERE id_usuarios = ? OR `user` = ? LIMIT 1',
+        [decoded.uid || 0, decoded.user || '']
+      );
+      if (!rows.length || rows[0].bloqueado) {
+        return res.status(401).send({ loggedIn: false });
+      }
+      return res.status(200).send({ loggedIn: true, user: rows[0].user, role: rows[0].role });
   } catch (error) {
       return res.status(401).send({ loggedIn: false });
   }
@@ -841,7 +931,7 @@ app.put('/api/productos/:id', requireApiAdmin, async (req, res) => {
     res.json({ message: 'Producto actualizado exitosamente', id: nuevoId || id });
   } catch (err) {
     console.error('Error al actualizar producto:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
@@ -986,7 +1076,14 @@ app.put('/api/pedidos/:id/estado', requireApiAdmin, async (req, res) => {
 // Estados en los que el stock YA se descontó de la bodega. Si un pedido en
 // alguno de ellos se cancela, hay que devolver las unidades.
 const ESTADOS_CON_STOCK_DESCONTADO = new Set([
-  'aceptado_espera_pago', 'pagado_espera_despacho', 'enviado', 'retirado', 'finalizado'
+  'aceptado_espera_pago',
+  // El estado real que escribe canonEstado() es 'pagado_espera_envio'. Aquí
+  // decía 'pagado_espera_despacho', que no existe: cancelar un pedido ya pagado
+  // no devolvía el stock a bodega. Se deja el alias antiguo por si quedaron
+  // filas con ese texto en la base.
+  'pagado_espera_envio',
+  'pagado_espera_despacho',
+  'enviado', 'retirado', 'finalizado'
 ]);
 
 // Suspender o reactivar una cuenta.
@@ -1197,18 +1294,18 @@ app.post('/api/pedidos/cancelar-lote', requireApiAdmin, async (req, res) => {
 });
 
 // Obtener todos los trabajadores
-app.get('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/trabajadores', requireApiAdmin, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM trabajadores ORDER BY id_trabajador DESC');
     res.json(rows);
   } catch (err) {
     console.error('Error al obtener trabajadores:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // Obtener un trabajador específico
-app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   
   try {
@@ -1221,12 +1318,12 @@ app.get('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (re
     res.json(rows[0]);
   } catch (err) {
     console.error('Error al obtener trabajador:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // Crear nuevo trabajador
-app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.post('/api/trabajadores', requireApiAdmin, async (req, res) => {
   const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
   console.log('Creando nuevo trabajador:', req.body);
@@ -1249,12 +1346,12 @@ app.post('/api/trabajadores', verifyToken, authorization.soloAdmin, async (req, 
     });
   } catch (err) {
     console.error('Error al crear trabajador:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // Actualizar trabajador
-app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.put('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
@@ -1287,12 +1384,12 @@ app.put('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (re
     res.json({ message: 'Trabajador actualizado exitosamente' });
   } catch (err) {
     console.error('Error al actualizar trabajador:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // Eliminar trabajador
-app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.delete('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -1305,7 +1402,7 @@ app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async 
     res.json({ message: 'Trabajador eliminado exitosamente' });
   } catch (err) {
     console.error('Error al eliminar trabajador:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 // ==============================================
@@ -1314,7 +1411,7 @@ app.delete('/api/trabajadores/:id', verifyToken, authorization.soloAdmin, async 
 
 // Obtener todos los adelantos
 
-app.get('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/adelantos', requireApiAdmin, async (req, res) => {
   try {
     const { trabajador, mes, año, page = 1, limit = 50 } = req.query;
 
@@ -1370,7 +1467,7 @@ app.get('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res)
 
 
 // Obtener un adelanto específico
-app.get('/api/adelantos/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.get('/api/adelantos/:id', requireApiAdmin, async (req, res) => {
 const { id } = req.params;
 
 try {
@@ -1389,12 +1486,12 @@ try {
   res.json(rows[0]);
 } catch (err) {
   console.error('Error al obtener adelanto:', err);
-  res.status(500).json({ error: err.message });
+  res.status(500).json({ error: 'Error interno del servidor' });
 }
 });
 
 // Crear nuevo adelanto
-app.post('/api/adelantos', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.post('/api/adelantos', requireApiAdmin, async (req, res) => {
 const { id_trabajador, bono, motivos, monto, fecha } = req.body;
 
 console.log('Creando nuevo adelanto:', req.body);
@@ -1436,12 +1533,12 @@ try {
   res.status(201).json(newAdelanto[0]);
 } catch (err) {
   console.error('Error al crear adelanto:', err);
-  res.status(500).json({ error: err.message });
+  res.status(500).json({ error: 'Error interno del servidor' });
 }
 });
 
 // Actualizar adelanto
-app.put('/api/adelantos/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.put('/api/adelantos/:id', requireApiAdmin, async (req, res) => {
 const { id } = req.params;
 const { id_trabajador, bono, motivos, monto, fecha } = req.body;
 
@@ -1499,12 +1596,12 @@ try {
   res.json(updatedAdelanto[0]);
 } catch (err) {
   console.error('Error al actualizar adelanto:', err);
-  res.status(500).json({ error: err.message });
+  res.status(500).json({ error: 'Error interno del servidor' });
 }
 });
 
 // Eliminar adelanto
-app.delete('/api/adelantos/:id', verifyToken, authorization.soloAdmin, async (req, res) => {
+app.delete('/api/adelantos/:id', requireApiAdmin, async (req, res) => {
 const { id } = req.params;
 
 try {
@@ -1523,7 +1620,7 @@ try {
   res.json({ message: 'Adelanto eliminado exitosamente' });
 } catch (err) {
   console.error('Error al eliminar adelanto:', err);
-  res.status(500).json({ error: err.message });
+  res.status(500).json({ error: 'Error interno del servidor' });
 }
 
 });
@@ -1539,7 +1636,7 @@ app.get('/api/mis-pedidos', requireApiAuth, async (req, res) => {
     if (solicitado && solicitado !== req.cuenta.user) {
       if (req.cuenta.role !== 'admin') {
         console.warn('[MIS-PEDIDOS] intento de leer pedidos ajenos', {
-          quien: req.cuenta.user, pedido: solicitado, ip: req.ip
+          quien: req.cuenta.user, pedido: solicitado, ip: ipDe(req)
         });
         return res.status(403).json({ error: 'No autorizado' });
       }

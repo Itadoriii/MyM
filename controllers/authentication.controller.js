@@ -8,6 +8,7 @@ import { transporter } from '../utils/mailer.js';
 import { validarEmailRegistro } from '../utils/email-guard.js';
 import { verificarCaptcha, captchaActivo } from '../utils/turnstile.js';
 import { registrarIntento } from '../utils/audit.js';
+import { ipDe } from '../utils/client-ip.js';
 dotenv.config();
 const BASE_URL = (process.env.BASE_URL || 'http://maderasmym.cl').replace(/\/+$/, '');
 
@@ -17,6 +18,14 @@ const PWD_RULE_MSG = 'La contraseña debe tener mínimo 8 caracteres e incluir m
 
 // Vigencia del enlace de recuperación.
 const RESET_TTL_MIN = 60;
+
+// Escapa texto que va dentro del HTML de un correo: el nombre de usuario lo
+// escribe el visitante y no debe poder inyectar etiquetas.
+function escaparHtml(valor) {
+  return String(valor ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
 
 
 
@@ -86,7 +95,7 @@ export async function login(req, res) {
     return res.json({ status: 'ok', redirect });
   } catch (err) {
     console.error('[LOGIN] error inesperado:', err);
-    return res.status(500).json({ status: 'Error', message: err.message });
+    return res.status(500).json({ status: 'Error', message: 'Error del servidor' });
   }
 }
 
@@ -96,7 +105,7 @@ export async function register(req, res) {
   const password = req.body.password || '';
   const number   = (req.body.number || '').trim() || null;
   const captcha  = req.body['cf-turnstile-response'] || req.body.captcha || '';
-  const ip       = req.ip || req.socket?.remoteAddress || null;
+  const ip       = ipDe(req);
 
   console.log('[REGISTER] intento', { user, email, ip, number: Boolean(number) ? 'present' : 'null' });
 
@@ -214,7 +223,7 @@ export async function register(req, res) {
         to: email,
         subject: 'Verifica tu correo - Maderas MyM',
         html: `
-          <p>Hola ${user},</p>
+          <p>Hola ${escaparHtml(user)},</p>
           <p>Confirma tu correo para activar tu cuenta en Maderas MyM:</p>
           <p><a href="${verifyUrl}">Verificar correo</a></p>
           <p>El enlace expira en 60 minutos.</p>
@@ -239,7 +248,7 @@ export async function register(req, res) {
   } catch (err) {
     console.error('[REGISTER] error inesperado:', err);
     await auditar('rechazado', 'ERROR_SERVIDOR');
-    return res.status(500).send({ status: 'Error', message: err.message });
+    return res.status(500).send({ status: 'Error', message: 'No se pudo crear la cuenta. Inténtalo más tarde.' });
   }
 }
 
@@ -344,9 +353,9 @@ export async function forgotPassword(req, res) {
           to: cuenta.email,
           subject: 'Restablece tu contraseña - Maderas MyM',
           html: `
-            <p>Hola ${cuenta.user || ''},</p>
+            <p>Hola ${escaparHtml(cuenta.user)},</p>
             <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta
-               <strong>${cuenta.user || ''}</strong> en Maderas MyM.</p>
+               <strong>${escaparHtml(cuenta.user)}</strong> en Maderas MyM.</p>
             <p><a href="${resetUrl}">Restablecer mi contraseña</a></p>
             <p>El enlace expira en ${RESET_TTL_MIN} minutos y solo puede usarse una vez.</p>
             <p>Si no pediste este cambio, ignora este correo: tu contraseña actual sigue funcionando.</p>
@@ -447,8 +456,10 @@ export async function resendVerification(req, res) {
       [email]
     );
     if (!rows.length) {
-      console.warn('[RESEND] email no encontrado', email);
-      return res.status(404).json({ error: 'USER_NOT_FOUND' });
+      // Respuesta genérica: antes devolvía 404 USER_NOT_FOUND y permitía averiguar
+      // qué correos están registrados probando uno por uno.
+      console.warn('[RESEND] email no encontrado');
+      return res.json({ ok: true });
     }
 
     const u = rows[0];
@@ -473,7 +484,7 @@ export async function resendVerification(req, res) {
         from: `"Maderas MyM" <${process.env.GMAIL_USER}>`,
         to: email,
         subject: 'Reenvío de verificación - Maderas MyM',
-        html: `<p>Hola ${u.user || ''},</p>
+        html: `<p>Hola ${escaparHtml(u.user)},</p>
                <p><a href="${verifyUrl}">Verificar correo</a> (expira en 60 min)</p>`
       });
       console.log('[RESEND] correo enviado', { to: email });

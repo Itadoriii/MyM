@@ -3,6 +3,7 @@
 // que es lo que necesita el front cuando llama con fetch().
 import pool from '../db.js';
 import { revisarCookie } from './authorization.js';
+import { ipDe } from '../utils/client-ip.js';
 
 // Lee la identidad desde la cookie y la contrasta contra la BD.
 // El rol se toma SIEMPRE de la base, no del JWT: así, si degradas o bloqueas
@@ -53,7 +54,7 @@ export function requireApiRole(...roles) {
         role: cuenta.role,
         requiere: roles,
         ruta: req.originalUrl,
-        ip: req.ip
+        ip: ipDe(req)
       });
       return res.status(403).json({ success: false, error: 'No autorizado', code: 'FORBIDDEN' });
     }

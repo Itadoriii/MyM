@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function() {
         popup.className = 'popup';
         popup.innerHTML = `
             <div class="popup-content">
-                <p>${message}</p>
+                <p>${esc(message)}</p>
                 <button class="popup-close">Cerrar</button>
             </div>
         `;
@@ -805,7 +805,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <th>
                 <select id="f-tipo" style="width:100%">
                     <option value="">Tipo (todos)</option>
-                    ${tipos.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    ${tipos.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
                 </select>
                 </th>
                 <th><input id="f-medidas"     type="text" placeholder="Medidas..." style="width:100%"></th>
@@ -837,13 +837,13 @@ document.addEventListener("DOMContentLoaded", function() {
         tbody.innerHTML = list.map(p => `
         <tr>
             <td>${p.id_producto}</td>
-            <td>${p.nombre_prod ?? ''}</td>
+            <td>${esc(p.nombre_prod)}</td>
             <td>$ ${fmtCL(p.precio_unidad)}</td>
             <td>${p.disponibilidad ?? ''}</td>
-            <td>${p.tipo ?? ''}</td>
-            <td>${p.medidas ?? ''}</td>
-            <td>${p.dimensiones ?? ''}</td>
-            <td>${p.fecha_add ?? ''}</td>
+            <td>${esc(p.tipo)}</td>
+            <td>${esc(p.medidas)}</td>
+            <td>${esc(p.dimensiones)}</td>
+            <td>${esc(p.fecha_add)}</td>
             <td>${isVisible(p.visible) ? 'Visible' : 'Oculto'}</td>
             <td>
             <button class="editBtn" data-id="${p.id_producto}">Editar</button>
@@ -1000,7 +1000,7 @@ function showProductForm(product = null) {
       </div>
       <div class="form-group">
         <label>Nombre:</label>
-        <input type="text" name="nombre_prod" value="${product?.nombre_prod || ''}" required>
+        <input type="text" name="nombre_prod" value="${esc(product?.nombre_prod)}" required>
       </div>
       <div class="form-group">
         <label>Precio Unidad:</label>
@@ -1012,15 +1012,15 @@ function showProductForm(product = null) {
       </div>
       <div class="form-group">
         <label>Tipo:</label>
-        <input type="text" name="tipo" value="${product?.tipo || ''}" required>
+        <input type="text" name="tipo" value="${esc(product?.tipo)}" required>
       </div>
       <div class="form-group">
         <label>Medidas:</label>
-        <input type="text" name="medidas" value="${product?.medidas || ''}" required>
+        <input type="text" name="medidas" value="${esc(product?.medidas)}" required>
       </div>
       <div class="form-group">
         <label>Dimensiones:</label>
-        <input type="text" name="dimensiones" value="${product?.dimensiones || ''}" required>
+        <input type="text" name="dimensiones" value="${esc(product?.dimensiones)}" required>
       </div>
       <div class="form-group">
         <label>Fecha Añadido:</label>
@@ -1035,7 +1035,7 @@ function showProductForm(product = null) {
       </div>
       <div class="form-group">
         <label>Ruta:</label>
-        <input type="text" name="ruta" value="${product?.ruta || ''}" required>
+        <input type="text" name="ruta" value="${esc(product?.ruta)}" required>
       </div>
       <div class="form-actions">
         <button type="submit">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
@@ -1110,13 +1110,13 @@ async function fetchTrabajadores() {
                         ${trabajadores.map(trabajador => `
                             <tr>
                                 <td>${trabajador.id_trabajador}</td>
-                                <td>${trabajador.rut}</td>
-                                <td>${trabajador.nombres}</td>
-                                <td>${trabajador.apellidos}</td>
-                                <td>${trabajador.fechaIngreso}</td>
-                                <td>$${trabajador.sueldo.toLocaleString()}</td>
-                                <td>${trabajador.fono}</td>
-                                <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
+                                <td>${esc(trabajador.rut)}</td>
+                                <td>${esc(trabajador.nombres)}</td>
+                                <td>${esc(trabajador.apellidos)}</td>
+                                <td>${esc(trabajador.fechaIngreso)}</td>
+                                <td>$${formatNumber(trabajador.sueldo)}</td>
+                                <td>${esc(trabajador.fono)}</td>
+                                <td class="${esc(trabajador.estado)}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
                                 <td>
                                     <button class="editBtn" data-id="${trabajador.id_trabajador}">Editar</button>
                                     <button class="deleteBtn" data-id="${trabajador.id_trabajador}">Eliminar</button>
@@ -1165,13 +1165,13 @@ async function fetchTrabajadores() {
             tbody.innerHTML = trabajadores.map(trabajador => `
                 <tr>
                     <td>${trabajador.id_trabajador}</td>
-                    <td>${trabajador.rut}</td>
-                    <td>${trabajador.nombres}</td>
-                    <td>${trabajador.apellidos}</td>
-                    <td>${trabajador.fechaIngreso}</td>
-                    <td>$${trabajador.sueldo.toLocaleString()}</td>
-                    <td>${trabajador.fono}</td>
-                    <td class="${trabajador.estado}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
+                    <td>${esc(trabajador.rut)}</td>
+                    <td>${esc(trabajador.nombres)}</td>
+                    <td>${esc(trabajador.apellidos)}</td>
+                    <td>${esc(trabajador.fechaIngreso)}</td>
+                    <td>$${formatNumber(trabajador.sueldo)}</td>
+                    <td>${esc(trabajador.fono)}</td>
+                    <td class="${esc(trabajador.estado)}">${trabajador.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
                     <td>
                         <button class="editBtn" data-id="${trabajador.id_trabajador}">Editar</button>
                         <button class="deleteBtn" data-id="${trabajador.id_trabajador}">Eliminar</button>
@@ -1248,27 +1248,27 @@ function showTrabajadorForm(trabajador = null) {
             ${isEditing ? `<input type="hidden" id="id_trabajador" name="id_trabajador" value="${trabajador.id_trabajador}">` : ''}
             <div class="form-group">
                 <label for="rut">RUT:</label>
-                <input type="text" id="rut" name="rut" value="${isEditing ? trabajador.rut : ''}" required>
+                <input type="text" id="rut" name="rut" value="${isEditing ? esc(trabajador.rut) : ''}" required>
             </div>
             <div class="form-group">
                 <label for="nombres">Nombres:</label>
-                <input type="text" id="nombres" name="nombres" value="${isEditing ? trabajador.nombres : ''}" required>
+                <input type="text" id="nombres" name="nombres" value="${isEditing ? esc(trabajador.nombres) : ''}" required>
             </div>
             <div class="form-group">
                 <label for="apellidos">Apellidos:</label>
-                <input type="text" id="apellidos" name="apellidos" value="${isEditing ? trabajador.apellidos : ''}" required>
+                <input type="text" id="apellidos" name="apellidos" value="${isEditing ? esc(trabajador.apellidos) : ''}" required>
             </div>
             <div class="form-group">
                 <label for="fechaIngreso">Fecha Ingreso:</label>
-                <input type="date" id="fechaIngreso" name="fechaIngreso" value="${isEditing ? trabajador.fechaIngreso : ''}" required>
+                <input type="date" id="fechaIngreso" name="fechaIngreso" value="${isEditing ? esc(trabajador.fechaIngreso) : ''}" required>
             </div>
             <div class="form-group">
                 <label for="sueldo">Sueldo:</label>
-                <input type="number" id="sueldo" name="sueldo" step="1000" value="${isEditing ? trabajador.sueldo : ''}" required>
+                <input type="number" id="sueldo" name="sueldo" step="1000" value="${isEditing ? esc(trabajador.sueldo) : ''}" required>
             </div>
             <div class="form-group">
                 <label for="fono">Teléfono:</label>
-                <input type="tel" id="fono" name="fono" value="${isEditing ? trabajador.fono : ''}" required>
+                <input type="tel" id="fono" name="fono" value="${isEditing ? esc(trabajador.fono) : ''}" required>
             </div>
             <div class="form-group">
                 <label for="estado">Estado:</label>
@@ -1354,7 +1354,7 @@ function renderAdelantosTable(adelantos, trabajadores, total, page) {
         <select id="filtroTrabajador">
             <option value="">Todos los trabajadores</option>
             ${trabajadores.map(t => 
-                `<option value="${t.id_trabajador}">${t.id_trabajador}.- ${t.nombres} ${t.apellidos}</option>`
+                `<option value="${esc(t.id_trabajador)}">${esc(t.id_trabajador)}.- ${esc(t.nombres)} ${esc(t.apellidos)}</option>`
             ).join('')}
         </select>
         
@@ -1469,9 +1469,10 @@ function renderAdelantosData(adelantos) {
     let totalBonos = 0;
 
     adelantos.forEach(adelanto => {
-        // Formatear los motivos con saltos de línea
+        // Formatear los motivos con saltos de línea (cada línea se escapa antes
+        // de insertarla: el texto lo escribe una persona y no debe ser HTML).
         const motivosFormateados = adelanto.motivos ? 
-            adelanto.motivos.split('\n').map(m => `${m}<br>`).join('') : 
+            adelanto.motivos.split('\n').map(m => `${esc(m)}<br>`).join('') : 
             '-';
 
         const row = document.createElement('tr');
@@ -1482,7 +1483,7 @@ function renderAdelantosData(adelantos) {
                 <button class="generarpdf" data-id="${adelanto.id_adelanto}">Generar PDF</button>
             </td>
             <td>${adelanto.id_adelanto}</td>
-            <td>${adelanto.id_trabajador}.- ${adelanto.nombres} ${adelanto.apellidos}</td>
+            <td>${esc(adelanto.id_trabajador)}.- ${esc(adelanto.nombres)} ${esc(adelanto.apellidos)}</td>
             <td>${formatDate(adelanto.fecha)}</td>
             <td>${motivosFormateados}</td>
             <td>$ ${formatNumber(adelanto.monto)}</td>
@@ -1727,20 +1728,20 @@ function showAdelantoForm(adelanto = null) {
                 
                 <div class="form-group">
                     <label for="fecha">Fecha:</label>
-                    <input type="date" id="fecha" required value="${adelanto ? adelanto.fecha : ''}">
+                    <input type="date" id="fecha" required value="${esc(adelanto ? adelanto.fecha : '')}">
                 </div>
                 
                 <div class="form-group">
                     <label for="monto">Monto:</label>
-                    <input type="number" id="monto" required value="${adelanto ? adelanto.monto : ''}">
+                    <input type="number" id="monto" required value="${esc(adelanto ? adelanto.monto : '')}">
                 </div>
                 <div class="form-group">
                     <label for="bono">Bono:</label>
-                    <input type="number" id="bono" required value="${adelanto ? adelanto.bono : ''}">
+                    <input type="number" id="bono" required value="${esc(adelanto ? adelanto.bono : '')}">
                 </div>
                 <div class="form-group">
                     <label for="motivos">Motivos:</label>
-                    <textarea id="motivos" rows="3">${adelanto ? adelanto.motivos : ''}</textarea>
+                    <textarea id="motivos" rows="3">${esc(adelanto ? adelanto.motivos : '')}</textarea>
                 </div>
                 
                 <button type="submit">Guardar</button>
@@ -2229,7 +2230,7 @@ function renderInformeGeneral(data, mes, anio) {
                     ${data.map(row => `
                         <tr>
                             <td>${row.id_trabajador}</td>
-                            <td>${row.nombre}</td>
+                            <td>${esc(row.nombre)}</td>
                             <td>${formatoCLP.format(row.sueldo)}</td>
                             <td>${formatoCLP.format(row.totalAdelantos)}</td>
                             <td class="${row.saldo < 0 ? 'saldo-negativo' : 'saldo-positivo'}">
