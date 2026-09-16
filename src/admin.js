@@ -836,18 +836,18 @@ document.addEventListener("DOMContentLoaded", function() {
         const tbody = document.getElementById('productos-tbody');
         tbody.innerHTML = list.map(p => `
         <tr>
-            <td>${p.id_producto}</td>
+            <td>${Number(p.id_producto)}</td>
             <td>${esc(p.nombre_prod)}</td>
             <td>$ ${fmtCL(p.precio_unidad)}</td>
-            <td>${p.disponibilidad ?? ''}</td>
+            <td>${esc(p.disponibilidad)}</td>
             <td>${esc(p.tipo)}</td>
             <td>${esc(p.medidas)}</td>
             <td>${esc(p.dimensiones)}</td>
             <td>${esc(p.fecha_add)}</td>
             <td>${isVisible(p.visible) ? 'Visible' : 'Oculto'}</td>
             <td>
-            <button class="editBtn" data-id="${p.id_producto}">Editar</button>
-            <button class="deleteBtn" data-id="${p.id_producto}">Eliminar</button>
+            <button class="editBtn" data-id="${Number(p.id_producto)}">Editar</button>
+            <button class="deleteBtn" data-id="${Number(p.id_producto)}">Eliminar</button>
             </td>
         </tr>
         `).join('');
@@ -2229,7 +2229,7 @@ function renderInformeGeneral(data, mes, anio) {
                 <tbody>
                     ${data.map(row => `
                         <tr>
-                            <td>${row.id_trabajador}</td>
+                            <td>${Number(row.id_trabajador)}</td>
                             <td>${esc(row.nombre)}</td>
                             <td>${formatoCLP.format(row.sueldo)}</td>
                             <td>${formatoCLP.format(row.totalAdelantos)}</td>

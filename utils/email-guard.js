@@ -23,6 +23,26 @@ const DESECHABLES = new Set([
   'gustr.com', 'fleckens.hu', 'edu.tw.tw', 'byom.de'
 ]);
 
+// Proveedores de correo gratuito de Rusia/Ucrania. No son desechables — son
+// buzones reales y por eso pasan el filtro de MX — pero son los que usan las
+// granjas de cuentas automatizadas, y de ahí salió el registro del 22 de
+// agosto (pavlov-9ao9i@rambler.ua). Para una maderera que vende en Chile no
+// hay ningún cliente legítimo detrás de estos dominios.
+// Se revierte con EMAIL_PERMITIR_EXTRANJEROS=1 en el .env, sin tocar código.
+const CORREO_MASIVO_EXTRANJERO = [
+  'mail.ru', 'inbox.ru', 'bk.ru', 'list.ru', 'internet.ru',
+  'rambler.ru', 'rambler.ua', 'lenta.ru', 'autorambler.ru', 'myrambler.ru', 'ro.ru',
+  'yandex.ru', 'yandex.com', 'yandex.ua', 'yandex.by', 'yandex.kz', 'ya.ru',
+  'ukr.net', 'i.ua', 'meta.ua', 'bigmir.net', 'email.ua', 'ex.ua',
+  'qip.ru', 'pochta.ru', 'nm.ru', 'newmail.ru', 'land.ru',
+  'mail.ua', 'mail.kz', 'tut.by', 'sibmail.com', 'vk.com'
+];
+
+function extranjerosBloqueados() {
+  if (process.env.EMAIL_PERMITIR_EXTRANJEROS === '1') return [];
+  return CORREO_MASIVO_EXTRANJERO;
+}
+
 // Dominios institucionales vetados por decisión del negocio, a raíz del abuso
 // reiterado de pedidos falsos desde esa institución.
 // Se puede vaciar la lista con EMAIL_INSTITUCIONALES_PERMITIDOS=1 sin tocar código.
@@ -93,6 +113,15 @@ export async function validarEmailRegistro(email) {
       ok: false,
       motivo: 'INSTITUCIONAL',
       mensaje: 'No aceptamos registros con correo institucional. Usa tu correo personal (Gmail, Outlook u otro).'
+    };
+  }
+
+  if (coincideDominio(dominio, extranjerosBloqueados())) {
+    console.warn('[EMAIL-GUARD] proveedor de correo masivo rechazado', dominio);
+    return {
+      ok: false,
+      motivo: 'CORREO_EXTRANJERO',
+      mensaje: 'No aceptamos registros desde ese proveedor de correo. Usa Gmail, Outlook u otro correo habitual.'
     };
   }
 

@@ -38,7 +38,9 @@
       const body = new URLSearchParams(new FormData(f));
       const r = await fetch('/api/verify/resend',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
       const d = await r.json().catch(()=>({}));
-      m.textContent = r.ok ? (d.alreadyVerified ? 'Ya está verificado.' : 'Listo, revisa tu correo.') : 'No se pudo reenviar.';
+      // El servidor responde lo mismo exista o no la cuenta, para no confirmar
+      // qué correos están registrados.
+      m.textContent = r.ok ? (d.message || 'Listo, revisa tu correo.') : 'No se pudo reenviar.';
     });
   </script>
   <!-- Google tag (gtag.js) -->
