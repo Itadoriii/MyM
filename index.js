@@ -232,6 +232,18 @@ const limitePedidos = crearLimitador({
   mensaje: 'Demasiados pedidos generados desde esta conexión. Contáctanos por WhatsApp si necesitas más.'
 });
 
+// Red de seguridad general. Los límites de arriba cubren las acciones sensibles,
+// pero quedaban rutas públicas sin tope (catálogo, ficha de producto, /api/*):
+// un escáner podía martillarlas todo lo que quisiera. 120 peticiones por minuto
+// es holgado para una persona navegando y estrecho para un robot.
+const limiteApiGeneral = crearLimitador({
+  nombre: 'api-general',
+  ventanaMs: 60 * 1000,
+  max: 120,
+  mensaje: 'Demasiadas peticiones seguidas. Espera un momento e inténtalo de nuevo.'
+});
+app.use(['/api', '/productos'], limiteApiGeneral);
+
 // Reglas de transición de estado (PEGAR ARRIBA DEL ARCHIVO DE RUTAS)
 const NEXTS = {
   generado: ['aceptado_espera_pago', 'rechazado'],
