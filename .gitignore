@@ -16,3 +16,8 @@ node_modules
 *.pfx
 .env.*
 !.env.example
+
+# Informes de logs: traen IPs y datos de intentos, no deben subirse.
+informe*.txt
+informe*.log
+logs-seguridad*.txt
