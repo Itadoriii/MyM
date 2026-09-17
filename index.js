@@ -180,7 +180,15 @@ const limiteLogin = crearLimitador({
   nombre: 'login',
   ventanaMs: 15 * 60 * 1000,
   max: 10,
-  mensaje: 'Demasiados intentos de inicio de sesión. Espera unos minutos.'
+  mensaje: 'Demasiados intentos de inicio de sesión. Espera unos minutos.',
+  // También se auditan: antes solo quedaban en la consola del proceso, así que
+  // un ataque de fuerza bruta contra el login no dejaba rastro consultable.
+  alBloquear: (req) => registrarIntento({
+    req,
+    usuario: req.body?.user,
+    resultado: 'rechazado',
+    motivo: 'LOGIN_RATE_LIMIT'
+  })
 });
 
 // El límite por IP no sirve contra una botnet: cada intento llega de una
@@ -191,7 +199,13 @@ const limiteLoginCuenta = crearLimitador({
   ventanaMs: 15 * 60 * 1000,
   max: 15,
   clave: (req) => String(req.body?.user || '').trim().toLowerCase() || 'sin-usuario',
-  mensaje: 'Demasiados intentos con esta cuenta. Espera unos minutos.'
+  mensaje: 'Demasiados intentos con esta cuenta. Espera unos minutos.',
+  alBloquear: (req) => registrarIntento({
+    req,
+    usuario: req.body?.user,
+    resultado: 'rechazado',
+    motivo: 'LOGIN_CUENTA_RATE_LIMIT'
+  })
 });
 
 // Correos salientes (verificación y recuperación): 5 por IP cada 15 min.
@@ -199,7 +213,14 @@ const limiteCorreo = crearLimitador({
   nombre: 'correo',
   ventanaMs: 15 * 60 * 1000,
   max: 5,
-  mensaje: 'Demasiadas solicitudes de correo. Espera unos minutos.'
+  mensaje: 'Demasiadas solicitudes de correo. Espera unos minutos.',
+  alBloquear: (req) => registrarIntento({
+    req,
+    usuario: req.body?.user || req.body?.identificador || req.body?.email,
+    email: req.body?.email,
+    resultado: 'rechazado',
+    motivo: 'CORREO_RATE_LIMIT'
+  })
 });
 
 // Pedidos: 10 por IP cada hora. El tope por usuario (3 pendientes) sigue vigente
