@@ -99,14 +99,30 @@ if command -v pm2 >/dev/null 2>&1 && pm2 pid >/dev/null 2>&1; then
     | grep -aiE "RATE-LIMIT|AUTH|GOOGLE|FATAL|error|bloquead" \
     | tail -n 200
 elif command -v journalctl >/dev/null 2>&1; then
-  nota "buscando en systemd (ajusta el nombre del servicio si no es 'mym' o 'node')"
-  for unidad in mym maderasmym node maderasmym.service; do
-    if systemctl list-units --all --no-legend 2>/dev/null | grep -q "$unidad"; then
-      journalctl -u "$unidad" --since "-${DIAS} days" --no-pager 2>/dev/null \
-        | grep -aiE "RATE-LIMIT|AUTH|GOOGLE|FATAL|error|bloquead" | tail -n 200
-      break
-    fi
+  # Primero, intenta identificar el servicio por su nombre aunque no sea
+  # exactamente "mym" o "node".
+  nota "servicios que parecen la app:"
+  systemctl list-units --type=service --state=running --no-legend 2>/dev/null \
+    | grep -iE "mym|maderas|node" | head -5 || true
+
+  ENCONTRADO=0
+  for unidad in $(systemctl list-units --type=service --all --no-legend 2>/dev/null \
+                  | awk '{print $1}' | grep -iE "mym|maderas|node" | head -5); do
+    echo "--- journalctl -u $unidad ---"
+    journalctl -u "$unidad" --since "-${DIAS} days" --no-pager 2>/dev/null \
+      | grep -aiE "RATE-LIMIT|AUTH|GOOGLE|FATAL|error|bloquead" | tail -n 200
+    ENCONTRADO=1
   done
+
+  if [ "$ENCONTRADO" = "0" ]; then
+    # Sin unidad identificada: busca en todo el journal del periodo. Es más
+    # lento, pero encuentra los [RATE-LIMIT] igual.
+    nota "sin servicio identificado; buscando en todo el journal"
+    journalctl --since "-${DIAS} days" --no-pager 2>/dev/null \
+      | grep -aiE "RATE-LIMIT|\[AUTH\]|\[GOOGLE\]|FATAL" | tail -n 200
+  fi
+
+  nota "si la app corre con 'node index.js' dentro de tmux/screen o con nohup, sus logs están en el archivo de la sección siguiente"
 else
   nota "no hay pm2 ni journalctl disponibles"
 fi
@@ -114,8 +130,21 @@ fi
 if [ -n "$IP_OBJETIVO" ]; then
   echo
   echo "-- Menciones de ${IP_OBJETIVO} en logs locales --"
-  grep -ras "${IP_OBJETIVO}" /var/log 2>/dev/null | tail -n 50
+  # --exclude-dir=journal: los .journal son binarios y llenaban el informe de
+  # bytes nulos. Los logs del proceso se leen con journalctl (sección 2).
+  grep -ras --exclude-dir=journal --exclude-dir=wtmpdb "${IP_OBJETIVO}" /var/log 2>/dev/null | tail -n 50
 fi
+
+# Logs propios de la app (nohup, redirecciones, pm2 dentro del proyecto)
+echo
+echo "-- Archivos de log en la carpeta del proyecto --"
+find . -maxdepth 2 -type f \( -name "nohup.out" -o -name "*.log" \) -not -path "./node_modules/*" 2>/dev/null | head -10
+for f in nohup.out app.log server.log out.log; do
+  if [ -r "$f" ]; then
+    echo "--- $f (últimas líneas relevantes) ---"
+    grep -aiE "RATE-LIMIT|AUTH|GOOGLE|FATAL|error|bloquead" "$f" 2>/dev/null | tail -n 80
+  fi
+done
 
 # ---------------------------------------------------------------------------
 # 3. nginx / Apache: quién llamó a qué
@@ -131,6 +160,7 @@ done
 
 if [ -z "$LOGS_WEB" ]; then
   nota "no puedo leer los access.log (¿hace falta sudo?). Prueba: sudo bash $0 ${IP_OBJETIVO}"
+  nota "si el sitio entra por Cloudflare Tunnel (cloudflared) no hay nginx: mirar Cloudflare -> Security -> Events / Analytics"
 else
   echo "-- IPs con más peticiones --"
   # shellcheck disable=SC2086
