@@ -107,6 +107,26 @@ app.use(cabecerasSeguridad());
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'src')));
+
+// Ruta alternativa para descargar los PDFs. Sirve para distinguir si un corte
+// de Cloudflare es por ruta: si /documentos/... funciona y /assets/... no,
+// la regla de rate limit está apuntando a /assets/*.
+// La lista blanca evita que se pueda salir de la carpeta de assets.
+const DOCUMENTOS_PUBLICOS = new Map([
+  ['lista-de-precios-2026.pdf',            'lista-de-precios-2026.pdf'],
+  ['informativo-mym.pdf',                  'informativo mym.pdf'],
+  ['pino-insigne-seco-cepillado-tabla.pdf','pino-insigne-seco-cepillado-tabla.pdf'],
+  ['catalogo-productos-mym.pdf',           'Catálogo de productos MyM.pdf']
+]);
+
+app.get('/documentos/:archivo', (req, res) => {
+  const real = DOCUMENTOS_PUBLICOS.get(req.params.archivo);
+  if (!real) return res.status(404).send('Documento no encontrado');
+  res.sendFile(path.join(__dirname, 'src', 'assets', real), err => {
+    if (err && !res.headersSent) res.status(404).send('Documento no encontrado');
+  });
+});
+
 app.use(cookieParser());
 // Sin secreto por defecto: 'your_secret_key' está en el código y firmaría
 // sesiones que cualquiera puede falsificar. Si falta, se usa uno aleatorio.
