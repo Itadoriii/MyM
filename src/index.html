@@ -3452,7 +3452,7 @@
                 <li><a href="#" class="category-link simple-category" data-search="Cielo Elaborado">Cielo Elaborado</a></li>
                 <li><a href="#" class="category-link simple-category" data-search="Planchas Osb">Planchas Osb</a></li>
                 <li><a href="#" class="category-link simple-category" data-search="Polines">Polines</a></li>
-                <li><a href="#" class="category-link simple-category" data-search="Protectores">Protectores y barníz</a></li>
+                <li><a href="#" class="category-link simple-category" data-search="Protectores|Barniz">Protectores y barníz</a></li>
                 
                 <!-- Terciados con submenú -->
                 <li>
@@ -3840,6 +3840,47 @@
         return tieneFoto(p) ? p.ruta : PLACEHOLDER;
     }
 
+    /* =========================
+    BÚSQUEDA SIN IMPORTAR TILDES NI PLURALES
+    El sidebar busca "Base metalica" y el producto se llama "Base Metálica";
+    busca "Planchas Osb" y el tipo es "Plancha". Comparando el texto tal cual
+    esas categorías salían vacías.
+    ========================= */
+    // Minúsculas, sin tildes y con coma decimal pasada a punto ("3,20" = "3.20").
+    function normalizarTexto(s) {
+        return String(s ?? '')
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .toLowerCase()
+            .replace(/(\d),(\d)/g, '$1.$2')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    // Una palabra buscada también vale en singular: "planchas" → "plancha",
+    // "protectores" → "protector", "polines" → "polin".
+    function contienePalabra(texto, palabra) {
+        if (texto.includes(palabra)) return true;
+        const singular = palabra.replace(/(es|s)$/, '');
+        return singular !== palabra && singular.length >= 3 && texto.includes(singular);
+    }
+
+    // q ya viene normalizado
+    function coincideBusqueda(p, q) {
+        const tipo = normalizarTexto(p.tipo);
+        const nombre = normalizarTexto(p.nombre_prod);
+
+        // Tipos principales: "Bruto" y "Cepillado" filtran por tipo
+        if (q === 'bruto' || q === 'cepillado') return tipo.includes(q);
+        if (q.includes('bruto')) return tipo.includes('bruto') || nombre.includes('bruto');
+        if (q.includes('cepillado')) return tipo.includes('cepillado') || nombre.includes('cepillado');
+
+        // Búsqueda general: cada palabra tiene que aparecer en algún campo
+        // (el precio también, como hacía el filtro del servidor)
+        const campos = [nombre, tipo, p.medidas, p.dimensiones, p.categoria, p.precio_unidad]
+            .map(normalizarTexto).join(' ');
+        return q.split(' ').every(palabra => contienePalabra(campos, palabra));
+    }
+
     // Para la búsqueda: no esconde nada (el cliente busca algo concreto y debe
     // encontrarlo), pero pone delante los que sí tienen foto.
     function fotosPrimero(items) {
@@ -4001,50 +4042,12 @@
 
     // 2b) Filtramos por búsqueda - ALGORITMO MEJORADO
     if (q) {
-        const qLower = q.toLowerCase().trim();
-        console.log('🔍 Filtrando productos con query:', qLower);
-        
-        visibles = visibles.filter(p => {
-            const nombre = (p.nombre_prod || '').toLowerCase();
-            const tipo = (p.tipo || '').toLowerCase();
-            const medidas = (p.medidas || '').toLowerCase();
-            const dimensiones = (p.dimensiones || '').toLowerCase();
-            const categoria = (p.categoria || '').toLowerCase();
-            
-            // Búsqueda exacta para tipos principales
-            if (qLower === 'bruto') {
-                return tipo.includes('bruto');
-            }
-            
-            if (qLower === 'cepillado') {
-                return tipo.includes('cepillado');
-            }
-            
-            // Búsqueda para categorías específicas
-            if (qLower.includes('bruto')) {
-                return tipo.includes('bruto') || nombre.includes('bruto');
-            }
-            
-            if (qLower.includes('cepillado')) {
-                return tipo.includes('cepillado') || nombre.includes('cepillado');
-            }
-            
-            // Búsqueda general en todos los campos (el precio también, como
-            // hacía el filtro del servidor)
-            const searchFields = [nombre, tipo, medidas, dimensiones, categoria, String(p.precio_unidad ?? '')].join(' ');
-            
-            // Si la búsqueda contiene múltiples palabras
-            const palabras = qLower.split(' ').filter(word => word.length > 0);
-            
-            if (palabras.length > 1) {
-                // Todas las palabras deben coincidir en algún campo
-                return palabras.every(palabra => searchFields.includes(palabra));
-            } else {
-                // Búsqueda simple
-                return searchFields.includes(qLower);
-            }
-        });
-        
+        // "a|b" busca a O b: lo usa el sidebar para "Protectores|Barniz"
+        const alternativas = q.split('|').map(normalizarTexto).filter(Boolean);
+        console.log('🔍 Filtrando productos con query:', alternativas.join(' | '));
+
+        visibles = visibles.filter(p => alternativas.some(alt => coincideBusqueda(p, alt)));
+
         console.log('✅ Productos encontrados:', visibles.length);
     }
     
@@ -4267,27 +4270,18 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
 
     // Filtrar por tipo (Bruto/Cepillado)
     if (tipo) {
-      visibles = visibles.filter(p => {
-        const tipoProducto = (p.tipo || '').toLowerCase();
-        const tipoLower = tipo.toLowerCase();
-        return tipoProducto.includes(tipoLower);
-      });
+      const tipoBuscado = normalizarTexto(tipo);
+      visibles = visibles.filter(p => normalizarTexto(p.tipo).includes(tipoBuscado));
       console.log('Después de filtrar por tipo "' + tipo + '":', visibles.length);
     }
 
     // Filtrar por medida
     if (medida) {
-      visibles = visibles.filter(p => {
-        const medidasProducto = (p.medidas || '').toLowerCase();
-        const dimensionesProducto = (p.dimensiones || '').toLowerCase();
-        const nombreProducto = (p.nombre_prod || '').toLowerCase();
-        const medidaLower = medida.toLowerCase();
-        
-        // Buscar la medida en los campos relevantes
-        return medidasProducto.includes(medidaLower) || 
-               dimensionesProducto.includes(medidaLower) ||
-               nombreProducto.includes(medidaLower);
-      });
+      // normalizarTexto pasa "3,20" a "3.20": hay productos cargados con coma
+      const medidaBuscada = normalizarTexto(medida);
+      visibles = visibles.filter(p =>
+        [p.medidas, p.dimensiones, p.nombre_prod].some(c => normalizarTexto(c).includes(medidaBuscada))
+      );
       console.log('Después de filtrar por medida "' + medida + '":', visibles.length);
     }
 
