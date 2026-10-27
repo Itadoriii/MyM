@@ -45,30 +45,33 @@ export function verifyJWT(token) {
   return jsonwebtoken.verify(token, JWT_SECRET);
 }
 
+function cookieSegura(req) {
+  const porHttps = Boolean(req && (req.secure || req.headers?.['x-forwarded-proto'] === 'https'));
+  return isProd || process.env.COOKIE_SECURE === '1' || porHttps;
+}
+
 export function setAuthCookie(res, token, req = null) {
   if (!res) return;
   // `secure` no puede depender solo de NODE_ENV: si esa variable no está puesta
   // (como pasaba aquí) la cookie viajaba también por HTTP. Se marca segura si
   // NODE_ENV es producción, si se pide con COOKIE_SECURE=1 o si la petición ya
   // llegó por HTTPS (req.secure respeta trust proxy y X-Forwarded-Proto).
-  const porHttps = Boolean(req && (req.secure || req.headers?.['x-forwarded-proto'] === 'https'));
-  const seguro = isProd || process.env.COOKIE_SECURE === '1' || porHttps;
-
   res.cookie('jwt', token, {
     httpOnly: true,
     sameSite: 'Lax',
-    secure: seguro,
+    secure: cookieSegura(req),
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
   });
 }
 
-export function clearAuthCookie(res) {
+// Se borra con las mismas opciones con que se creó.
+export function clearAuthCookie(res, req = null) {
   if (!res) return;
   res.cookie('jwt', '', {
     httpOnly: true,
     sameSite: 'Lax',
-    secure: isProd,
+    secure: cookieSegura(req ?? res.req),
     path: '/',
     maxAge: 0
   });
@@ -78,11 +81,9 @@ export function clearAuthCookie(res) {
 export async function revisarCookie(req, res = null) {
   try {
     const cookieJWT = req.cookies?.jwt;
-    console.log('[AUTH] JWT Cookie:', cookieJWT ? '[present]' : '[missing]');
     if (!cookieJWT) return false;
 
     const decoded = verifyJWT(cookieJWT); // { uid?, user, role, iat, exp }
-    console.log('[AUTH] JWT Decoded:', decoded);
 
     // La cuenta se relee en cada petición: el token dura 7 días y en ese plazo
     // se puede haber bloqueado la cuenta o quitado el rol de admin. Lo que diga
@@ -125,7 +126,7 @@ export async function revisarCookie(req, res = null) {
 
     return decoded;
   } catch (err) {
-    console.log('[AUTH] JWT Verification Error:', err);
+    console.log('[AUTH] JWT inválido o vencido:', err?.name || err);
     if (res) clearAuthCookie(res); // limpia si está vencido/invalid
     return false;
   }

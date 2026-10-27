@@ -19,7 +19,7 @@ import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification, forgotPassword, checkResetToken, resetPassword } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
 import { ensureSchema, LARGO_NOMBRE_PRODUCTO } from './utils/ensure-schema.js';
-import { requireAuth, requireRole, soloAdmin, soloPublico, verifyJWT, setAuthCookie, signJWT } from './middlewares/authorization.js';
+import { requireAuth, requireRole, soloAdmin, soloPublico, verifyJWT, setAuthCookie, signJWT, clearAuthCookie } from './middlewares/authorization.js';
 import { requireApiAuth, requireApiAdmin } from './middlewares/api-auth.js';
 import { crearLimitador } from './middlewares/rate-limit.js';
 import { captchaActivo } from './utils/turnstile.js';
@@ -38,6 +38,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // SERVIDOR 
 const app = express();
+// No anunciar que el backend es Express (la cabecera sale antes que cualquier middleware).
+app.disable('x-powered-by');
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor corriendo en puerto ${port}`);
@@ -137,7 +139,13 @@ app.use(session({
   secret: process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex'),
   resave: false,
   saveUninitialized: false,   // no crea sesión para cada visitante anónimo
-  cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' }
+  // Igual que la cookie jwt: NODE_ENV no está definido en el servidor, así que
+  // 'auto' la marca Secure cuando la petición llega por HTTPS.
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: (process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === '1') ? true : 'auto'
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -408,8 +416,9 @@ app.get('/productos', async (req, res) => {
   const offset = (page - 1) * limit;
 
   try {
-    // armamos WHERE si hay búsqueda
-    const whereParts = [];
+    // armamos WHERE si hay búsqueda. Solo productos visibles: los ocultos
+    // (pruebas, descontinuados) no son públicos.
+    const whereParts = ['visible = 1'];
     const params = [];
     if (q) {
       whereParts.push(`(nombre_prod LIKE ? OR tipo LIKE ? OR medidas LIKE ? OR dimensiones LIKE ? OR precio_unidad LIKE ?)`);
@@ -447,14 +456,21 @@ app.get('/productos', async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-  res.clearCookie('jwt'); // Elimina la cookie JWT
-  res.redirect('/'); // Redirige al usuario a la página de inicio de sesión
+  // Con las mismas opciones con que se creó: si no coinciden, el navegador
+  // puede conservar la cookie y la sesión sigue abierta.
+  clearAuthCookie(res);
+  // Cierra también la sesión de Passport (login con Google), si la hay.
+  if (req.session) {
+    req.session.destroy(() => {});
+    res.clearCookie('connect.sid', { path: '/' });
+  }
+  res.redirect('/');
 });
 app.get('/productos/:productId', async (req, res) => {
   const productId = req.params.productId;
 
   try {
-    const [rows] = await pool.query('SELECT * FROM productos WHERE id_producto = ?', [productId]);
+    const [rows] = await pool.query('SELECT * FROM productos WHERE id_producto = ? AND visible = 1', [productId]);
     if (rows.length > 0) {
       res.json(rows[0]);
     } else {
@@ -619,9 +635,22 @@ app.get('/api/productos', requireApiAdmin, async (req, res) => {
   }
 });
 
+// Ficha para el formulario de edición. La ruta pública /productos/:id ya no
+// entrega productos ocultos, y el admin tiene que poder editarlos.
+app.get('/api/productos/:id', requireApiAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM productos WHERE id_producto = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error al obtener producto (admin):', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // Ruta POST para crear productos (permite definir id_producto)
 app.post('/api/productos', requireApiAdmin, async (req, res) => {
-  console.log('Creando nuevo producto:', req.body);
+  console.log('Creando nuevo producto', { nombre: req.body?.nombre_prod, por: req.cuenta?.user });
 
   const { error, datos } = validarProducto(req.body);
   if (error) return res.status(400).json({ error });
@@ -745,7 +774,7 @@ app.post('/api/generar-pedido', limitePedidos, requireApiAuth, async (req, res) 
         const [rows] = await connection.query(
           `SELECT id_producto, disponibilidad, precio_unidad
              FROM productos
-            WHERE id_producto IN (?)
+            WHERE id_producto IN (?) AND visible = 1
             FOR UPDATE`,
           [ids]
         );
@@ -1100,7 +1129,7 @@ app.get('/api/pedidos', requireApiAdmin, async (req, res) => {
 app.put('/api/productos/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
 
-  console.log('Actualizando producto:', req.body);
+  console.log('Actualizando producto', { id: req.params.id, por: req.cuenta?.user });
 
   const { error, datos } = validarProducto(req.body);
   if (error) return res.status(400).json({ error });
@@ -1534,7 +1563,8 @@ app.get('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
 app.post('/api/trabajadores', requireApiAdmin, async (req, res) => {
   const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
-  console.log('Creando nuevo trabajador:', req.body);
+  // Sin req.body en el log: trae RUT, sueldo y teléfono.
+  console.log('Creando nuevo trabajador', { por: req.cuenta?.user });
 
   if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
     return res.status(400).json({ error: 'Todos los campos son obligatorios' });
@@ -1563,7 +1593,7 @@ app.put('/api/trabajadores/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
   const { rut, nombres, apellidos, fechaIngreso, sueldo, fono, estado } = req.body;
 
-  console.log('Actualizando trabajador:', req.body);
+  console.log('Actualizando trabajador', { id: req.params.id, por: req.cuenta?.user });
 
   if (!rut || !nombres || !apellidos || !fechaIngreso || !sueldo || !fono || !estado) {
     return res.status(400).json({ error: 'Todos los campos son obligatorios' });
@@ -1702,7 +1732,7 @@ try {
 app.post('/api/adelantos', requireApiAdmin, async (req, res) => {
 const { id_trabajador, bono, motivos, monto, fecha } = req.body;
 
-console.log('Creando nuevo adelanto:', req.body);
+console.log('Creando nuevo adelanto', { trabajador: req.body?.id_trabajador, por: req.cuenta?.user });
 
 if (!id_trabajador || monto === undefined || !fecha) {
   return res.status(400).json({ error: 'ID trabajador, monto y fecha son obligatorios' });
@@ -1750,7 +1780,7 @@ app.put('/api/adelantos/:id', requireApiAdmin, async (req, res) => {
 const { id } = req.params;
 const { id_trabajador, bono, motivos, monto, fecha } = req.body;
 
-console.log('Actualizando adelanto:', req.body);
+console.log('Actualizando adelanto', { id: req.params.id, por: req.cuenta?.user });
 
 if (!id_trabajador || monto === undefined || !fecha) {
   return res.status(400).json({ error: 'ID trabajador, monto y fecha son obligatorios' });
@@ -1930,4 +1960,27 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+// Ruta inexistente: respuesta genérica, sin la página por defecto de Express.
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'No encontrado' });
+  res.status(404).send('Página no encontrada');
+});
+
+// Manejador de errores final. Sin él, Express responde con su página por
+// defecto, que fuera de NODE_ENV=production (el servidor no lo define) incluye
+// el stack trace con las rutas internas del servidor: bastaba un JSON mal
+// formado para verlo. El detalle queda solo en el log.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const status = Number(err?.status || err?.statusCode) || 500;
+  if (status >= 500) console.error('[ERROR]', req.method, req.originalUrl, err);
+  else console.warn('[ERROR]', status, req.method, req.originalUrl, err?.type || err?.message);
+  if (res.headersSent) return;
+
+  const mensaje = status === 413 ? 'La solicitud es demasiado grande.'
+    : status < 500 ? 'Solicitud no válida.'
+    : 'Error interno del servidor';
+  if (req.path.startsWith('/api/') || req.is('json')) return res.status(status).json({ error: mensaje });
+  res.status(status).send(mensaje);
 });

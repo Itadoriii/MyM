@@ -17,6 +17,10 @@ node_modules
 .env.*
 !.env.example
 
+# Notas de seguridad internas: describen defensas, debilidades pendientes y
+# cuentas de administración. En un repositorio público son un mapa para atacar.
+SEGURIDAD.md
+
 # Informes de logs: traen IPs y datos de intentos, no deben subirse.
 informe*.txt
 informe*.log

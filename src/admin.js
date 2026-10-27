@@ -19,9 +19,10 @@ document.addEventListener('submit', e => {
 document.addEventListener("DOMContentLoaded", function() {
     const button = document.querySelector(".button");
     if (button) {
+        // La cookie jwt es httpOnly: borrarla con document.cookie no hace nada
+        // y el panel quedaba con la sesión abierta. Solo el servidor puede.
         button.addEventListener("click", () => {
-            document.cookie = 'jwt=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            document.location.href = "/";
+            document.location.href = "/logout";
         });
     } else {
         console.error("Button with class 'button' not found");
@@ -955,8 +956,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     // === OBTENER UNO (para Editar) ===
     async function editProduct(productId) {
-    let r = await tryJson(`/api/productos/${productId}`);
-    if (!r.ok) r = await tryJson(`/productos/${productId}`);
+    const r = await tryJson(`/api/productos/${encodeURIComponent(productId)}`);
 
     if (!r.ok) {
         console.error('Error al obtener producto:', r);
@@ -2291,15 +2291,6 @@ function renderInformeGeneral(data, mes, anio) {
 
 
 
-
-document.querySelector('.button').addEventListener('click', async () => {
-    const res = await fetch('/logout', {
-      method: 'GET'
-    });
-    if (res.redirected) {
-      window.location.href = res.url; // Redirige al usuario a la página de inicio de sesión
-    }
-  });
 
 function nextEstado(action) {
   // action viene de tu botón: 'aceptar', 'rechazar', 'marcar-pagado', 'enviar', 'retirar', 'finalizar'
