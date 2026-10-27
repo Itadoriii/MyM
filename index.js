@@ -18,7 +18,7 @@ import nodemailer from 'nodemailer';
 import { enviarMailCambioEstado } from './controllers/pedidos.controller.js';
 import { register, login, resendVerification, forgotPassword, checkResetToken, resetPassword } from './controllers/authentication.controller.js';
 import { sha256 } from './utils/hash.js';
-import { ensureSchema } from './utils/ensure-schema.js';
+import { ensureSchema, LARGO_NOMBRE_PRODUCTO } from './utils/ensure-schema.js';
 import { requireAuth, requireRole, soloAdmin, soloPublico, verifyJWT, setAuthCookie, signJWT } from './middlewares/authorization.js';
 import { requireApiAuth, requireApiAdmin } from './middlewares/api-auth.js';
 import { crearLimitador } from './middlewares/rate-limit.js';
@@ -524,21 +524,118 @@ app.put('/api/usuarios/:id/password', requireApiAdmin, async (req, res) => {
     res.status(500).json({ status: 'Error', message: 'Error interno del servidor' });
   }
 });
-// Actualizar la ruta POST para crear productos
-// Ruta POST para crear productos (ahora permite definir id_producto)
-app.post('/api/productos', requireApiAdmin, async (req, res) => {
-  const { id_producto, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
+/* =========================
+   PRODUCTOS (panel de administración)
+   ========================= */
 
+// Largos reales de las columnas de `productos`. Se validan aquí para devolver
+// un mensaje claro en vez de que MySQL rechace el INSERT con un error 500.
+const LARGOS_PRODUCTO = {
+  nombre_prod:    { max: LARGO_NOMBRE_PRODUCTO, etiqueta: 'Nombre' },
+  tipo:           { max: 45,  etiqueta: 'Tipo' },
+  medidas:        { max: 45,  etiqueta: 'Medidas' },
+  dimensiones:    { max: 45,  etiqueta: 'Dimensiones' },
+  fecha_add:      { max: 45,  etiqueta: 'Fecha' },
+  disponibilidad: { max: 45,  etiqueta: 'Disponibilidad' },
+  ruta:           { max: 255, etiqueta: 'Ruta de la imagen' }
+};
+
+// Normaliza y valida lo que manda el formulario de producto. Devuelve
+// { error } o { datos } listo para el INSERT/UPDATE. La ruta de la imagen es
+// opcional: sin foto el producto existe igual (la tienda pone el placeholder).
+function validarProducto(body = {}) {
+  const texto = v => (v === undefined || v === null) ? '' : String(v).trim();
+  const datos = {
+    nombre_prod:    texto(body.nombre_prod),
+    tipo:           texto(body.tipo),
+    medidas:        texto(body.medidas),
+    dimensiones:    texto(body.dimensiones),
+    fecha_add:      texto(body.fecha_add),
+    disponibilidad: texto(body.disponibilidad),
+    ruta:           texto(body.ruta),
+    visible:        (body.visible === 0 || body.visible === '0' || body.visible === false) ? 0 : 1
+  };
+
+  const obligatorios = [
+    ['Nombre', datos.nombre_prod], ['Precio', texto(body.precio_unidad)], ['Tipo', datos.tipo],
+    ['Medidas', datos.medidas], ['Dimensiones', datos.dimensiones], ['Fecha', datos.fecha_add]
+  ];
+  const faltan = obligatorios.filter(([, valor]) => !valor).map(([etiqueta]) => etiqueta);
+  if (faltan.length) return { error: `Faltan campos obligatorios: ${faltan.join(', ')}.` };
+  // Sin stock indicado queda NULL, como antes (la tienda muestra "—").
+  if (!datos.disponibilidad) datos.disponibilidad = null;
+
+  // precio_unidad es INT en la base: con decimales MySQL rechaza el valor.
+  const precio = Number(texto(body.precio_unidad));
+  if (!Number.isInteger(precio) || precio < 0) {
+    return { error: 'El precio debe ser un número entero en pesos, sin decimales ni puntos.' };
+  }
+  datos.precio_unidad = precio;
+
+  for (const [campo, { max, etiqueta }] of Object.entries(LARGOS_PRODUCTO)) {
+    const largo = (datos[campo] ?? '').length;
+    if (largo > max) {
+      return { error: `${etiqueta} es demasiado largo: ${largo} caracteres (máximo ${max}).` };
+    }
+  }
+
+  const idTexto = texto(body.id_producto);
+  if (idTexto) {
+    const id = Number(idTexto);
+    if (!Number.isInteger(id) || id <= 0) return { error: 'El ID debe ser un número entero positivo.' };
+    datos.id_producto = id;
+  }
+
+  return { datos };
+}
+
+// Traduce los errores de MySQL más comunes a un mensaje que el admin entienda.
+function errorProductoSql(err) {
+  if (err?.code === 'ER_DUP_ENTRY') return 'Ya existe un producto con ese ID. Deja el ID vacío para asignarlo automáticamente.';
+  if (err?.code === 'ER_ROW_IS_REFERENCED_2' || err?.code === 'ER_ROW_IS_REFERENCED') {
+    return 'No se puede cambiar el ID: el producto ya tiene pedidos asociados.';
+  }
+  if (err?.code === 'ER_DATA_TOO_LONG') {
+    const col = /column '([^']+)'/.exec(err.sqlMessage || err.message || '')?.[1];
+    return `${LARGOS_PRODUCTO[col]?.etiqueta || col || 'Un campo'} es demasiado largo para la base de datos.`;
+  }
+  if (['WARN_DATA_TRUNCATED', 'ER_TRUNCATED_WRONG_VALUE', 'ER_TRUNCATED_WRONG_VALUE_FOR_FIELD'].includes(err?.code)) {
+    const col = /column '([^']+)'/.exec(err.sqlMessage || err.message || '')?.[1];
+    return `Valor no válido en ${LARGOS_PRODUCTO[col]?.etiqueta || col || 'un campo'}.`;
+  }
+  return null;
+}
+
+// Listado completo para el panel, incluidos los ocultos. El panel pedía esta
+// ruta y, como no existía, caía al catálogo público, que entrega como máximo
+// 100 productos: el resto (y lo recién creado, según la fecha) no aparecía.
+app.get('/api/productos', requireApiAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM productos ORDER BY fecha_add DESC, id_producto DESC');
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al listar productos (admin):', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Ruta POST para crear productos (permite definir id_producto)
+app.post('/api/productos', requireApiAdmin, async (req, res) => {
   console.log('Creando nuevo producto:', req.body);
 
-  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || visible === undefined || !ruta) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
-  }
+  const { error, datos } = validarProducto(req.body);
+  if (error) return res.status(400).json({ error });
+  const { nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = datos;
 
   try {
     // Si no viene id_producto, calculamos el siguiente manualmente
-    let newId = id_producto;
-    if (!newId || newId === '') {
+    let newId = datos.id_producto;
+    if (newId) {
+      const [existe] = await pool.query('SELECT id_producto FROM productos WHERE id_producto = ?', [newId]);
+      if (existe.length > 0) {
+        return res.status(400).json({ error: `Ya existe un producto con el ID ${newId}. Elige otro o deja el ID vacío.` });
+      }
+    } else {
       const [rows] = await pool.query('SELECT MAX(id_producto) AS maxId FROM productos');
       newId = (rows[0].maxId || 0) + 1;
     }
@@ -556,6 +653,8 @@ app.post('/api/productos', requireApiAdmin, async (req, res) => {
     res.status(201).json({ message: 'Producto creado exitosamente', id: newId });
   } catch (err) {
     console.error('Error al crear producto:', err);
+    const mensaje = errorProductoSql(err);
+    if (mensaje) return res.status(400).json({ error: mensaje });
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -1000,13 +1099,12 @@ app.get('/api/pedidos', requireApiAdmin, async (req, res) => {
 // Ruta PUT para actualizar productos (ahora permite cambiar id_producto)
 app.put('/api/productos/:id', requireApiAdmin, async (req, res) => {
   const { id } = req.params;
-  const { id_producto: nuevoId, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = req.body;
 
   console.log('Actualizando producto:', req.body);
 
-  if (!nombre_prod || !precio_unidad || !tipo || !medidas || !dimensiones || !fecha_add || !ruta) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios excepto disponibilidad' });
-  }
+  const { error, datos } = validarProducto(req.body);
+  if (error) return res.status(400).json({ error });
+  const { id_producto: nuevoId, nombre_prod, precio_unidad, disponibilidad, tipo, medidas, dimensiones, fecha_add, visible, ruta } = datos;
 
   try {
     // Si el id cambió, verificar que no esté ocupado
@@ -1034,6 +1132,8 @@ app.put('/api/productos/:id', requireApiAdmin, async (req, res) => {
     res.json({ message: 'Producto actualizado exitosamente', id: nuevoId || id });
   } catch (err) {
     console.error('Error al actualizar producto:', err);
+    const mensaje = errorProductoSql(err);
+    if (mensaje) return res.status(400).json({ error: mensaje });
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

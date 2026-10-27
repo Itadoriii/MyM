@@ -749,18 +749,16 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     async function fetchProductos() {
-    // 1) intenta /api/productos
-    let r = await tryJson('/api/productos');
-    // 2) si falla, usa /productos (público)
-    if (!r.ok) {
-        const url = new URL('/productos', location.origin);
-        url.searchParams.set('limit', 9999);
-        r = await tryJson(url);
-    }
+    // Listado completo del panel (incluye ocultos). Ya no se cae al catálogo
+    // público: ese entrega como máximo 100 productos y escondía el resto.
+    const r = await tryJson('/api/productos');
 
     if (!r.ok) {
         console.error('No pude obtener productos:', r);
-        mainContent.innerHTML = '<p>Error cargando productos.</p>';
+        const motivo = r.status === 401 || r.status === 403
+            ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
+            : (r.body?.error || 'Error cargando productos.');
+        mainContent.innerHTML = `<p>${esc(motivo)}</p>`;
         return;
     }
 
@@ -780,7 +778,7 @@ document.addEventListener("DOMContentLoaded", function() {
         <input type="text" id="search-input" placeholder="Buscar (global)..." style="width:100%;padding:10px;margin-bottom:12px;">
         <button class="buttonenlace" id="crearProductoBtn" style="margin-bottom:10px;">Crear nuevo producto</button>
 
-        <h1 class="titulotable">Productos Actuales:</h1>
+        <h1 class="titulotable">Productos Actuales (${productos.length}):</h1>
         <div class="table-container" style="max-height:460px;overflow:auto;">
         <table>
             <thead>
@@ -996,41 +994,45 @@ document.addEventListener("DOMContentLoaded", function() {
     // === FORM CREAR/EDITAR ===
 function showProductForm(product = null) {
   const isEditing = !!product;
+  // Fecha de hoy en hora local (toISOString daría el día UTC, que de noche en
+  // Chile ya es mañana).
+  const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const fecha = product?.fecha_add ? String(product.fecha_add).slice(0, 10) : hoy;
   mainContent.innerHTML = `
     <h1>${isEditing ? 'Editar' : 'Crear Nuevo'} Producto</h1>
     <form id="productoForm">
       ${isEditing ? `<input type="hidden" name="id_original" value="${product.id_producto}">` : ''}
       <div class="form-group">
         <label>ID Producto:</label>
-        <input type="number" name="id_producto" value="${product?.id_producto || ''}" placeholder="Dejar vacío para asignar automáticamente">
+        <input type="number" name="id_producto" min="1" step="1" value="${esc(product?.id_producto)}" placeholder="Dejar vacío para asignar automáticamente">
       </div>
       <div class="form-group">
         <label>Nombre:</label>
-        <input type="text" name="nombre_prod" value="${esc(product?.nombre_prod)}" required>
+        <input type="text" name="nombre_prod" maxlength="100" value="${esc(product?.nombre_prod)}" required>
       </div>
       <div class="form-group">
-        <label>Precio Unidad:</label>
-        <input type="number" name="precio_unidad" step="0.01" value="${product?.precio_unidad || ''}" required>
+        <label>Precio Unidad (pesos, sin puntos):</label>
+        <input type="number" name="precio_unidad" min="0" step="1" value="${esc(product?.precio_unidad)}" required>
       </div>
       <div class="form-group">
         <label>Disponibilidad:</label>
-        <input type="number" name="disponibilidad" value="${product?.disponibilidad || ''}" required>
+        <input type="number" name="disponibilidad" min="0" step="1" value="${esc(product?.disponibilidad)}" required>
       </div>
       <div class="form-group">
         <label>Tipo:</label>
-        <input type="text" name="tipo" value="${esc(product?.tipo)}" required>
+        <input type="text" name="tipo" maxlength="45" value="${esc(product?.tipo)}" required>
       </div>
       <div class="form-group">
         <label>Medidas:</label>
-        <input type="text" name="medidas" value="${esc(product?.medidas)}" required>
+        <input type="text" name="medidas" maxlength="45" value="${esc(product?.medidas)}" required>
       </div>
       <div class="form-group">
         <label>Dimensiones:</label>
-        <input type="text" name="dimensiones" value="${esc(product?.dimensiones)}" required>
+        <input type="text" name="dimensiones" maxlength="45" value="${esc(product?.dimensiones)}" required>
       </div>
       <div class="form-group">
         <label>Fecha Añadido:</label>
-        <input type="date" name="fecha_add" value="${product?.fecha_add ? product.fecha_add.slice(0,10) : ''}" required>
+        <input type="date" name="fecha_add" value="${esc(fecha)}" required>
       </div>
       <div class="form-group">
         <label>Visibilidad:</label>
@@ -1040,40 +1042,58 @@ function showProductForm(product = null) {
         </select>
       </div>
       <div class="form-group">
-        <label>Ruta:</label>
-        <input type="text" name="ruta" value="${esc(product?.ruta)}" required>
+        <label>Ruta de la imagen (opcional):</label>
+        <input type="text" name="ruta" maxlength="255" value="${esc(product?.ruta)}" placeholder="https://i.imgur.com/....png">
+        <small>Sin foto el producto se crea igual, pero no aparece en la portada (sí en búsquedas y categorías).</small>
       </div>
       <div class="form-actions">
         <button type="submit">${isEditing ? 'Guardar Cambios' : 'Crear Producto'}</button>
-        <button type="button" onclick="fetchProductos()">Cancelar</button>
+        <button type="button" id="cancelarProductoBtn">Cancelar</button>
       </div>
     </form>
   `;
 
+  // fetchProductos vive dentro de este closure: un onclick="fetchProductos()"
+  // en el HTML no lo encuentra y el botón Cancelar no hacía nada.
+  document.getElementById('cancelarProductoBtn').addEventListener('click', () => fetchProductos());
+
   document.getElementById('productoForm').addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    const payload = Object.fromEntries(new FormData(ev.target).entries());
-    const isEditing = !!product;
+    const form = ev.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn.disabled) return; // evita crear el mismo producto dos veces
+    const payload = Object.fromEntries(new FormData(form).entries());
     const idOriginal = payload.id_original; // ID actual en DB
 
-    const urlA = isEditing ? `/api/productos/${idOriginal}` : '/api/productos';
-    const urlB = isEditing ? `/productos/${idOriginal}` : '/productos';
+    // Antes, si esta llamada fallaba se reintentaba contra /productos, que no
+    // acepta POST/PUT: el 404 de ese reintento tapaba el motivo real del error.
+    const url = isEditing ? `/api/productos/${encodeURIComponent(idOriginal)}` : '/api/productos';
 
-    const body = JSON.stringify(payload);
+    submitBtn.disabled = true;
+    try {
+      const res = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
 
-    let res = await fetch(urlA, { method: isEditing ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body });
-    if (!res.ok) {
-      res = await fetch(urlB, { method: isEditing ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body });
-    }
+      if (res.ok) {
+        showPopup(isEditing ? 'Producto actualizado con éxito' : 'Producto creado con éxito');
+        fetchProductos();
+        return;
+      }
 
-    const ok = res.ok;
-    const dataOrText = (await res.text()) || '';
-    if (ok) {
-      showPopup(isEditing ? 'Producto actualizado con éxito' : 'Producto creado con éxito');
-      fetchProductos();
-    } else {
-      console.error('Error guardando producto:', res.status, dataOrText);
-      showPopup('No se pudo guardar el producto (ver consola).');
+      console.error('Error guardando producto:', res.status, data);
+      const motivo = res.status === 401 || res.status === 403
+        ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
+        : (data.error || data.message || `Error ${res.status}`);
+      alert(`No se pudo guardar el producto:\n${motivo}`);
+    } catch (err) {
+      console.error('Error guardando producto:', err);
+      alert('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.');
+    } finally {
+      submitBtn.disabled = false;
     }
   });
 }

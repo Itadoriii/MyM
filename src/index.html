@@ -814,7 +814,7 @@
         display: grid;
     }
     .product-modal-content {
-        width: min(900px, 95vw);
+        width: min(1080px, 95vw);
         max-height: 90vh;
         background: #fff;
         border-radius: 20px;
@@ -848,18 +848,51 @@
         color: #111827;
         transform: rotate(90deg);
     }
+    /* La foto se lleva más ancho que la ficha y ambas columnas miden lo mismo:
+       la foto queda centrada en un panel que llega hasta abajo, alineado con el
+       botón de compra, en vez de flotar arriba con un hueco debajo. */
     .product-modal-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
-        padding: 40px;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        align-items: stretch;
+        gap: 32px;
+        padding: 32px;
     }
     @media (max-width: 768px) {
         .product-modal-grid {
             grid-template-columns: 1fr;
-            padding: 25px;
+            padding: 20px;
             gap: 20px;
         }
+    }
+    .product-modal-left {
+        display: flex;
+        min-width: 0;
+    }
+    .product-modal-zoom {
+        position: relative;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 320px;
+        padding: 0;
+        border: 1px solid #eee;
+        border-radius: 16px;
+        /* Mismo crema del fondo de las fotos del catálogo: no se nota el borde
+           cuando la foto no llena el panel. */
+        background: #faf6f1;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        overflow: hidden;
+        cursor: zoom-in;
+        font: inherit;
+    }
+    .product-modal-zoom:focus-visible {
+        outline: 3px solid #2F6B3F;
+        outline-offset: 3px;
+    }
+    .product-modal-zoom.sin-foto {
+        cursor: default;
     }
     .product-modal-image {
         width: 100%;
@@ -868,15 +901,44 @@
            del catálogo llevan el logo y las cotas ("7 cm", "24,5 cm") pegados a
            los bordes, el recorte se comía justo esa información. */
         height: auto;
-        max-height: 60vh;
+        max-height: 70vh;
         object-fit: contain;
-        /* Solo se ve si una foto muy alta topa con max-height. Es el mismo
-           crema del fondo de las fotos del catálogo, así que no cantea. */
-        background: #faf6f1;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border: 1px solid #eee;
         display: block;
+    }
+    .product-modal-zoom-hint {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.75);
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 600;
+        pointer-events: none;
+        transition: background 0.2s ease;
+    }
+    .product-modal-zoom:hover .product-modal-zoom-hint {
+        background: #2F6B3F;
+    }
+    .product-modal-zoom.sin-foto .product-modal-zoom-hint {
+        display: none;
+    }
+    @media (max-width: 768px) {
+        .product-modal-zoom {
+            min-height: 0;
+        }
+        .product-modal-image {
+            max-height: 50vh;
+        }
+    }
+    .product-modal-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
     }
     .product-modal-info h2 {
         font-size: 2rem;
@@ -884,6 +946,94 @@
         margin-bottom: 12px;
         line-height: 1.2;
         font-weight: 800;
+        /* deja sitio a la X de cerrar */
+        padding-right: 48px;
+        overflow-wrap: anywhere;
+    }
+    @media (max-width: 768px) {
+        .product-modal-info h2 {
+            font-size: 1.5rem;
+            padding-right: 0;
+        }
+    }
+
+    /* Visor de foto ampliada */
+    .product-lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 100000;
+        display: none;
+        background: rgba(0, 0, 0, 0.9);
+    }
+    .product-lightbox.is-open {
+        display: block;
+    }
+    .product-lightbox-stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        overflow: hidden;
+        padding: 56px 16px;
+        box-sizing: border-box;
+        cursor: zoom-in;
+        touch-action: manipulation;
+    }
+    .product-lightbox.is-zoomed .product-lightbox-stage {
+        overflow: auto;
+        padding: 0;
+        cursor: grab;
+    }
+    .product-lightbox.is-panning .product-lightbox-stage {
+        cursor: grabbing;
+    }
+    .product-lightbox-img {
+        /* margin:auto centra sin cortar el borde izquierdo/superior al hacer
+           scroll cuando la foto ampliada es más grande que la pantalla */
+        margin: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+    .product-lightbox.is-zoomed .product-lightbox-img {
+        max-width: none !important;
+        max-height: none;
+        flex-shrink: 0;
+    }
+    .product-lightbox-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 2;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 50%;
+        /* oscuro: tiene que verse también sobre una foto clara acercada */
+        background: rgba(17, 24, 39, 0.75);
+        color: #fff;
+        font-size: 28px;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .product-lightbox-close:hover {
+        background: rgba(17, 24, 39, 0.95);
+    }
+    .product-lightbox-hint {
+        position: absolute;
+        left: 50%;
+        bottom: 14px;
+        z-index: 2;
+        transform: translateX(-50%);
+        margin: 0;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #e5e7eb;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        pointer-events: none;
     }
     .product-modal-price {
         font-size: 1.75rem;
@@ -3788,6 +3938,42 @@
     }
 
     /* =========================
+    CATÁLOGO COMPLETO (se descarga una vez por visita)
+    El sidebar, el buscador y los destacados filtran en el navegador sobre el
+    catálogo entero. Se pedía /productos?limit=10000, pero el servidor entrega
+    como máximo 100 por página (tope de seguridad) y lo recortaba en silencio:
+    el sidebar solo veía los 100 productos más nuevos y la mayoría de las
+    categorías y medidas salían vacías. Aquí se recorren todas las páginas.
+    ========================= */
+    const CATALOGO_POR_PAGINA = 100; // máximo que acepta GET /productos
+    let catalogoPromesa = null;
+
+    async function pedirPaginaCatalogo(pagina) {
+        const url = new URL('/productos', window.location.origin);
+        url.searchParams.set('limit', CATALOGO_POR_PAGINA);
+        url.searchParams.set('page', pagina);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`GET /productos respondió ${res.status}`);
+        return res.json();
+    }
+
+    function cargarCatalogo() {
+        if (!catalogoPromesa) {
+            catalogoPromesa = (async () => {
+                const primera = await pedirPaginaCatalogo(1);
+                const totalPaginas = Math.min(Number(primera.totalPages) || 1, 50);
+                const resto = await Promise.all(
+                    Array.from({ length: totalPaginas - 1 }, (_, i) => pedirPaginaCatalogo(i + 2))
+                );
+                return [primera, ...resto].flatMap(d => Array.isArray(d) ? d : (d.productos || []));
+            })().catch(err => { catalogoPromesa = null; throw err; }); // reintenta en el próximo uso
+        }
+        return catalogoPromesa;
+    }
+
+    const esVisible = p => p.visible === 1 || p.visible === true || p.visible === '1';
+
+    /* =========================
     CATALOGO + DESTACADOS
     ========================= */
    async function loadProductsPage(page = 1, q = '') {
@@ -3802,19 +3988,11 @@
   const PAGE_SIZE = 15;
 
   try {
-    // 1) Traemos TODOS para paginar solo visibles en el cliente
-    const urlAll = new URL('/productos', window.location.origin);
-    urlAll.searchParams.set('limit', 10000); // suficiente para cubrir el catálogo
-    if (q) urlAll.searchParams.set('q', q);
-
-    const resAll = await fetch(urlAll);
-    if (!resAll.ok) { GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
-
-    const dataAll = await resAll.json();
-    const allItems = Array.isArray(dataAll) ? dataAll : (dataAll.productos || []);
+    // 1) Catálogo completo; la búsqueda y la paginación se hacen en el cliente
+    const allItems = await cargarCatalogo();
 
     // 2) Filtramos solo visibles (1/true/'1')
-    let visibles = allItems.filter(p => p.visible === 1 || p.visible === true || p.visible === '1');
+    let visibles = allItems.filter(esVisible);
 
     // 2a) Sin búsqueda es la portada: solo productos con foto.
     if (!q) {
@@ -3851,8 +4029,9 @@
                 return tipo.includes('cepillado') || nombre.includes('cepillado');
             }
             
-            // Búsqueda general en todos los campos
-            const searchFields = [nombre, tipo, medidas, dimensiones, categoria].join(' ');
+            // Búsqueda general en todos los campos (el precio también, como
+            // hacía el filtro del servidor)
+            const searchFields = [nombre, tipo, medidas, dimensiones, categoria, String(p.precio_unidad ?? '')].join(' ');
             
             // Si la búsqueda contiene múltiples palabras
             const palabras = qLower.split(' ').filter(word => word.length > 0);
@@ -3887,7 +4066,7 @@
 
   } catch (err) {
     console.error(err);
-    GRID.innerHTML = '<p>Error inesperado.</p>';
+    GRID.innerHTML = '<p>Error cargando productos.</p>';
     PAGER.innerHTML = '';
   }
 }
@@ -3986,17 +4165,8 @@ function renderPager(page, totalPages, q){
 async function loadFeatured(){
   const WRAP = document.querySelector('.featured-container');
   try{
-    const url = new URL('/productos', window.location.origin);
-    url.searchParams.set('limit', 10000); // traemos todos para filtrar visibles
-    const res = await fetch(url);
-    if (!res.ok){ WRAP.innerHTML = '<p>Error cargando destacados.</p>'; return; }
-
-    const data = await res.json();
-    const productos = Array.isArray(data) ? data : (data.productos || []);
-    const visibles = filtrarConFoto(
-      productos.filter(p => p.visible === 1 || p.visible === true || p.visible === '1'),
-      'destacados'
-    );
+    const productos = await cargarCatalogo();
+    const visibles = filtrarConFoto(productos.filter(esVisible), 'destacados');
     const items = visibles.slice(0, 5); // mostramos hasta 5
 
     WRAP.innerHTML = items.map(p => {
@@ -4062,7 +4232,7 @@ async function loadFeatured(){
 
   } catch(e){
     console.error(e);
-    WRAP.innerHTML = '<p>Error inesperado.</p>';
+    WRAP.innerHTML = '<p>Error cargando destacados.</p>';
   }
 }
 
@@ -4086,20 +4256,12 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
 
   try {
     // Traer todos los productos
-    const urlAll = new URL('/productos', window.location.origin);
-    urlAll.searchParams.set('limit', 10000);
+    const allItems = await cargarCatalogo();
 
-    const resAll = await fetch(urlAll);
-    if (!resAll.ok) { GRID.innerHTML = '<p>Error cargando productos.</p>'; PAGER.innerHTML = ''; return; }
-
-    const dataAll = await resAll.json();
-    const allItems = Array.isArray(dataAll) ? dataAll : (dataAll.productos || []);
-
-    // Filtrar solo visibles, y de esos solo los que tienen foto
-    let visibles = filtrarConFoto(
-      allItems.filter(p => p.visible === 1 || p.visible === true || p.visible === '1'),
-      'filtro por tipo y medida'
-    );
+    // Solo visibles. Elegir una medida es una búsqueda concreta, igual que
+    // pinchar la categoría: no se esconden los que aún no tienen foto (más
+    // abajo se ponen al final), si no la medida aparecía vacía.
+    let visibles = allItems.filter(esVisible);
 
     console.log('Total productos visibles:', visibles.length);
 
@@ -4139,6 +4301,9 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
       console.log('❌ No se encontraron productos con estos filtros');
     }
 
+    // Los que tienen foto primero
+    visibles = fotosPrimero(visibles);
+
     // Paginación
     const totalPages = Math.max(1, Math.ceil(visibles.length / PAGE_SIZE));
     const safePage = Math.min(Math.max(1, page), totalPages);
@@ -4152,7 +4317,7 @@ async function loadProductsPageByTypeAndSize(page = 1, tipo = '', medida = '') {
 
   } catch (err) {
     console.error(err);
-    GRID.innerHTML = '<p>Error inesperado.</p>';
+    GRID.innerHTML = '<p>Error cargando productos.</p>';
     PAGER.innerHTML = '';
   }
 }
@@ -4631,12 +4796,10 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         // Intentaremos buscar en currentProductsData (usado por el catálogo)
         let p = (typeof currentProductsData !== 'undefined') ? currentProductsData.find(prod => prod.id_producto === Number(id)) : null;
         
-        // Si no está ahí (ej. es un destacado no cargado en el grid principal), lo buscamos individualmente o usamos una caché global
+        // Si no está ahí (ej. es un destacado no cargado en el grid principal), lo buscamos en el catálogo completo
         if (!p) {
              try {
-                 const res = await fetch(`/productos?limit=1000`); // fallback simple
-                 const data = await res.json();
-                 const all = Array.isArray(data) ? data : (data.productos || []);
+                 const all = await cargarCatalogo();
                  p = all.find(prod => prod.id_producto === Number(id));
              } catch(e) { console.error("Error buscando producto para modal", e); }
         }
@@ -4650,8 +4813,15 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         const precio = Number(p.precio_unidad)||0;
 
         const modalImg = document.getElementById('modal-product-img');
-        modalImg.onerror = () => { modalImg.onerror = null; modalImg.src = PLACEHOLDER; };
+        const zoomBtn = document.getElementById('modal-product-zoom');
+        zoomBtn.classList.toggle('sin-foto', img === PLACEHOLDER);
+        modalImg.onerror = () => {
+            modalImg.onerror = null;
+            modalImg.src = PLACEHOLDER;
+            zoomBtn.classList.add('sin-foto');
+        };
         modalImg.src = img;
+        modalImg.alt = p.nombre_prod || '';
         document.getElementById('modal-product-title').innerText = p.nombre_prod;
         document.getElementById('modal-product-price').innerText = `$${precio.toLocaleString('es-CL')}`;
         document.getElementById('modal-product-type').innerText = p.tipo || '—';
@@ -4687,12 +4857,17 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
                 };
             });
         } else {
+            // Listener en vez de onclick en línea: un nombre con comillas
+            // rompía el atributo y el botón no hacía nada.
             actionsDiv.innerHTML = `
-                <button class="cart-action-btn" style="width: 100%; height: 55px; font-size: 1.1rem;" 
-                    onclick="addToCart({id_producto:${p.id_producto}, name:'${p.nombre_prod.replace(/'/g, "\\'")}', precio:${precio}, Linkimg:'${img}', quantity:1}); openProductModal(${p.id_producto});">
+                <button class="cart-action-btn" style="width: 100%; height: 55px; font-size: 1.1rem;">
                     Añadir al carrito
                 </button>
             `;
+            actionsDiv.querySelector('button').onclick = () => {
+                addToCart({ id_producto: p.id_producto, name: p.nombre_prod, precio, Linkimg: img, quantity: 1 });
+                openProductModal(p.id_producto);
+            };
         }
 
         PRODUCT_MODAL.classList.add('is-open');
@@ -4700,8 +4875,96 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
     }
 
     function closeProductModal() {
+        closeLightbox();
         PRODUCT_MODAL.classList.remove('is-open');
         document.body.style.overflow = '';
+    }
+
+    /* ========================================
+       VISOR DE FOTO AMPLIADA
+       Clic en la foto del modal la abre a pantalla completa. Dentro, un clic
+       acerca (2,5x) en el punto tocado y otro vuelve a encajarla; con la foto
+       acercada se recorre arrastrando o con la rueda/scroll.
+       ======================================== */
+    const LIGHTBOX_ZOOM = 2.5;
+    let LIGHTBOX = null, LIGHTBOX_STAGE = null, LIGHTBOX_IMG = null;
+
+    function openLightbox() {
+        const modalImg = document.getElementById('modal-product-img');
+        if (!LIGHTBOX || document.getElementById('modal-product-zoom').classList.contains('sin-foto')) return;
+        LIGHTBOX_IMG.src = modalImg.currentSrc || modalImg.src;
+        LIGHTBOX_IMG.alt = modalImg.alt;
+        setLightboxZoom(false);
+        LIGHTBOX.classList.add('is-open');
+        LIGHTBOX.querySelector('.product-lightbox-close').focus();
+    }
+
+    function closeLightbox() {
+        if (!LIGHTBOX?.classList.contains('is-open')) return;
+        LIGHTBOX.classList.remove('is-open');
+        setLightboxZoom(false);
+        document.getElementById('modal-product-zoom')?.focus();
+    }
+
+    // punto = {x, y} en proporción (0..1) de la foto, para centrar ahí el zoom
+    function setLightboxZoom(acercar, punto = { x: 0.5, y: 0.5 }) {
+        if (!acercar) {
+            LIGHTBOX?.classList.remove('is-zoomed');
+            if (LIGHTBOX_IMG) LIGHTBOX_IMG.style.width = '';
+            return;
+        }
+        const anchoEncajado = LIGHTBOX_IMG.getBoundingClientRect().width;
+        LIGHTBOX.classList.add('is-zoomed');
+        LIGHTBOX_IMG.style.width = `${Math.round(anchoEncajado * LIGHTBOX_ZOOM)}px`;
+        LIGHTBOX_STAGE.scrollLeft = punto.x * LIGHTBOX_IMG.offsetWidth - LIGHTBOX_STAGE.clientWidth / 2;
+        LIGHTBOX_STAGE.scrollTop  = punto.y * LIGHTBOX_IMG.offsetHeight - LIGHTBOX_STAGE.clientHeight / 2;
+    }
+
+    function initLightbox() {
+        LIGHTBOX = document.getElementById('product-lightbox');
+        LIGHTBOX_STAGE = LIGHTBOX.querySelector('.product-lightbox-stage');
+        LIGHTBOX_IMG = document.getElementById('product-lightbox-img');
+
+        document.getElementById('modal-product-zoom').addEventListener('click', openLightbox);
+        LIGHTBOX.querySelector('.product-lightbox-close').addEventListener('click', closeLightbox);
+
+        // Arrastrar para recorrer la foto acercada. Si el puntero se movió, el
+        // clic que sigue no cambia el zoom.
+        let arrastre = null;
+        LIGHTBOX_STAGE.addEventListener('pointerdown', (e) => {
+            if (!LIGHTBOX.classList.contains('is-zoomed') || e.pointerType !== 'mouse') return;
+            arrastre = { x: e.clientX, y: e.clientY, left: LIGHTBOX_STAGE.scrollLeft, top: LIGHTBOX_STAGE.scrollTop, movido: false };
+            LIGHTBOX.classList.add('is-panning');
+        });
+        window.addEventListener('pointermove', (e) => {
+            if (!arrastre) return;
+            const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y;
+            if (Math.abs(dx) + Math.abs(dy) > 4) arrastre.movido = true;
+            LIGHTBOX_STAGE.scrollLeft = arrastre.left - dx;
+            LIGHTBOX_STAGE.scrollTop  = arrastre.top - dy;
+        });
+        window.addEventListener('pointerup', () => {
+            if (!arrastre) return;
+            LIGHTBOX.classList.remove('is-panning');
+            // El click llega justo después de este pointerup y todavía ve el
+            // arrastre (para ignorarse si hubo movimiento); luego se limpia.
+            const fin = arrastre;
+            setTimeout(() => { if (arrastre === fin) arrastre = null; }, 0);
+        });
+
+        LIGHTBOX_STAGE.addEventListener('click', (e) => {
+            if (arrastre?.movido) return;
+            if (e.target !== LIGHTBOX_IMG) {
+                // clic en el fondo oscuro: cierra si la foto está encajada
+                if (!LIGHTBOX.classList.contains('is-zoomed')) closeLightbox();
+                return;
+            }
+            const r = LIGHTBOX_IMG.getBoundingClientRect();
+            setLightboxZoom(!LIGHTBOX.classList.contains('is-zoomed'), {
+                x: (e.clientX - r.left) / r.width,
+                y: (e.clientY - r.top) / r.height
+            });
+        });
     }
 
     // Cerrar modal al hacer click fuera (se registra cuando el DOM ya tiene el modal)
@@ -4710,11 +4973,14 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
         PRODUCT_MODAL.addEventListener('click', (e) => {
             if (e.target === PRODUCT_MODAL) closeProductModal();
         });
+        initLightbox();
     });
 
-    // ESC para cerrar
+    // ESC: primero cierra la foto ampliada; si no hay, el modal
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && PRODUCT_MODAL.classList.contains('is-open')) closeProductModal();
+        if (e.key !== 'Escape') return;
+        if (LIGHTBOX?.classList.contains('is-open')) closeLightbox();
+        else if (PRODUCT_MODAL?.classList.contains('is-open')) closeProductModal();
     });
 
     // Cerrar dropdown al hacer click fuera
@@ -4741,7 +5007,10 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
             <button class="product-modal-close" onclick="closeProductModal()" aria-label="Cerrar">&times;</button>
             <div class="product-modal-grid">
                 <div class="product-modal-left">
-                    <img id="modal-product-img" src="" alt="" class="product-modal-image">
+                    <button type="button" id="modal-product-zoom" class="product-modal-zoom" aria-label="Ampliar foto">
+                        <img id="modal-product-img" src="" alt="" class="product-modal-image">
+                        <span class="product-modal-zoom-hint"><i class="fa-solid fa-magnifying-glass-plus"></i> Ampliar</span>
+                    </button>
                 </div>
                 <div class="product-modal-info">
                     <h2 id="modal-product-title"></h2>
@@ -4776,6 +5045,14 @@ function renderPagerByTypeAndSize(page, totalPages, tipo, medida){
                 </div>
             </div>
         </div>
+    </div>
+    <!-- Visor de foto ampliada -->
+    <div id="product-lightbox" class="product-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+        <button type="button" class="product-lightbox-close" aria-label="Cerrar foto">&times;</button>
+        <div class="product-lightbox-stage">
+            <img id="product-lightbox-img" class="product-lightbox-img" src="" alt="">
+        </div>
+        <p class="product-lightbox-hint">Haz clic en la foto para acercar · Esc para cerrar</p>
     </div>
 </body>
 </html>

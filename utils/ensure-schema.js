@@ -71,6 +71,31 @@ async function asegurarColumnas(tabla, columnas, etiqueta) {
   }
 }
 
+// nombre_prod nació como VARCHAR(45) y los nombres nuevos del catálogo no caben
+// ("Pino Insigne Seco Cepillado Tabla 1x4x3.20 mts." son 47 caracteres): MySQL
+// rechazaba el INSERT y el panel solo decía "no se pudo guardar". Ampliar un
+// VARCHAR no toca los datos existentes. Se conservan charset, collation y comentario.
+export const LARGO_NOMBRE_PRODUCTO = 100;
+
+export async function ensureNombreProductoAmplio() {
+  try {
+    const [rows] = await pool.query(
+      `SELECT CHARACTER_MAXIMUM_LENGTH AS largo FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'productos' AND COLUMN_NAME = 'nombre_prod'`
+    );
+    const largo = Number(rows[0]?.largo || 0);
+    if (!largo || largo >= LARGO_NOMBRE_PRODUCTO) return;
+
+    await pool.query(
+      `ALTER TABLE productos MODIFY nombre_prod VARCHAR(${LARGO_NOMBRE_PRODUCTO})
+         CHARACTER SET utf8mb4 COLLATE utf8mb4_spanish_ci DEFAULT NULL COMMENT 'Nombre del producto'`
+    );
+    console.log(`[SCHEMA] productos.nombre_prod ampliado de ${largo} a ${LARGO_NOMBRE_PRODUCTO} caracteres.`);
+  } catch (e) {
+    console.error('[SCHEMA] no se pudo ampliar productos.nombre_prod:', e?.message || e);
+  }
+}
+
 export async function ensurePasswordResetColumns() {
   await asegurarColumnas('usuarios', RESET_COLUMNS, 'recuperación de contraseña');
 }
@@ -85,4 +110,5 @@ export async function ensureSchema() {
   await ensurePasswordResetColumns();
   await ensureAntiAbuseColumns();
   await ensureTablaAuditoria();
+  await ensureNombreProductoAmplio();
 }
