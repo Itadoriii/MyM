@@ -42,9 +42,11 @@ export async function login(req, res) {
   }
 
   try {
+    // Se acepta el nombre de usuario o el correo. Si por algún dato antiguo
+    // coinciden ambos en cuentas distintas, gana la coincidencia por usuario.
     const [rows] = await pool.query(
-      'SELECT id_usuarios, `password` AS pass, email_verificado_at, `role`, bloqueado FROM usuarios WHERE `user`=? LIMIT 1',
-      [user]
+      'SELECT id_usuarios, `user` AS username, `password` AS pass, email_verificado_at, `role`, bloqueado FROM usuarios WHERE `user`=? OR email=? ORDER BY (`user`=?) DESC LIMIT 1',
+      [user, user.toLowerCase(), user]
     );
 
     if (!rows.length) {
@@ -82,7 +84,7 @@ export async function login(req, res) {
 
     // 🔐 Firmar JWT y guardarlo en cookie httpOnly
     //    (el util setAuthCookie ya configura httpOnly/sameSite/secure/maxAge)
-    const payload = { uid: u.id_usuarios, user, role: u.role };
+    const payload = { uid: u.id_usuarios, user: u.username, role: u.role };
     const token = signJWT(payload);
     setAuthCookie(res, token);
 
